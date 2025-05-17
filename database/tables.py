@@ -26,3 +26,14 @@ class User(Base):
     # firstname: Mapped[str] = mapped_column(nullable=True)
     # lastname: Mapped[str] = mapped_column(nullable=True)
     created_at: Mapped[datetime.datetime]
+    role: Mapped[str] = mapped_column()
+    lang: Mapped[str] = mapped_column()
+
+
+class AllowedUsers(Base):
+    """Tg id пользователей, которым разрешен доступ в бота"""
+    __tablename__ = "allowed_users"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tg_id: Mapped[str] = mapped_column(index=True, unique=True)
+

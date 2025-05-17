@@ -10,6 +10,7 @@ from database.database import async_engine
 from database.tables import Base
 
 from middlewares.database import DatabaseMiddleware
+from middlewares.admin import AdminMiddleware
 
 from routers import main_router
 
@@ -78,8 +79,8 @@ async def start_bot() -> None:
     # MIDDLEWARES
     dp.message.middleware(DatabaseMiddleware())
     dp.callback_query.middleware(DatabaseMiddleware())
-    # dp.message.middleware(AdminMiddleware())
-    # dp.callback_query.middleware(AdminMiddleware())
+    dp.message.middleware(AdminMiddleware())
+    dp.callback_query.middleware(AdminMiddleware())
 
     # TODO  dev version
     await init_models()
