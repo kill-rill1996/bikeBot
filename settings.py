@@ -16,9 +16,9 @@ class Database(BaseSettings):
         return f"postgresql+asyncpg://{self.postgres_user}:{self.postgres_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
 
 
-# class Redis(BaseSettings):
-#     redis_port: str = "6379"
-#     redis_password: str = Field(..., env='REDIS_PASSWORD')
+class Redis(BaseSettings):
+    redis_port: str = "6379"
+    redis_password: str = Field(..., env='REDIS_PASSWORD')
 
 
 class Settings(BaseSettings):
@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     admins: list = Field(..., env='ADMINS')
 
     db: Database = Database()
-    # redis: Redis = Redis()
+    redis: Redis = Redis()
 
     timezone: str = "Europe/Moscow"
     roles: dict = {

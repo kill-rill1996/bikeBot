@@ -1,4 +1,5 @@
 import asyncio
+import asyncpg
 
 import aiogram as io
 from aiogram.client.default import DefaultBotProperties
@@ -10,6 +11,8 @@ from cache import r
 
 from database.database import async_engine
 from database.tables import Base
+from database.orm import AsyncOrm
+from middlewares.allow_users import AllowUsers
 
 from middlewares.database import DatabaseMiddleware
 from middlewares.admin import AdminMiddleware
@@ -23,7 +26,6 @@ from settings import settings
 # from handlers import main_router
 # from handlers.buttons import commands as cmd
 # from schedulers import scheduler as scheduler_funcs
-
 
 
 async def set_commands(bot: io.Bot):
@@ -81,12 +83,22 @@ async def start_bot() -> None:
     dp.callback_query.middleware(DatabaseMiddleware())
     dp.message.middleware(AdminMiddleware())
     dp.callback_query.middleware(AdminMiddleware())
+    dp.message.middleware(AllowUsers())
+    dp.callback_query.middleware(AllowUsers())
 
     # TODO  dev version
     await init_models()
 
     # добавляем в кэш ids пользователей
-
+    db_session = await asyncpg.connect(
+        user=settings.db.postgres_user,
+        host=settings.db.postgres_host,
+        password=settings.db.postgres_password,
+        port=settings.db.postgres_port,
+        database=settings.db.postgres_db
+    )
+    allow_user_ids = await AsyncOrm.get_allow_users(session=db_session)
+    r.sadd("allowed_users", *allow_user_ids)
 
     await dp.start_polling(bot)
 

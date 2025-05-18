@@ -1,5 +1,5 @@
 import datetime
-from typing import Any
+from typing import Any, List
 
 from logger import logger
 
@@ -42,5 +42,18 @@ class AsyncOrm:
         pass
 
     @staticmethod
-    async def get_allow_users(session: Any):
-        pass
+    async def get_allow_users(session: Any) -> List[str]:
+        """Получение id всех пользователей из allowed_users"""
+        try:
+            query = await session.fetch(
+                """
+                SELECT tg_id
+                FROM allowed_users
+                """,
+            )
+
+            ids = [row["tg_id"] for row in query]
+            return ids
+
+        except Exception as e:
+            logger.error(f"Ошибка получения всех id из allowed_users: {e}")

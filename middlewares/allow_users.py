@@ -20,13 +20,13 @@ class AllowUsers(BaseMiddleware):
 
     def _check_user_access(self, event: TelegramObject) -> bool:
         try:
-            cached_data = r.smembers("allow_users")
+            cached_data = r.smembers("allowed_users")
             print(cached_data)
             print(type(cached_data))
 
             if cached_data:
                 return str(event.from_user.id) in cached_data
             else:
-                pass
+                print("No cache data")
         except Exception:
             return False
