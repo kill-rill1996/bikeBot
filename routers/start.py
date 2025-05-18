@@ -39,13 +39,14 @@ async def start_handler(message: types.Message | types.CallbackQuery, session: A
             await message.message.edit_text(text, reply_markup=kb.pick_language().as_markup())
 
     else:
-        user_lang = str(r.get(f"lang:{tg_id}"))
-        print(user_lang)
-        print(type(user_lang))
+        user_lang = r.get(f"lang:{tg_id}")
 
         if not user_lang:
             user_lang = await AsyncOrm.get_user_language(session, tg_id)
-            # todo add to cache
+            # добавляем язык для пользователя в кэш
+            r.set(f"lang:{tg_id}", user_lang)
+        else:
+            user_lang = user_lang.decode()
 
         # переводим пользователя на главное меню
         text = translator.t("main_menu", user_lang)
