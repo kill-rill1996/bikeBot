@@ -29,6 +29,13 @@ class Settings(BaseSettings):
     # redis: Redis = Redis()
 
     timezone: str = "Europe/Moscow"
+    roles: dict = {
+        "mech": "mechanic",
+        "admin": "admin",
+        "sa": "super admin"
+    }
+
+    translation_file: str = "translations.json"
 
 
 settings = Settings()

@@ -22,12 +22,11 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     tg_id: Mapped[str] = mapped_column(index=True, unique=True)
-    # username: Mapped[str] = mapped_column(nullable=True)
-    # firstname: Mapped[str] = mapped_column(nullable=True)
-    # lastname: Mapped[str] = mapped_column(nullable=True)
+    tg_username: Mapped[str] = mapped_column(nullable=True)
+    username: Mapped[str] = mapped_column(nullable=False)
     created_at: Mapped[datetime.datetime]
-    role: Mapped[str] = mapped_column()
-    lang: Mapped[str] = mapped_column()
+    role: Mapped[str] = mapped_column()  # admin, mechanic
+    lang: Mapped[str] = mapped_column()  # en, ru, es
 
 
 class AllowedUsers(Base):
@@ -36,4 +35,5 @@ class AllowedUsers(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     tg_id: Mapped[str] = mapped_column(index=True, unique=True)
+
 

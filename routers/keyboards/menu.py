@@ -13,3 +13,15 @@ def main_menu_keyboard(admin: bool) -> InlineKeyboardBuilder:
 
     return keyboard
 
+
+def pick_language() -> InlineKeyboardBuilder:
+    """Клавиатура для выбора языка"""
+    keyboard = InlineKeyboardBuilder()
+
+    keyboard.row(
+        InlineKeyboardButton(text="🇷🇺 Русский", callback_data="lang_ru"),
+        InlineKeyboardButton(text="🇺🇸 English", callback_data="lang_en"),
+        InlineKeyboardButton(text="🇪🇸 Español", callback_data="lang_es"),
+    )
+
+    return keyboard
