@@ -98,7 +98,8 @@ async def start_bot() -> None:
         database=settings.db.postgres_db
     )
     allow_user_ids = await AsyncOrm.get_allow_users(session=db_session)
-    r.sadd("allowed_users", *allow_user_ids)
+    for tg_id in allow_user_ids:
+        r.set(f"allowed_users:{tg_id}", "allowed")
 
     await dp.start_polling(bot)
 
