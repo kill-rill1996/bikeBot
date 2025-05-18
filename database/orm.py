@@ -38,5 +38,9 @@ class AsyncOrm:
             logger.error(f"Ошибка при создании пользователя tg_id {tg_id}: {e}")
 
     @staticmethod
-    async def get_user(session):
+    async def get_user(session: Any):
+        pass
+
+    @staticmethod
+    async def get_allow_users(session: Any):
         pass

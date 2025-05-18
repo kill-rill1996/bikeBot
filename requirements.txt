@@ -3,3 +3,4 @@ pydantic-settings
 SQLAlchemy
 asyncpg
 loguru
+redis==5.2.1

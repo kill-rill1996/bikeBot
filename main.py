@@ -6,6 +6,7 @@ from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import BotCommand, BotCommandScopeDefault
 # from apscheduler.schedulers.asyncio import AsyncIOScheduler
+from cache import r
 
 from database.database import async_engine
 from database.tables import Base
@@ -83,6 +84,9 @@ async def start_bot() -> None:
 
     # TODO  dev version
     await init_models()
+
+    # добавляем в кэш ids пользователей
+
 
     await dp.start_polling(bot)
 

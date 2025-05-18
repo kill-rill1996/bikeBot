@@ -32,7 +32,7 @@ async def start_handler(message: types.Message, session: Any, admin: bool, state
         await message.answer("Выберите язык / Choose language / Elija idioma:", reply_markup=kb.pick_language().as_markup())
 
     else:
-        user = await AsyncOrm.
+        user = await AsyncOrm.get_user(session)
         # переводим пользователя на главное меню
         translator.t("Главное меню")
         await message.answer("Главное меню", reply_markup=kb.main_menu_keyboard(admin).as_markup())
