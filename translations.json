@@ -1,5 +1,7 @@
 {
   "en": {
+    "input_name": "enter your name (eg John Doe)",
+    "name_error": "Incorrect username entered, please try again",
     "language_set": "Language set to English ✅",
     "welcome": "Welcome to OrangeFoxTours Statistics!",
     "repair_department": "Repair Department",
@@ -156,6 +158,8 @@
     "chart_error": "❌ Failed to generate chart. Not enough data."
   },
   "ru": {
+    "input_name": "Введите ваше имя (например Джон Доу)",
+    "name_error": "Введено некорректное имя пользователя, попробуйте еще раз",
     "language_set": "Язык установлен: Русский ✅",
     "welcome": "Добро пожаловать в OrangeFoxTours Statistics!",
     "repair_department": "Отдел ремонта",
@@ -312,6 +316,8 @@
     "chart_error": "❌ Не удалось сгенерировать график. Недостаточно данных."
   },
   "es": {
+    "name_error": "Nombre de usuario incorrecto ingresado, por favor inténtelo nuevamente",
+    "input_name": "Ingrese su nombre (por ejemplo, John Doe)",
     "language_set": "Idioma configurado: Español ✅",
     "welcome": "¡Bienvenido a OrangeFoxTours Statistics!",
     "repair_department": "Departamento de reparación",

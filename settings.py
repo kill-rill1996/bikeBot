@@ -34,6 +34,11 @@ class Settings(BaseSettings):
         "admin": "admin",
         "sa": "super admin"
     }
+    languages: dict = {
+        "en": "English",
+        "ru": "Русский",
+        "es": "Español",
+    }
 
     translation_file: str = "translations.json"
 

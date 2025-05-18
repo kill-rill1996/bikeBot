@@ -12,6 +12,7 @@ router = Router()
 @router.callback_query(F.data == "main-menu")
 async def show_main_menu(callback: types.CallbackQuery, admin: bool) -> None:
     """Вывод главного меню"""
+
     await callback.message.edit_text("Главное меню", reply_markup=kb.main_menu_keyboard(admin).as_markup())
 
 

@@ -3,6 +3,8 @@ from typing import Any
 
 from logger import logger
 
+from schemas.users import User
+
 
 class AsyncOrm:
 
@@ -20,7 +22,6 @@ class AsyncOrm:
         except Exception as e:
             logger.error(f"Ошибка при проверке регистрации пользователя {tg_id}: {e}")
 
-
     @staticmethod
     async def create_user(session: Any, tg_id: str, tg_username: str, username: str, role: str, lang: str):
         """Создает пользователя"""
@@ -33,14 +34,43 @@ class AsyncOrm:
                 """,
                 tg_id, tg_username, username, created_at, role, lang
             )
-            logger.info(f"Зарегистрировался пользователь tg_id: {tg_id}")
+            logger.info(f"Успешно создан пользователь tg_id: {tg_id}")
         except Exception as e:
             logger.error(f"Ошибка при создании пользователя tg_id {tg_id}: {e}")
 
     @staticmethod
-    async def get_user(session: Any):
-        pass
+    async def get_user_by_tg_id(session: Any, tg_id: str) -> User:
+        """Получает пользователя"""
+        try:
+            row = await session.fetch(
+                """
+                SELECT * FROM users
+                WHERE tg_id=$1
+                """,
+                tg_id
+            )
+            user = User.model_validate(row)
+            return user
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении пользователя {tg_id}: {e}")
 
     @staticmethod
     async def get_allow_users(session: Any):
         pass
+
+    @staticmethod
+    async def get_user_language(session: Any, tg_id: str) -> str:
+        """Получение языка пользователя"""
+        try:
+            lang = await session.fetchval(
+                """
+                SELECT lang FROM users
+                WHERE tg_id=$1
+                """,
+                tg_id
+            )
+            return lang
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении языка пользователя {tg_id}: {e}")
