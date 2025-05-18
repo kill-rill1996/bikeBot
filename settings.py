@@ -32,7 +32,7 @@ class Settings(BaseSettings):
     roles: dict = {
         "mech": "mechanic",
         "admin": "admin",
-        "sa": "super admin"
+        "su": "super user"
     }
     languages: dict = {
         "en": "English",
@@ -40,7 +40,7 @@ class Settings(BaseSettings):
         "es": "Español",
     }
 
-    translation_file: str = "translations.json"
+    translation_file: str = "translations1.json"
 
 
 settings = Settings()

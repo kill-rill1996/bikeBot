@@ -81,12 +81,8 @@ async def get_username_from_text(message: types.Message, state: FSMContext, sess
         lang=lang
     )
 
-    # TODO нужен перевод
-    text = "asdfsfds{name}".format(name="DOW")
-    print(text)
-    await message.answer(f"Ваш профиль {name} успешно создан ✅\n"
-                         f"Язык установлен: {settings.languages[lang]}"
-                         f"\n<i>Вы всегда можете изменить имя и язык в ⚙️ Настройках</i>")
+    text = translator.t("success_creation", lang).format(name, settings.languages[lang])
+    await message.answer(text)
 
     # переводим в главное меню
     text = translator.t("main_menu", lang)

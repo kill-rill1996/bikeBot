@@ -1,0 +1,20 @@
+{
+  "en": {
+    "input_name": "Enter your name (eg John Doe)",
+    "name_error": "Incorrect username entered, please try again",
+    "success_creation": "Your profile {0} has been successfully created ✅\nLanguage set: {1}\n<i>You can always change the name and language in ⚙️ Settings</i>",
+    "main_menu": "Main Menu"
+  },
+  "ru": {
+    "input_name": "Введите ваше имя (например Джон Доу)",
+    "name_error": "Введено некорректное имя пользователя, попробуйте еще раз",
+    "success_creation": "Ваш профиль {0} успешно создан ✅\nЯзык установлен: {1}\n<i>Вы всегда можете изменить имя и язык в ⚙️ Настройках</i>",
+    "main_menu": "Главное меню"
+  },
+  "es": {
+    "name_error": "Nombre de usuario incorrecto ingresado, por favor inténtelo nuevamente",
+    "input_name": "Ingrese su nombre (por ejemplo, John Doe)",
+    "success_creation": "Tu perfil {0} ha sido creado exitosamente ✅\nIdioma instalado: {1}\n<i>Siempre puedes cambiar el nombre y el idioma en ⚙️ Configuración</i>",
+    "main_menu": "Menú Principal"
+  }
+}

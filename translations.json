@@ -2,6 +2,7 @@
   "en": {
     "input_name": "enter your name (eg John Doe)",
     "name_error": "Incorrect username entered, please try again",
+    "success_creation": "Your profile {0} has been successfully created ✅\nLanguage set: {1}\n<i>You can always change the name and language in ⚙️ Settings</i>",
     "language_set": "Language set to English ✅",
     "welcome": "Welcome to OrangeFoxTours Statistics!",
     "repair_department": "Repair Department",
@@ -11,7 +12,6 @@
     "access_denied": "Access denied. You are not authorized.",
     "input_data": "Input data for today",
     "input_data_other_day": "Enter data for another day",
-    "history_entries": "History entries",
     "choose_equipment": "Choose equipment type:",
     "bicycles": "Bicycles",
     "e_bikes": "E-Bikes",
@@ -160,6 +160,7 @@
   "ru": {
     "input_name": "Введите ваше имя (например Джон Доу)",
     "name_error": "Введено некорректное имя пользователя, попробуйте еще раз",
+    "success_creation": "Ваш профиль {0} успешно создан ✅\nЯзык установлен: {1}\n<i>Вы всегда можете изменить имя и язык в ⚙️ Настройках</i>",
     "language_set": "Язык установлен: Русский ✅",
     "welcome": "Добро пожаловать в OrangeFoxTours Statistics!",
     "repair_department": "Отдел ремонта",
@@ -303,7 +304,6 @@
     "enter_new_quantity": "Введите новое количество:",
     "entry_updated": "Запись успешно обновлена",
     "history_for_date": "История за {date}:",
-    "history_entries": "История записей",
     "entry_details": "Детали записи",
     "yes": "Да",
     "no": "Нет",
@@ -318,6 +318,7 @@
   "es": {
     "name_error": "Nombre de usuario incorrecto ingresado, por favor inténtelo nuevamente",
     "input_name": "Ingrese su nombre (por ejemplo, John Doe)",
+    "success_creation": "Tu perfil {0} ha sido creado exitosamente ✅\nIdioma instalado: {1}\n<i>Siempre puedes cambiar el nombre y el idioma en ⚙️ Configuración</i>",
     "language_set": "Idioma configurado: Español ✅",
     "welcome": "¡Bienvenido a OrangeFoxTours Statistics!",
     "repair_department": "Departamento de reparación",
@@ -327,7 +328,6 @@
     "access_denied": "Acceso denegado. No estás autorizado.",
     "input_data": "Ingresar datos para hoy",
     "input_data_other_day": "Ingresar datos de otro día",
-    "history_entries": "Historial de entradas",
     "choose_equipment": "Seleccione el tipo de equipo:",
     "bicycles": "Bicicletas",
     "e_bikes": "Bicicletas eléctricas",
