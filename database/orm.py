@@ -1,5 +1,5 @@
 import datetime
-from typing import Any
+from typing import Any, List
 
 from logger import logger
 
@@ -56,10 +56,6 @@ class AsyncOrm:
             logger.error(f"Ошибка при получении пользователя {tg_id}: {e}")
 
     @staticmethod
-    async def get_allow_users(session: Any):
-        pass
-
-    @staticmethod
     async def get_user_language(session: Any, tg_id: str) -> str:
         """Получение языка пользователя"""
         try:
@@ -74,3 +70,20 @@ class AsyncOrm:
 
         except Exception as e:
             logger.error(f"Ошибка при получении языка пользователя {tg_id}: {e}")
+
+    @staticmethod
+    async def get_allow_users(session: Any) -> List[str]:
+        """Получение id всех пользователей из allowed_users"""
+        try:
+            query = await session.fetch(
+                """
+                SELECT tg_id
+                FROM allowed_users
+                """,
+            )
+
+            ids = [row["tg_id"] for row in query]
+            return ids
+
+        except Exception as e:
+            logger.error(f"Ошибка получения всех id из allowed_users: {e}")

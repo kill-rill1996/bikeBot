@@ -15,18 +15,17 @@ class AllowUsers(BaseMiddleware):
         event: TelegramObject,
         data: dict[str, Any],
     ) -> Any:
-        data["admin"] = self._check_user_access(event)
-        return await handler(event, data)
+        if self._check_user_access(event):
+            return await handler(event, data)
+
+        await event.answer("You don't have access to this bot", show_alert=True)
 
     def _check_user_access(self, event: TelegramObject) -> bool:
         try:
-            cached_data = r.smembers("allow_users")
-            print(cached_data)
-            print(type(cached_data))
-
+            cached_data = r.get(f"allowed_users:{str(event.from_user.id)}")
             if cached_data:
-                return str(event.from_user.id) in cached_data
-            else:
-                pass
+                return True
+            return False
+
         except Exception:
             return False
