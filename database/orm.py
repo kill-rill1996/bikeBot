@@ -50,3 +50,7 @@ class AsyncOrm:
             logger.info(f"Зарегистрировался пользователь tg_id: {tg_id}")
         except Exception as e:
             logger.error(f"Ошибка при создании пользователя tg_id {tg_id}: {e}")
+
+    @staticmethod
+    async def get_allow_users(session: Any):
+        pass
