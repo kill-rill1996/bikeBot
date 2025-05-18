@@ -13,12 +13,14 @@ from routers.keyboards import menu as kb
 from utils.translator import translator
 
 from settings import settings
+from cache import r
 
 router = Router()
 
 
 @router.message(Command("start"))
-async def start_handler(message: types.Message, session: Any, admin: bool, state: FSMContext) -> None:
+@router.callback_query(F.data == "cancel_registration")
+async def start_handler(message: types.Message | types.CallbackQuery, session: Any, admin: bool, state: FSMContext) -> None:
     """Обработка команды старт"""
     tg_id = str(message.from_user.id)
 
@@ -29,11 +31,22 @@ async def start_handler(message: types.Message, session: Any, admin: bool, state
     if not user_exists:
         # start FSM
         await state.set_state(RegUsersFSM.lang)
-        await message.answer("Выберите язык / Choose language / Elija idioma:", reply_markup=kb.pick_language().as_markup())
+        text = "Выберите язык / Choose language / Elija idioma:"
+
+        if type(message) == types.Message:
+            await message.answer(text, reply_markup=kb.pick_language().as_markup())
+        else:
+            await message.message.edit_text(text, reply_markup=kb.pick_language().as_markup())
 
     else:
-        # TODO cache
-        user_lang = await AsyncOrm.get_user_language(session, tg_id)
+        user_lang = str(r.get(f"lang:{tg_id}"))
+        print(user_lang)
+        print(type(user_lang))
+
+        if not user_lang:
+            user_lang = await AsyncOrm.get_user_language(session, tg_id)
+            # todo add to cache
+
         # переводим пользователя на главное меню
         text = translator.t("main_menu", user_lang)
         await message.answer(text, reply_markup=kb.main_menu_keyboard(admin).as_markup())
@@ -50,7 +63,7 @@ async def set_username(callback: types.CallbackQuery, state: FSMContext) -> None
     await state.set_state(RegUsersFSM.username)
 
     text = translator.t("input_name", lang)
-    await callback.message.edit_text(text)
+    await callback.message.edit_text(text, reply_markup=kb.cancel_registration(lang).as_markup())
 
 
 @router.message(RegUsersFSM.username)
@@ -87,6 +100,9 @@ async def get_username_from_text(message: types.Message, state: FSMContext, sess
     # переводим в главное меню
     text = translator.t("main_menu", lang)
     await message.answer(text, reply_markup=kb.main_menu_keyboard(admin).as_markup())
+
+    # добавляем язык для пользователя в кэш
+    r.set(f"lang:{tg_id}", lang)
 
 
 
