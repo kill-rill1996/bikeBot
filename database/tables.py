@@ -1,6 +1,7 @@
 import datetime
 
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy import ForeignKey
 
 
 class Base(DeclarativeBase):
@@ -27,6 +28,7 @@ class User(Base):
     created_at: Mapped[datetime.datetime]
     role: Mapped[str] = mapped_column()  # admin, mechanic
     lang: Mapped[str] = mapped_column()  # en, ru, es
+    is_active: Mapped[bool] = mapped_column(default=True)
 
 
 class AllowedUsers(Base):
@@ -36,4 +38,97 @@ class AllowedUsers(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     tg_id: Mapped[str] = mapped_column(index=True, unique=True)
 
+
+class Operation(Base):
+    """Выполненные работы"""
+    __tablename__ = "operations"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    tg_id: Mapped[str] = mapped_column(index=True)
+    transport_id: Mapped[int] = mapped_column(nullable=False)        # bicycles, ebicycles, segways
+    job_id: Mapped[int] = mapped_column(nullable=False)
+    duration: Mapped[int] = mapped_column(nullable=False)       # в минутах
+    location_id: Mapped[int] = mapped_column(nullable=False)
+    comment: Mapped[str] = mapped_column(nullable=True)
+    created_at: Mapped[datetime.datetime]
+    updated_at: Mapped[datetime.datetime] = mapped_column(nullable=True, default=None)
+
+
+class Job(Base):
+    """Разновидности работ"""
+    __tablename__ = "jobs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str] = mapped_column(nullable=False)
+    job_type_id: Mapped[int] = mapped_column(nullable=False)
+
+
+class JobType(Base):
+    """Группы узлов"""
+    __tablename__ = "jobtypes"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str] = mapped_column(nullable=False, unique=True)
+    emoji: Mapped[str] = mapped_column(nullable=True)
+
+    transport_categories: Mapped[list["Category"]] = relationship(
+        back_populates="jobtypes",
+        secondary="categories_jobtypes"
+    )
+
+
+class Transport(Base):
+    """Транспорт"""
+    __tablename__ = "transports"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    category_id: Mapped[int] = mapped_column(nullable=False)
+    subcategory_id: Mapped[int] = mapped_column(nullable=False)
+    serial_number: Mapped[int] = mapped_column(nullable=False, index=True)
+
+
+class Category(Base):
+    """Категории транспорта"""
+    __tablename__ = "categories"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str] = mapped_column(nullable=False, index=True)
+    emoji: Mapped[str] = mapped_column(nullable=True)
+
+    jobtypes: Mapped[list["JobType"]] = relationship(
+        back_populates="transport_categories",
+        secondary="categories_jobtypes"
+    )
+
+
+class CategoryJobtypes(Base):
+    """Many-to-many relationship"""
+    __tablename__ = "categories_jobtypes"
+
+    category_id: Mapped[int] = mapped_column(
+        ForeignKey("categories.id", ondelete="CASCADE"),
+        primary_key=True
+    )
+
+    jobtype_id: Mapped[int] = mapped_column(
+        ForeignKey("jobtypes.id", ondelete="CASCADE"),
+        primary_key=True
+    )
+
+
+class Subcategory(Base):
+    """Подкатегории транспорта"""
+    __tablename__ = "subcategories"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    title: Mapped[str] = mapped_column(nullable=False, index=True)
+    category_id: Mapped[int] = mapped_column(nullable=False, index=True)
+
+
+class Location(Base):
+    """Местоположения"""
+    __tablename__ = "transports"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    name: Mapped[str] = mapped_column(nullable=False, unique=True)
 

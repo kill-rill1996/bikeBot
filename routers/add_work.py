@@ -91,6 +91,7 @@ async def add_work_vehicle_number(message: types.Message, state: FSMContext) -> 
     # если номер неправильный
     if not is_valid_vehicle_number(vehicle_number):
         # отправляем сообщение о необходимости ввести номер еще раз
+        # TODO перевод!!!
         text = f"Номер введен неправильно для категории {data['vehicle_subcategory']}\n" \
                f"Необходимо отправить число от 1 до 100, отправьте номер еще раз"
         msg = await message.answer(text, reply_markup=kb.select_bicycle_number(lang).as_markup())

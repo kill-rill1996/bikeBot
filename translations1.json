@@ -28,7 +28,8 @@
     "frame_and_suspension": "Frame and Suspension",
     "electrical_and_lighting": "Electrical and Lighting",
     "select_work_category": "Select work category:",
-    "select_operation": "Select operation (multiple allowed):"
+    "select_operation": "Select operation (multiple allowed):",
+    "replace_brake_pads": "Replace brake pads"
   },
   "ru": {
     "input_name": "Введите ваше имя (например Джон Доу)",
@@ -59,7 +60,8 @@
     "frame_and_suspension": "Рама и подвеска",
     "electrical_and_lighting": "Электрика и освещение",
     "select_work_category": "Выберите категорию работы:",
-    "select_operation": "Выберите операцию (можно несколько):"
+    "select_operation": "Выберите операцию (можно несколько):",
+    "replace_brake_pads": "Замена тормозных колодок"
   },
   "es": {
     "name_error": "Nombre de usuario incorrecto ingresado, por favor inténtelo nuevamente",
@@ -90,6 +92,7 @@
     "frame_and_suspension": "Cuadro y suspensión",
     "electrical_and_lighting": "Sistema eléctrico e iluminación",
     "select_work_category": "Seleccione la categoría de trabajo:",
-    "select_operation": "Seleccione la operación (puede seleccionar varias):"
+    "select_operation": "Seleccione la operación (puede seleccionar varias):",
+    "replace_brake_pads": "Cambio de pastillas de freno"
   }
 }
