@@ -1,16 +1,16 @@
 from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-from utils.translator import translator
+from utils.translator import translator as t
 
 
-def main_menu_keyboard(admin: bool) -> InlineKeyboardBuilder:
+def main_menu_keyboard(admin: bool, lang: str) -> InlineKeyboardBuilder:
     """Клавиатура главного меню"""
     keyboard = InlineKeyboardBuilder()
 
-    keyboard.row(InlineKeyboardButton(text=f"📋 Учет выполненных работ", callback_data="menu|works-reports"))
+    keyboard.row(InlineKeyboardButton(text=f"📋 {t.t('work_records', lang)}", callback_data="menu|works-records"))
     if admin:
-        keyboard.row(InlineKeyboardButton(text=f"🛠 Администрирование", callback_data="menu|admin"))
-    keyboard.row(InlineKeyboardButton(text=f"⚙️ Настройки", callback_data="menu|settings"))
+        keyboard.row(InlineKeyboardButton(text=f"🛠 {t.t('administration', lang)}", callback_data="menu|admin"))
+    keyboard.row(InlineKeyboardButton(text=f"⚙️ {t.t('settings', lang)}", callback_data="menu|settings"))
 
     return keyboard
 
@@ -31,7 +31,7 @@ def pick_language() -> InlineKeyboardBuilder:
 def cancel_registration(lang: str) -> InlineKeyboardBuilder:
     """Клавиатура для отмены регистрации"""
     keyboard = InlineKeyboardBuilder()
-    text = translator.t("cancel", lang)
+    text = t.t("cancel", lang)
 
     keyboard.row(
         InlineKeyboardButton(text=f"❌ {text}", callback_data="cancel_registration")

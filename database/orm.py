@@ -87,3 +87,19 @@ class AsyncOrm:
 
         except Exception as e:
             logger.error(f"Ошибка получения всех id из allowed_users: {e}")
+
+    @staticmethod
+    async def change_user_language(tg_id: str, lang: str, session: Any) -> None:
+        """Смена языка пользователя"""
+        try:
+            await session.execute(
+                """
+                UPDATE users 
+                SET lang = $1
+                WHERE tg_id = $2 
+                """,
+                lang, tg_id
+            )
+            logger.info(f"Пользователь {tg_id} сменил язык на {lang.upper()}")
+        except Exception as e:
+            logger.error(f"Ошибка при смене языка пользователя {tg_id} на {lang.upper()}: {e}")

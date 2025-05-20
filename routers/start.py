@@ -50,7 +50,7 @@ async def start_handler(message: types.Message | types.CallbackQuery, session: A
 
         # переводим пользователя на главное меню
         text = translator.t("main_menu", user_lang)
-        await message.answer(text, reply_markup=kb.main_menu_keyboard(admin).as_markup())
+        await message.answer(text, reply_markup=kb.main_menu_keyboard(admin, user_lang).as_markup())
 
 
 @router.callback_query(F.data.split("_")[0] == "lang", RegUsersFSM.lang)
@@ -100,7 +100,7 @@ async def get_username_from_text(message: types.Message, state: FSMContext, sess
 
     # переводим в главное меню
     text = translator.t("main_menu", lang)
-    await message.answer(text, reply_markup=kb.main_menu_keyboard(admin).as_markup())
+    await message.answer(text, reply_markup=kb.main_menu_keyboard(admin, lang).as_markup())
 
     # добавляем язык для пользователя в кэш
     r.set(f"lang:{tg_id}", lang)
