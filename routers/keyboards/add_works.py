@@ -1,18 +1,24 @@
 from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
+from typing import List
 
 from routers.buttons import buttons as btn
 from utils.translator import translator as t
+from schemas.categories import Category
 
 
-def add_works_menu_keyboard(lang: str) -> InlineKeyboardBuilder:
+def add_works_menu_keyboard(categories: List[Category], lang: str) -> InlineKeyboardBuilder:
     """Клавиатура меню добавить работу с выбором категории"""
     keyboard = InlineKeyboardBuilder()
 
-    keyboard.row(InlineKeyboardButton(text=f"{t.t('bicycles', lang)}", callback_data="vehicle_category|bicycles"))
-    keyboard.row(InlineKeyboardButton(text=f"{t.t('ebicycles', lang)}", callback_data="vehicle_category|ebicycles"))
-    keyboard.row(InlineKeyboardButton(text=f"{t.t('segways', lang)}", callback_data="vehicle_category|segways"))
-    keyboard.row(InlineKeyboardButton(text=f"{t.t('recent_works', lang)}", callback_data="vehicle_category|recent_works"))
+    for c in categories:
+        text = c.emoji + t.t(c.title, lang)
+        keyboard.row(InlineKeyboardButton(text=text, callback_data=f"vehicle_category|{c.id}"))
+
+    # keyboard.row(InlineKeyboardButton(text=f"{t.t('bicycles', lang)}", callback_data="vehicle_category|bicycles"))
+    # keyboard.row(InlineKeyboardButton(text=f"{t.t('ebicycles', lang)}", callback_data="vehicle_category|ebicycles"))
+    # keyboard.row(InlineKeyboardButton(text=f"{t.t('segways', lang)}", callback_data="vehicle_category|segways"))
+    keyboard.row(InlineKeyboardButton(text=f"{t.t('recent_works', lang)}", callback_data="recent_works"))
 
     back_button: tuple = btn.get_back_button("menu|works-records", lang)
     keyboard.row(

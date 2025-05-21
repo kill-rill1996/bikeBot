@@ -63,7 +63,7 @@ class Job(Base):
     job_type_id: Mapped[int] = mapped_column(nullable=False)
 
 
-class JobType(Base):
+class Jobtype(Base):
     """Группы узлов"""
     __tablename__ = "jobtypes"
 
@@ -95,7 +95,7 @@ class Category(Base):
     title: Mapped[str] = mapped_column(nullable=False, index=True)
     emoji: Mapped[str] = mapped_column(nullable=True)
 
-    jobtypes: Mapped[list["JobType"]] = relationship(
+    jobtypes: Mapped[list["Jobtype"]] = relationship(
         back_populates="transport_categories",
         secondary="categories_jobtypes"
     )
@@ -127,7 +127,7 @@ class Subcategory(Base):
 
 class Location(Base):
     """Местоположения"""
-    __tablename__ = "transports"
+    __tablename__ = "locations"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(nullable=False, unique=True)

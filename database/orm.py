@@ -2,6 +2,7 @@ import datetime
 from typing import Any, List
 
 from logger import logger
+from schemas.categories import Category, Subcategory
 
 from schemas.users import User
 
@@ -103,3 +104,38 @@ class AsyncOrm:
             logger.info(f"Пользователь {tg_id} сменил язык на {lang.upper()}")
         except Exception as e:
             logger.error(f"Ошибка при смене языка пользователя {tg_id} на {lang.upper()}: {e}")
+
+    @staticmethod
+    async def get_all_categories(session: Any) -> List[Category]:
+        """Получение всех категорий транспорта"""
+        try:
+            rows = await session.fetch(
+                """
+                SELECT * 
+                FROM categories;
+                """
+            )
+
+            categories = [Category.model_validate(row) for row in rows]
+            return categories
+
+        except Exception as e:
+            logger.error(f"Ошибка при получение всех категорий транспорта: {e}")
+
+    @staticmethod
+    async def get_subcategories_for_category(category_id: int, session: Any) -> List[Subcategory]:
+        """Получение подкатегорий для категории"""
+        try:
+            rows = await session.fetch("""
+                SELECT * 
+                FROM subcategories
+                WHERE category_id = $1;
+                """, category_id
+            )
+
+            subcategories = [Subcategory.model_validate(row) for row in rows]
+            return subcategories
+
+        except Exception as e:
+            logger.error(f"Ошибка при получение всех подкатегорий для категории транспорта с id {category_id}: {e}")
+

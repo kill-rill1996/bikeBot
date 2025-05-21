@@ -1,3 +1,5 @@
+from typing import Any
+
 from aiogram import Router, F, types
 from aiogram.fsm.context import FSMContext
 
@@ -5,6 +7,7 @@ from cache import r
 from utils.translator import translator as t
 from utils.validations import is_valid_vehicle_number
 from routers.states.add_work import AddWorkFSM
+from database.orm import AsyncOrm
 
 from routers.keyboards import add_works as kb
 
@@ -12,28 +15,37 @@ router = Router()
 
 
 @router.callback_query(F.data == "works|add-works")
-async def add_work_menu(callback: types.CallbackQuery, state: FSMContext) -> None:
+async def add_work_menu(callback: types.CallbackQuery, state: FSMContext, session: Any) -> None:
     """Меню добавить работу. Меню выбора категории"""
     tg_id = str(callback.from_user.id)
     lang = r.get(f"lang:{tg_id}").decode()
+
+    categories = await AsyncOrm.get_all_categories(session)
 
     # начало стейта AddWorkFSM
     await state.set_state(AddWorkFSM.vehicle_category)
 
     text = t.t("select_category", lang)
-    await callback.message.edit_text(text, reply_markup=kb.add_works_menu_keyboard(lang).as_markup())
+    await callback.message.edit_text(text, reply_markup=kb.add_works_menu_keyboard(categories, lang).as_markup())
 
 
 @router.callback_query(F.data.split("|")[0] == "vehicle_category", AddWorkFSM.vehicle_category)
 @router.callback_query(F.data.split("|")[0] == "back_to_choose_subcategory")
-async def add_work_vehicle_category(callback: types.CallbackQuery, state: FSMContext) -> None:
+async def add_work_vehicle_category(callback: types.CallbackQuery, state: FSMContext, session: Any) -> None:
     """Запись категории. Меню выбора подкатегории"""
-    vehicle_category = callback.data.split("|")[1]
+    # TODO recent_works
+    if callback.data == "recent_works":
+        pass
+
+    vehicle_category_id = int(callback.data.split("|")[1])
     tg_id = str(callback.from_user.id)
     lang = r.get(f"lang:{tg_id}").decode()
 
+    # получаем подкатегории
+    subcategories = await AsyncOrm.get_subcategories_for_category(vehicle_category_id, session)
+
     # запись категории в стейт
-    await state.update_data(vehicle_category=vehicle_category)
+    await state.update_data(vehicle_category_id=vehicle_category_id)
 
     # у категории велосипеды еще необходима подкатегория
     # также сюда попадает возврат из ввода номера велосипеда
