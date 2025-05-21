@@ -1,5 +1,8 @@
 import json
 
+from googletrans import Translator as GoogleTrans
+
+
 from settings import settings
 from logger import logger
 
@@ -33,10 +36,26 @@ class Translator:
                 logger.error(f"Unexpected error loading translations: {e}. Using empty cache.")
                 self.translation = {}
 
-    def t(self, key: str, dest_lang: str) -> str:
-        """Перевод строки в необходимый язык"""
+    async def t(self, key: str, dest_lang: str, text: str | None = None) -> str:
+        """
+        Перевод строки в необходимый язык
+        key: str key phrase to translation dictionary
+        text: str | None optional arg for Google translator
+
+        """
+        # получаем необходимый словарь
         language_dictionary = self.translation.get(dest_lang, {})
-        return language_dictionary.get(key, key)
+
+        # по ключу получает необходимый перевод фразы, если фразы нет - None
+        translated_phrase = language_dictionary.get(key, None)
+
+        # если фразу не нашло, переводим через гугл
+        if not translated_phrase:
+            async with GoogleTrans() as google_trans:
+                translated = await google_trans.translate(text=text, dest=dest_lang)
+                return translated.text
+
+        return translated_phrase
 
 
 translator = Translator()

@@ -106,6 +106,10 @@ async def get_username_from_text(message: types.Message, state: FSMContext, sess
     r.set(f"lang:{tg_id}", lang)
 
 
+@router.message(Command("test"))
+async def test_translator(message: types.Message) -> None:
+    result = await translator.t(key="pencil", dest_lang="es", text="🔄 ыдвлаьыдвьалуьд")
+    await message.answer(result)
 
 
 
