@@ -1,4 +1,7 @@
-def is_valid_vehicle_number(number) -> bool:
+from typing import List
+
+
+def is_valid_vehicle_number(number: str, serial_numbers: List[int]) -> bool:
     """Валидация номера велосипеда"""
     try:
         number = int(number)
@@ -6,7 +9,7 @@ def is_valid_vehicle_number(number) -> bool:
         return False
 
     # TODO поправить в соответствии с ТЗ
-    if number < 1 or number > 100:
+    if number not in serial_numbers:
         return False
 
     return True
