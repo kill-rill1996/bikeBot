@@ -4,7 +4,7 @@ from typing import List
 
 from routers.buttons import buttons as btn
 from utils.translator import translator as t
-from schemas.categories import Category
+from schemas.categories import Category, Subcategory
 
 
 def add_works_menu_keyboard(categories: List[Category], lang: str) -> InlineKeyboardBuilder:
@@ -12,7 +12,7 @@ def add_works_menu_keyboard(categories: List[Category], lang: str) -> InlineKeyb
     keyboard = InlineKeyboardBuilder()
 
     for c in categories:
-        text = c.emoji + t.t(c.title, lang)
+        text = c.emoji + " " + t.t(c.title, lang)
         keyboard.row(InlineKeyboardButton(text=text, callback_data=f"vehicle_category|{c.id}"))
 
     # keyboard.row(InlineKeyboardButton(text=f"{t.t('bicycles', lang)}", callback_data="vehicle_category|bicycles"))
@@ -27,16 +27,21 @@ def add_works_menu_keyboard(categories: List[Category], lang: str) -> InlineKeyb
     return keyboard
 
 
-def select_subcategory_keyboard(lang: str) -> InlineKeyboardBuilder:
+def select_subcategory_keyboard(subcategories: List[Subcategory], lang: str) -> InlineKeyboardBuilder:
     """Клавиатура выбора подкатегории (только для категории велосипеды)"""
     keyboard = InlineKeyboardBuilder()
 
     # подкатегории
-    keyboard.row(
-        InlineKeyboardButton(text=f"U", callback_data="vehicle_subcategory|U"),
-        InlineKeyboardButton(text=f"H", callback_data="vehicle_subcategory|H"),
-        InlineKeyboardButton(text=f"C", callback_data="vehicle_subcategory|C")
-    )
+    # title для использования в тексте хендлера
+    for sc in subcategories:
+        keyboard.row().add(InlineKeyboardButton(text=f"{sc.title}", callback_data=f"vehicle_subcategory|{sc.id}|{sc.title}"))
+
+    # подкатегории
+    # keyboard.row(
+    #     InlineKeyboardButton(text=f"U", callback_data="vehicle_subcategory|U"),
+    #     InlineKeyboardButton(text=f"H", callback_data="vehicle_subcategory|H"),
+    #     InlineKeyboardButton(text=f"C", callback_data="vehicle_subcategory|C")
+    # )
 
     # назад
     back_button: tuple = btn.get_back_button("works|add-works", lang)
