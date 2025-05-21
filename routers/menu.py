@@ -44,9 +44,10 @@ async def show_main_menu(callback: types.CallbackQuery, admin: bool, state: FSMC
 
     tg_id = str(callback.from_user.id)
     user_lang = r.get(f"lang:{tg_id}").decode()
-    text = translator.t("main_menu", user_lang)
+    text = await translator.t("main_menu", user_lang)
 
-    await callback.message.edit_text(text, reply_markup=kb.main_menu_keyboard(admin, user_lang).as_markup())
+    keyboard = await kb.main_menu_keyboard(admin, user_lang)
+    await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
 

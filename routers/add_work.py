@@ -25,8 +25,9 @@ async def add_work_menu(callback: types.CallbackQuery, state: FSMContext, sessio
     # начало стейта AddWorkFSM
     await state.set_state(AddWorkFSM.vehicle_category)
 
-    text = t.t("select_category", lang)
-    await callback.message.edit_text(text, reply_markup=kb.add_works_menu_keyboard(categories, lang).as_markup())
+    text = await t.t("select_category", lang)
+    keyboard = await kb.add_works_menu_keyboard(categories, lang)
+    await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
 @router.callback_query(F.data.split("|")[0] == "vehicle_category", AddWorkFSM.vehicle_category)
@@ -47,8 +48,10 @@ async def add_work_vehicle_category(callback: types.CallbackQuery, state: FSMCon
     await state.set_state(AddWorkFSM.vehicle_subcategory)
 
     # предлагаем выбрать подкатегорию
-    text = t.t("select_subcategory", lang)
-    await callback.message.edit_text(text, reply_markup=kb.select_subcategory_keyboard(subcategories, lang).as_markup())
+    text = await t.t("select_subcategory", lang)
+
+    keyboard = await kb.select_subcategory_keyboard(subcategories, lang)
+    await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
 
     # TODO убрать если ненужно
     # # категория не велосипед
@@ -78,7 +81,8 @@ async def add_work_vehicle_subcategory(callback: types.CallbackQuery, state: FSM
     # TODO перевести текст для всех
     text = f"Введите номер велосипеда для подкатегории {vehicle_subcategory_title}"
 
-    msg = await callback.message.edit_text(text, reply_markup=kb.select_bicycle_number(lang).as_markup())
+    keyboard = await kb.select_bicycle_number(lang)
+    msg = await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
     await state.update_data(prev_mess=msg)
 
 
@@ -107,7 +111,8 @@ async def add_work_vehicle_number(message: types.Message, state: FSMContext, ses
         # TODO перевод!!! и поправить сообщение по смыслу
         text = f"Номер введен неправильно для категории {data['subcategory_title']}\n" \
                f"Необходимо отправить число от 1 до 100, отправьте номер еще раз"
-        msg = await message.answer(text, reply_markup=kb.select_bicycle_number(lang).as_markup())
+        keyboard = await kb.select_bicycle_number(lang)
+        msg = await message.answer(text, reply_markup=keyboard.as_markup())
 
         # записываем в предыдущие сообщения
         await state.update_data(prev_mess=msg)
@@ -120,8 +125,10 @@ async def add_work_vehicle_number(message: types.Message, state: FSMContext, ses
         # переходим в стейт AddWorkFSM.work_category
         await state.set_state(AddWorkFSM.work_category)
 
-        text = t.t("select_work_category", lang)
-        await message.answer(text, reply_markup=kb.select_work_category(lang).as_markup())
+        text = await t.t("select_work_category", lang)
+
+        keyboard = await kb.select_work_category(lang)
+        await message.answer(text, reply_markup=keyboard.as_markup())
 
 
 @router.callback_query(F.data.split("|")[0] == "work_category", AddWorkFSM.work_category)
@@ -138,7 +145,7 @@ async def add_work_category(callback: types.CallbackQuery, state: FSMContext) ->
     # записываем категорию работы
     await state.update_data(work_category=work_category)
 
-    text = t.t("select_operation", lang)
+    text = await t.t("select_operation", lang)
     await callback.message.edit_text(text)
 
 

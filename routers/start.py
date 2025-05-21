@@ -49,8 +49,10 @@ async def start_handler(message: types.Message | types.CallbackQuery, session: A
             user_lang = user_lang.decode()
 
         # переводим пользователя на главное меню
-        text = translator.t("main_menu", user_lang)
-        await message.answer(text, reply_markup=kb.main_menu_keyboard(admin, user_lang).as_markup())
+        text = await translator.t("main_menu", user_lang)
+
+        keyboard = await kb.main_menu_keyboard(admin, user_lang)
+        await message.answer(text, reply_markup=keyboard.as_markup())
 
 
 @router.callback_query(F.data.split("_")[0] == "lang", RegUsersFSM.lang)
@@ -63,8 +65,10 @@ async def set_username(callback: types.CallbackQuery, state: FSMContext) -> None
     # меняем state
     await state.set_state(RegUsersFSM.username)
 
-    text = translator.t("input_name", lang)
-    await callback.message.edit_text(text, reply_markup=kb.cancel_registration(lang).as_markup())
+    text = await translator.t("input_name", lang)
+
+    keyboard = await kb.cancel_registration(lang)
+    await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
 @router.message(RegUsersFSM.username)
@@ -76,7 +80,7 @@ async def get_username_from_text(message: types.Message, state: FSMContext, sess
 
     # при пустом имени
     if name == "":
-        text = translator.t("name_error", lang)
+        text = await translator.t("name_error", lang)
         await message.answer(text)
         return
 
@@ -95,12 +99,14 @@ async def get_username_from_text(message: types.Message, state: FSMContext, sess
         lang=lang
     )
 
-    text = translator.t("success_creation", lang).format(name, settings.languages[lang])
+    text = await translator.t("success_creation", lang).format(name, settings.languages[lang])
     await message.answer(text)
 
     # переводим в главное меню
-    text = translator.t("main_menu", lang)
-    await message.answer(text, reply_markup=kb.main_menu_keyboard(admin, lang).as_markup())
+    text = await translator.t("main_menu", lang)
+
+    keyboard = await kb.main_menu_keyboard(admin, lang)
+    await message.answer(text, reply_markup=keyboard.as_markup())
 
     # добавляем язык для пользователя в кэш
     r.set(f"lang:{tg_id}", lang)

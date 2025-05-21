@@ -13,6 +13,7 @@ async def works_reports_menu(callback: types.CallbackQuery) -> None:
     tg_id = str(callback.from_user.id)
     lang = r.get(f"lang:{tg_id}").decode()
 
-    text = "📋 " + t.t("work_records", lang)
+    text = "📋 " + await t.t("work_records", lang)
 
-    await callback.message.edit_text(text=text, reply_markup=kb.works_menu_keyboard(lang).as_markup())
+    keyboard = await kb.works_menu_keyboard(lang)
+    await callback.message.edit_text(text=text, reply_markup=keyboard.as_markup())
