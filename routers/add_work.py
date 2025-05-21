@@ -123,27 +123,26 @@ async def add_work_vehicle_number(message: types.Message, state: FSMContext, ses
         await state.update_data(serial_number=int(serial_number))
 
         # переходим в стейт AddWorkFSM.work_category
-        await state.set_state(AddWorkFSM.work_category)
+        await state.set_state(AddWorkFSM.jobtype)
+
+        # получаем группы узлов для этой категории
+        jobtypes = await AsyncOrm.get_job_types_by_category(category_id, session)
 
         text = await t.t("select_work_category", lang)
 
-        keyboard = await kb.select_work_category(lang)
+        keyboard = await kb.select_work_category(jobtypes, lang)
         await message.answer(text, reply_markup=keyboard.as_markup())
 
 
-@router.callback_query(F.data.split("|")[0] == "work_category", AddWorkFSM.work_category)
+@router.callback_query(F.data.split("|")[0] == "work_jobtype", AddWorkFSM.jobtype)
 async def add_work_category(callback: types.CallbackQuery, state: FSMContext) -> None:
     """Запись категории работы"""
-    work_category = callback.data.split("|")[1]
+    jobtype_id = int(callback.data.split("|")[1])
     tg_id = str(callback.from_user.id)
     lang = r.get(f"lang:{tg_id}").decode()
 
-    # TODO если выбрано прочие
-    if work_category == "other":
-        pass
-
     # записываем категорию работы
-    await state.update_data(work_category=work_category)
+    await state.update_data(jobtype_id=jobtype_id)
 
     text = await t.t("select_operation", lang)
     await callback.message.edit_text(text)

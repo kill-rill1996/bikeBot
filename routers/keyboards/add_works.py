@@ -4,7 +4,7 @@ from typing import List
 
 from routers.buttons import buttons as btn
 from utils.translator import translator as t
-from schemas.categories import Category, Subcategory
+from schemas.categories import Category, Subcategory, Jobtype
 
 
 async def add_works_menu_keyboard(categories: List[Category], lang: str) -> InlineKeyboardBuilder:
@@ -12,7 +12,8 @@ async def add_works_menu_keyboard(categories: List[Category], lang: str) -> Inli
     keyboard = InlineKeyboardBuilder()
 
     for c in categories:
-        text = c.emoji + " " + await t.t(c.title, lang)
+        # учитываем возможность отсутствия эмоджи
+        text = f"{c.emoji + ' ' if c.emoji else ''}" + await t.t(c.title, lang)
         keyboard.row(InlineKeyboardButton(text=text, callback_data=f"vehicle_category|{c.id}"))
 
     # keyboard.row(InlineKeyboardButton(text=f"{t.t('bicycles', lang)}", callback_data="vehicle_category|bicycles"))
@@ -69,19 +70,24 @@ async def select_bicycle_number(lang: str) -> InlineKeyboardBuilder:
     return keyboard
 
 
-async def select_work_category(lang: str) -> InlineKeyboardBuilder:
+async def select_work_category(jobtypes: List[Jobtype], lang: str) -> InlineKeyboardBuilder:
     """Клавиатура выбора категории работы"""
     keyboard = InlineKeyboardBuilder()
 
-    keyboard.row(InlineKeyboardButton(text=f"{await t.t('brake_system', lang)}", callback_data="work_category|brake_system"))
-    keyboard.row(InlineKeyboardButton(text=f"{await t.t('transmission_and_chain', lang)}", callback_data="work_category|transmission_and_chain"))
-    keyboard.row(InlineKeyboardButton(text=f"{await t.t('wheels_and_tires', lang)}", callback_data="work_category|wheels_and_tires"))
-    keyboard.row(InlineKeyboardButton(text=f"{await t.t('steering', lang)}", callback_data="work_category|steering"))
-    keyboard.row(InlineKeyboardButton(text=f"{await t.t('frame_and_suspension', lang)}", callback_data="work_category|frame_and_suspension"))
-    keyboard.row(InlineKeyboardButton(text=f"{await t.t('electrical_and_lighting', lang)}", callback_data="work_category|electrical_and_lighting"))
+    for jobtype in jobtypes:
+        # учитываем возможность отсутствия эмоджи
+        text = f"{jobtype.emoji + ' ' if jobtype.emoji else ''}" + await t.t(jobtype.title, lang)
+        keyboard.row(InlineKeyboardButton(text=text, callback_data=f"work_jobtype|{jobtype.id}"))
+
+    # keyboard.row(InlineKeyboardButton(text=f"{await t.t('brake_system', lang)}", callback_data="work_category|brake_system"))
+    # keyboard.row(InlineKeyboardButton(text=f"{await t.t('transmission_and_chain', lang)}", callback_data="work_category|transmission_and_chain"))
+    # keyboard.row(InlineKeyboardButton(text=f"{await t.t('wheels_and_tires', lang)}", callback_data="work_category|wheels_and_tires"))
+    # keyboard.row(InlineKeyboardButton(text=f"{await t.t('steering', lang)}", callback_data="work_category|steering"))
+    # keyboard.row(InlineKeyboardButton(text=f"{await t.t('frame_and_suspension', lang)}", callback_data="work_category|frame_and_suspension"))
+    # keyboard.row(InlineKeyboardButton(text=f"{await t.t('electrical_and_lighting', lang)}", callback_data="work_category|electrical_and_lighting"))
 
     # прочие
-    keyboard.row(InlineKeyboardButton(text=f"{await t.t('other', lang)}", callback_data="work_category|other"))
+    keyboard.row(InlineKeyboardButton(text=f"{await t.t('other', lang)}", callback_data="other"))
 
     # назад
     back_button: tuple = await btn.get_back_button("works|add-works", lang)

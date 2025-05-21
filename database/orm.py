@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from typing import Any, List
 
 from logger import logger
-from schemas.categories import Category, Subcategory
+from schemas.categories import Category, Subcategory, Jobtype
 
 from schemas.users import User
 
@@ -165,3 +165,22 @@ class AsyncOrm:
         except Exception as e:
             logger.error(f"Ошибка при получение серийных номеров транспорта для "
                          f"категории {category_id} и подкатегории {subcategory_id}: {e}")
+
+    @staticmethod
+    async def get_job_types_by_category(category_id: int, session: Any) -> List[Jobtype]:
+        """Получение групп узлов (Jjobtypes) для категории"""
+        try:
+            rows = await session.fetch(
+                """
+                SELECT j.id, j.title, j.emoji
+                FROM jobtypes j
+                JOIN categories_jobtypes cj ON j.id = cj.jobtype_id 
+                WHERE cj.category_id = $1
+                """,
+                category_id
+            )
+
+            jobtypes = [Jobtype.model_validate(row) for row in rows]
+            return jobtypes
+        except Exception as e:
+            logger.error(f"Ошибка при получение групп узлов для категории {category_id}: {e}")

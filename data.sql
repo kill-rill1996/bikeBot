@@ -25,3 +25,24 @@ INSERT INTO transports (category_id, subcategory_id, serial_number) values (2, 6
 INSERT INTO transports (category_id, subcategory_id, serial_number) values (3, 7, 10);
 INSERT INTO transports (category_id, subcategory_id, serial_number) values (3, 7, 18);
 INSERT INTO transports (category_id, subcategory_id, serial_number) values (3, 8, 10);
+-- JOBTYPES
+INSERT INTO jobtypes (title, emoji) values ('brake_system', '🛑');
+INSERT INTO jobtypes (title, emoji) values ('transmission_and_chain', '⚙️');
+INSERT INTO jobtypes (title) values ('wheels_and_tires');
+INSERT INTO jobtypes (title) values ('steering');
+INSERT INTO jobtypes (title) values ('frame_and_suspension');
+INSERT INTO jobtypes (title) values ('electrical_and_lighting');
+-- CategoryJobtypes
+INSERT INTO categories_jobtypes (category_id, jobtype_id) values (1, 1);
+INSERT INTO categories_jobtypes (category_id, jobtype_id) values (1, 2);
+INSERT INTO categories_jobtypes (category_id, jobtype_id) values (1, 3);
+INSERT INTO categories_jobtypes (category_id, jobtype_id) values (1, 4);
+INSERT INTO categories_jobtypes (category_id, jobtype_id) values (1, 5);
+INSERT INTO categories_jobtypes (category_id, jobtype_id) values (2, 1);
+INSERT INTO categories_jobtypes (category_id, jobtype_id) values (2, 2);
+INSERT INTO categories_jobtypes (category_id, jobtype_id) values (2, 3);
+INSERT INTO categories_jobtypes (category_id, jobtype_id) values (2, 4);
+INSERT INTO categories_jobtypes (category_id, jobtype_id) values (2, 5);
+INSERT INTO categories_jobtypes (category_id, jobtype_id) values (2, 6);
+INSERT INTO categories_jobtypes (category_id, jobtype_id) values (3, 3);
+INSERT INTO categories_jobtypes (category_id, jobtype_id) values (3, 6);
