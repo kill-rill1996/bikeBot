@@ -52,7 +52,7 @@ class Translator:
         # если фразу не нашло, переводим через гугл
         if not translated_phrase:
             async with GoogleTrans() as google_trans:
-                translated = await google_trans.translate(text=text, dest=dest_lang)
+                translated = await google_trans.translate(text=key, dest=dest_lang)
                 return translated.text
 
         return translated_phrase

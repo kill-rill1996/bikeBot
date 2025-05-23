@@ -99,8 +99,8 @@ async def get_username_from_text(message: types.Message, state: FSMContext, sess
         lang=lang
     )
 
-    text = await translator.t("success_creation", lang).format(name, settings.languages[lang])
-    await message.answer(text)
+    text = await translator.t("success_creation", lang)
+    await message.answer(text.format(name, settings.languages[lang]))
 
     # переводим в главное меню
     text = await translator.t("main_menu", lang)

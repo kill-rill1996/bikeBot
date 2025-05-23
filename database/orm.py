@@ -4,7 +4,8 @@ from collections.abc import Mapping
 from typing import Any, List
 
 from logger import logger
-from schemas.categories import Category, Subcategory, Jobtype
+from schemas.categories_and_jobs import Category, Subcategory, Jobtype, Job
+from schemas.location import Location
 
 from schemas.users import User
 
@@ -184,3 +185,39 @@ class AsyncOrm:
             return jobtypes
         except Exception as e:
             logger.error(f"Ошибка при получение групп узлов для категории {category_id}: {e}")
+
+    @staticmethod
+    async def get_all_jobs_by_jobtype_id(jobtype_id: int, session: Any) -> List[Job]:
+        """Получение всех Job для jobtype"""
+        try:
+            rows = await session.fetch(
+                """
+                SELECT *
+                FROM jobs
+                WHERE jobtype_id = $1
+                """,
+                jobtype_id
+            )
+
+            jobs = [Job.model_validate(row) for row in rows]
+            return jobs
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении jobs для jobtype_id {jobtype_id}: {e}")
+
+    @staticmethod
+    async def get_locations(session: Any) -> List[Location]:
+        """Получение всех локаций"""
+        try:
+            rows = await session.fetch(
+                """
+                SELECT *
+                FROM locations
+                """
+            )
+
+            locations = [Location.model_validate(row) for row in rows]
+            return locations
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении всех локаций: {e}")

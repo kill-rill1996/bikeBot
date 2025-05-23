@@ -9,6 +9,12 @@ class Category(BaseModel):
     emoji: str | None = None
 
 
+class Subcategory(BaseModel):
+    id: int
+    title: str
+    category_id: int
+
+
 class CategoryJobtypes(Category):
     jobtypes: List["Jobtype"]
 
@@ -23,8 +29,8 @@ class JobtypeCategories(Jobtype):
     transport_categories: List[Category]
 
 
-class Subcategory(BaseModel):
+class Job(BaseModel):
     id: int
     title: str
-    category_id: int
+    jobtype_id: int
 

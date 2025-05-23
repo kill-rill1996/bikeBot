@@ -3,8 +3,10 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from typing import List
 
 from routers.buttons import buttons as btn
+from schemas.categories_and_jobs import Job
+from schemas.location import Location
 from utils.translator import translator as t
-from schemas.categories import Category, Subcategory, Jobtype
+from schemas.categories_and_jobs import Category, Subcategory, Jobtype
 
 
 async def add_works_menu_keyboard(categories: List[Category], lang: str) -> InlineKeyboardBuilder:
@@ -55,7 +57,7 @@ async def select_subcategory_keyboard(subcategories: List[Subcategory], lang: st
     return keyboard
 
 
-async def select_bicycle_number(lang: str) -> InlineKeyboardBuilder:
+async def select_bicycle_number(category_id: int, lang: str) -> InlineKeyboardBuilder:
     """Клавиатура для ввода номера велосипеда после выбора подкатегории"""
     keyboard = InlineKeyboardBuilder()
 
@@ -64,13 +66,13 @@ async def select_bicycle_number(lang: str) -> InlineKeyboardBuilder:
     keyboard.row(InlineKeyboardButton(text=f"{await t.t('recently_serviced', lang)}", callback_data="recently_serviced"))
 
     # назад
-    back_button: tuple = await btn.get_back_button("back_to_choose_subcategory|bicycles", lang)
+    back_button: tuple = await btn.get_back_button(f"back_to_choose_subcategory|{category_id}", lang)
     keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
 
     return keyboard
 
 
-async def select_work_category(jobtypes: List[Jobtype], lang: str) -> InlineKeyboardBuilder:
+async def select_work_category(jobtypes: List[Jobtype], category_id: int, lang: str) -> InlineKeyboardBuilder:
     """Клавиатура выбора категории работы"""
     keyboard = InlineKeyboardBuilder()
 
@@ -90,8 +92,52 @@ async def select_work_category(jobtypes: List[Jobtype], lang: str) -> InlineKeyb
     keyboard.row(InlineKeyboardButton(text=f"{await t.t('other', lang)}", callback_data="other"))
 
     # назад
-    back_button: tuple = await btn.get_back_button("works|add-works", lang)
+    back_button: tuple = await btn.get_back_button(f"back_to_choose_subcategory|{category_id}", lang)
     keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
 
+    return keyboard
+
+
+async def select_jobs_keyboard(jobs: List[Job], category_id: int, lang: str) -> InlineKeyboardBuilder:
+    """Клавиатура для выбора jobs после выбора группы узлов"""
+    keyboard = InlineKeyboardBuilder()
+
+    for job in jobs:
+        text = await t.t(job.title, lang)
+        keyboard.row(InlineKeyboardButton(text=text, callback_data=f"work_job|{job.id}"))
+
+    # готово
+    # todo доделать
+    keyboard.row(InlineKeyboardButton(text=f"✅ {await t.t('done', lang)}", callback_data="done"))
+
+    # назад
+    back_button: tuple = await btn.get_back_button(f"back_to_jobtype|{category_id}", lang)
+    keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
+
+    return keyboard
+
+
+async def back_from_duration(jobtype_id: int, lang: str) -> InlineKeyboardBuilder:
+    """При вводе времени работы"""
+    keyboard = InlineKeyboardBuilder()
+
+    # назад
+    back_button: tuple = await btn.get_back_button(f"back_to_work_jobtype|{jobtype_id}", lang)
+    keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
+
+    return keyboard
+
+
+async def select_location(locations: List[Location], job_id: int, lang: str) -> InlineKeyboardBuilder:
+    """Для выбора локации"""
+    keyboard = InlineKeyboardBuilder()
+
+    for location in locations:
+        text = await t.t(location.name, lang)
+        keyboard.row(InlineKeyboardButton(text=text, callback_data=f"work_location|{location.id}"))
+
+    # назад
+    back_button: tuple = await btn.get_back_button(f"back_to_work_job|{job_id}", lang)
+    keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
 
     return keyboard

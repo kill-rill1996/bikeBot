@@ -46,3 +46,25 @@ INSERT INTO categories_jobtypes (category_id, jobtype_id) values (2, 5);
 INSERT INTO categories_jobtypes (category_id, jobtype_id) values (2, 6);
 INSERT INTO categories_jobtypes (category_id, jobtype_id) values (3, 3);
 INSERT INTO categories_jobtypes (category_id, jobtype_id) values (3, 6);
+-- JOBS
+INSERT INTO jobs (title, jobtype_id) values ('replace_brake_pads', 1);
+INSERT INTO jobs (title, jobtype_id) values ('adjust_brakes', 1);
+INSERT INTO jobs (title, jobtype_id) values ('check_cables', 1);
+INSERT INTO jobs (title, jobtype_id) values ('work with transmission 1', 2);
+INSERT INTO jobs (title, jobtype_id) values ('work with transmission 2', 2);
+INSERT INTO jobs (title, jobtype_id) values ('work with transmission 3', 2);
+INSERT INTO jobs (title, jobtype_id) values ('replace tires 1', 3);
+INSERT INTO jobs (title, jobtype_id) values ('replace tires 2', 3);
+INSERT INTO jobs (title, jobtype_id) values ('replace tires 3', 3);
+INSERT INTO jobs (title, jobtype_id) values ('work with steering 1', 4);
+INSERT INTO jobs (title, jobtype_id) values ('work with steering 2', 4);
+INSERT INTO jobs (title, jobtype_id) values ('work with steering 3', 4);
+INSERT INTO jobs (title, jobtype_id) values ('work with frame and suspension 1', 5);
+INSERT INTO jobs (title, jobtype_id) values ('work with frame and suspension 2', 5);
+INSERT INTO jobs (title, jobtype_id) values ('work with frame and suspension 3', 5);
+INSERT INTO jobs (title, jobtype_id) values ('work with electric 1', 6);
+INSERT INTO jobs (title, jobtype_id) values ('work with electric 2', 6);
+INSERT INTO jobs (title, jobtype_id) values ('work with electric 3', 6);
+-- LOCATIONS
+INSERT INTO locations (name) values ('first location');
+INSERT INTO locations (name) values ('second location');

@@ -60,7 +60,7 @@ class Job(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(nullable=False)
-    job_type_id: Mapped[int] = mapped_column(nullable=False)
+    jobtype_id: Mapped[int] = mapped_column(nullable=False)
 
 
 class Jobtype(Base):
