@@ -1,5 +1,8 @@
 from aiogram import Router, F, types
+from aiogram_dialog import DialogManager, StartMode
+
 from cache import r
+from routers.dialogs.works.states import MyWorks
 from utils.translator import translator as t
 
 from routers.keyboards import works as kb
@@ -17,3 +20,11 @@ async def works_reports_menu(callback: types.CallbackQuery) -> None:
 
     keyboard = await kb.works_menu_keyboard(lang)
     await callback.message.edit_text(text=text, reply_markup=keyboard.as_markup())
+
+
+@router.callback_query(F.data.split("|")[1] == "my-works")
+async def my_works(callback: types.CallbackQuery, tg_id: str, dialog_manager: DialogManager) -> None:
+    """Мои работы"""
+    lang = r.get(f"lang:{tg_id}").decode()
+
+    await dialog_manager.start(MyWorks.select_period, mode=StartMode.RESET_STACK)

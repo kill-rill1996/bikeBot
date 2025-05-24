@@ -16,6 +16,7 @@ from middlewares.allow_users import AllowUsers
 
 from middlewares.database import DatabaseMiddleware
 from middlewares.admin import AdminMiddleware
+from middlewares.tg_ids import IdMiddleware
 
 from routers import main_router
 from routers.buttons import commands as cmd
@@ -85,6 +86,8 @@ async def start_bot() -> None:
     dp.callback_query.middleware(AdminMiddleware())
     dp.message.middleware(AllowUsers())
     dp.callback_query.middleware(AllowUsers())
+    dp.message.middleware(IdMiddleware())
+    dp.callback_query.middleware(IdMiddleware())
 
     # TODO  dev version
     await init_models()
