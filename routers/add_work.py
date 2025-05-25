@@ -178,10 +178,41 @@ async def add_work_category(callback: types.CallbackQuery, state: FSMContext, se
     data = await state.get_data()
     category_id = data["category_id"]
     page = 1
-    nums_on_page = 4
-    keyboard = await kb.select_jobs_keyboard(jobs, page, nums_on_page, category_id, lang)
+    keyboard = await kb.select_jobs_keyboard(jobs, page, category_id, lang)
 
     await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
+
+
+@router.callback_query(F.data.split("|")[0] == "prev", AddWorkFSM.job)
+@router.callback_query(F.data.split("|")[0] == "next", AddWorkFSM.job)
+async def pagination_handler(callback: types.CallbackQuery, state: FSMContext, session: Any) -> None:
+    """Вспомогательный хендлер для пагинации"""
+    tg_id = str(callback.from_user.id)
+    lang = r.get(f"lang:{tg_id}").decode()
+
+    # wait message
+    wait_text = await t.t("please_wait", lang)
+    wait_message = await callback.message.edit_text(wait_text)
+
+    action = callback.data.split("|")[0]
+    current_page = int(callback.data.split("|")[1])
+
+    # меняем номер страницы
+    if action == "prev":
+        page = current_page - 1
+    else:
+        page = current_page + 1
+
+    # получаем jobs для этого jobtype
+    data = await state.get_data()
+    jobtype_id = data["jobtype_id"]
+    jobs = await AsyncOrm.get_all_jobs_by_jobtype_id(jobtype_id, session)
+
+    text = await t.t("select_operation", lang)
+    # category_id необходимо, чтобы создать кнопку назад
+    category_id = data["category_id"]
+    keyboard = await kb.select_jobs_keyboard(jobs, page, category_id, lang)
+    await wait_message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
 @router.callback_query(F.data.split("|")[0] == "work_job", AddWorkFSM.job)
@@ -304,12 +335,14 @@ async def get_comment(message: types.Message | types.CallbackQuery, state: FSMCo
             pass
 
         comment = message.text
-        waiting_message = await message.answer("Please wait...⏳")
+        wait_text = await t.t("please_wait", lang)
+        waiting_message = await message.answer(wait_text)
 
     # при отсутствии комментария
     else:
         comment = None
-        waiting_message = await message.message.edit_text("Please wait...⏳")
+        wait_text = await t.t("please_wait", lang)
+        waiting_message = await message.message.edit_text(wait_text)
 
     # записываем коммент в стейт
     await state.update_data(comment=comment)

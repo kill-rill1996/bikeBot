@@ -62,7 +62,8 @@
     "work_details": "Work details",
     "vehicle": "Vehicle",
     "edit": "Edit",
-    "delete": "Delete"
+    "delete": "Delete",
+    "please_wait": "Please wait...⏳"
   },
   "ru": {
     "input_name": "Введите ваше имя (например Джон Доу)",
@@ -127,7 +128,8 @@
     "work_details": "Детали работы",
     "vehicle": "Транспорт",
     "edit": "Редактировать",
-    "delete": "удалить"
+    "delete": "Удалить",
+    "please_wait": "Пожалуйста подождите...⏳"
 
   },
   "es": {
@@ -193,6 +195,7 @@
     "work_details": "Detalles del trabajo",
     "vehicle": "Operación",
     "edit": "Editar",
-    "delete": "Eliminar"
+    "delete": "Eliminar",
+    "please_wait": "Espere por favor...⏳"
   }
 }

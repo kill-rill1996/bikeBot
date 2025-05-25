@@ -99,12 +99,22 @@ async def select_work_category(jobtypes: List[Jobtype], category_id: int, lang: 
     return keyboard
 
 
-async def select_jobs_keyboard(jobs: List[Job], page: int, nums_on_page: int, category_id: int, lang: str) -> InlineKeyboardBuilder:
+async def select_jobs_keyboard(jobs: List[Job], page: int, category_id: int, lang: str) -> InlineKeyboardBuilder:
     """Клавиатура для выбора jobs после выбора группы узлов с пагинацией"""
     keyboard = InlineKeyboardBuilder()
 
     # pagination
+    nums_on_page = 4
     pages = get_page_nums(len(jobs), nums_on_page)
+
+    # при переходе с первой на последнюю
+    if page == 0:
+        page = pages
+
+    # при переходе с последней на первую
+    if page > pages:
+        page = 1
+
     start = (page - 1) * nums_on_page
     end = page * nums_on_page
     page_jobs = jobs[start:end]
@@ -118,11 +128,12 @@ async def select_jobs_keyboard(jobs: List[Job], page: int, nums_on_page: int, ca
     keyboard.row(InlineKeyboardButton(text=f"✅ {await t.t('done', lang)}", callback_data="done"))
 
     # pages
-    keyboard.row(
-        InlineKeyboardButton(text=f"<", callback_data="prev"),
-        InlineKeyboardButton(text=f"{page}/{pages}", callback_data="pages"),
-        InlineKeyboardButton(text=f">", callback_data="next")
-    )
+    if len(jobs) > nums_on_page:
+        keyboard.row(
+            InlineKeyboardButton(text=f"<", callback_data=f"prev|{page}"),
+            InlineKeyboardButton(text=f"{page}/{pages}", callback_data="pages"),
+            InlineKeyboardButton(text=f">", callback_data=f"next|{page}")
+        )
 
     # назад
     back_button: tuple = await btn.get_back_button(f"back_to_jobtype|{category_id}", lang)
