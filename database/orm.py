@@ -391,3 +391,19 @@ class AsyncOrm:
         except Exception as e:
             logger.error(
                 f"Ошибка при выборе операции id {operation_id}: {e}")
+
+    @staticmethod
+    async def update_comment(operation_id: int, new_comment: str, session: Any) -> None:
+        """Обновление комментария у сообщения"""
+        try:
+            await session.execute(
+                """
+                UPDATE operations SET comment=$1
+                WHERE id=$2 
+                """,
+                new_comment, operation_id
+            )
+
+        except Exception as e:
+            logger.error(
+                f"Ошибка при обновлении комментария work id {operation_id}: {e}")

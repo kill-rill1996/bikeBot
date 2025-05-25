@@ -58,8 +58,8 @@ async def work_details(lang: str, operation_id: int, period: str) -> InlineKeybo
     keyboard = InlineKeyboardBuilder()
 
     keyboard.row(
-        InlineKeyboardButton(text=await t.t("edit", lang), callback_data=f"edit-work|{operation_id}"),
-        InlineKeyboardButton(text=await t.t("delete", lang), callback_data=f"delete-work|{operation_id}")
+        InlineKeyboardButton(text=await t.t("edit", lang), callback_data=f"edit-work|{operation_id}|{period}"),
+        InlineKeyboardButton(text=await t.t("delete", lang), callback_data=f"delete-work|{operation_id}|{period}")
     )
 
     # кнопка назад
@@ -71,5 +71,45 @@ async def work_details(lang: str, operation_id: int, period: str) -> InlineKeybo
     keyboard.row(
         InlineKeyboardButton(text=await t.t("main_menu", lang), callback_data="main-menu")
     )
+
+    return keyboard
+
+
+async def back_keyboard(lang: str, period: str, operation_id: int) -> InlineKeyboardBuilder:
+    """Клавиатура назад когда уже нельзя менять работу"""
+    keyboard = InlineKeyboardBuilder()
+
+    # кнопка назад
+    back_button: tuple = await btn.get_back_button(f"my-works-list|{operation_id}|{period}", lang)
+    keyboard.row(
+        InlineKeyboardButton(text=back_button[0], callback_data=back_button[1])
+    )
+
+    return keyboard
+
+
+async def confirm_edit_comment_keyboard(lang: str, operation_id: int, period: str) -> InlineKeyboardBuilder:
+    """Клавиатура назад когда уже нельзя менять работу"""
+    keyboard = InlineKeyboardBuilder()
+
+    keyboard.row(
+        InlineKeyboardButton(text=await t.t("save_changes", lang), callback_data="save-changes-comment")
+    )
+
+    # кнопка назад
+    back_button: tuple = await btn.get_back_button(f"my-works-list|{operation_id}|{period}", lang)
+    keyboard.row(
+        InlineKeyboardButton(text=back_button[0], callback_data=back_button[1])
+    )
+
+    return keyboard
+
+
+async def after_comment_updated_keyboard(lang: str ) -> InlineKeyboardBuilder:
+    """Клавиатура после успешного изменения комментария"""
+    keyboard = InlineKeyboardBuilder()
+
+    keyboard.row(InlineKeyboardButton(text=f"🗂 {await t.t('my_works', lang)}", callback_data="works|my-works"))
+    keyboard.row(InlineKeyboardButton(text=await t.t("main_menu", lang), callback_data="main-menu"))
 
     return keyboard
