@@ -12,5 +12,4 @@ class AddWorkFSM(StatesGroup):
     comment = State()
     confirmation = State()
     second_confirmation = State()
-    save = State()
 

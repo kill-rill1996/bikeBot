@@ -63,7 +63,7 @@ async def select_bicycle_number(category_id: int, lang: str) -> InlineKeyboardBu
 
     # последние обслуженные
     # TODO доделать
-    keyboard.row(InlineKeyboardButton(text=f"{await t.t('recently_serviced', lang)}", callback_data="recently_serviced"))
+    # keyboard.row(InlineKeyboardButton(text=f"{await t.t('recently_serviced', lang)}", callback_data="recently_serviced"))
 
     # назад
     back_button: tuple = await btn.get_back_button(f"back_to_choose_subcategory|{category_id}", lang)
@@ -89,6 +89,7 @@ async def select_work_category(jobtypes: List[Jobtype], category_id: int, lang: 
     # keyboard.row(InlineKeyboardButton(text=f"{await t.t('electrical_and_lighting', lang)}", callback_data="work_category|electrical_and_lighting"))
 
     # прочие
+    # TODO сделать прочие (ТО и тд.)
     keyboard.row(InlineKeyboardButton(text=f"{await t.t('other', lang)}", callback_data="other"))
 
     # назад
@@ -98,17 +99,30 @@ async def select_work_category(jobtypes: List[Jobtype], category_id: int, lang: 
     return keyboard
 
 
-async def select_jobs_keyboard(jobs: List[Job], category_id: int, lang: str) -> InlineKeyboardBuilder:
-    """Клавиатура для выбора jobs после выбора группы узлов"""
+async def select_jobs_keyboard(jobs: List[Job], page: int, nums_on_page: int, category_id: int, lang: str) -> InlineKeyboardBuilder:
+    """Клавиатура для выбора jobs после выбора группы узлов с пагинацией"""
     keyboard = InlineKeyboardBuilder()
 
-    for job in jobs:
+    # pagination
+    pages = get_page_nums(len(jobs), nums_on_page)
+    start = (page - 1) * nums_on_page
+    end = page * nums_on_page
+    page_jobs = jobs[start:end]
+
+    for job in page_jobs:
         text = await t.t(job.title, lang)
         keyboard.row(InlineKeyboardButton(text=text, callback_data=f"work_job|{job.id}"))
 
     # готово
-    # todo доделать
+    # TODO доделать
     keyboard.row(InlineKeyboardButton(text=f"✅ {await t.t('done', lang)}", callback_data="done"))
+
+    # pages
+    keyboard.row(
+        InlineKeyboardButton(text=f"<", callback_data="prev"),
+        InlineKeyboardButton(text=f"{page}/{pages}", callback_data="pages"),
+        InlineKeyboardButton(text=f">", callback_data="next")
+    )
 
     # назад
     back_button: tuple = await btn.get_back_button(f"back_to_jobtype|{category_id}", lang)
@@ -194,3 +208,13 @@ async def second_confirmation_keyboard(lang: str) -> InlineKeyboardBuilder:
     keyboard.row(InlineKeyboardButton(text=f"{await t.t('no', lang)}", callback_data="no"))
 
     return keyboard
+
+
+def get_page_nums(items: int, nums_on_page: int) -> int:
+    """Получение количества страниц"""
+    pages = items // nums_on_page
+
+    if items - pages * nums_on_page != 0:
+        pages += 1
+
+    return pages

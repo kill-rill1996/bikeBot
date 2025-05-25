@@ -323,3 +323,23 @@ class AsyncOrm:
             logger.info(f"Записана операция пользователем {operation.tg_id}")
         except Exception as e:
             logger.error(f"Ошибка при создании операции {operation}: {e}")
+
+    @staticmethod
+    async def get_operation_by_params(transport_id: int, job_id: int, location_id: int, session: Any) -> Operation | None:
+        """Получение операции по параметрам, не позднее дня"""
+        check_date = datetime.datetime.now() - datetime.timedelta(days=1)
+        try:
+            row = await session.fetchrow(
+                """
+                SELECT *
+                FROM operations
+                WHERE transport_id = $1 AND job_id = $2 AND location_id = $3 AND created_at > $4
+                """,
+                transport_id, job_id, location_id, check_date
+            )
+            if row:
+                return Operation.model_validate(row)
+            return None
+        except Exception as e:
+            logger.error(f"Ошибка при получении операции за последний день по параметрам transport_id {transport_id} "
+                         f"job_id {job_id} location_id {location_id}: {e}")
