@@ -24,6 +24,7 @@ class Redis(BaseSettings):
 class Settings(BaseSettings):
     bot_token: str = Field(..., env='BOT_TOKEN')
     admins: list = Field(..., env='ADMINS')
+    timezone: str = "Europe/Madrid"
 
     db: Database = Database()
     redis: Redis = Redis()

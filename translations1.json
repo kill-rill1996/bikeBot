@@ -36,7 +36,21 @@
     "done": "Done",
     "how_long": "How long did the work take?\nEnter in minutes (e.g., 30)",
     "duration_error": "The number must be between 5 and 480\nSend again",
-    "current_location": "Current location:"
+    "current_location": "Current location:",
+    "add_description": "Add description (optional) or press Continue",
+    "continue": "Continue",
+    "preview": "Preview:",
+    "confirm": "Confirm",
+    "date:": "Date:",
+    "operation": "Operation:",
+    "time": "Time:",
+    "comment": "Comment:",
+    "minutes": "min",
+    "work_save": "✅ Work saved!",
+    "another_work": "Record another work",
+    "already_performed": "⚠️ You have already performed \"{0}\" for {1}-{2} today. Are you sure this is a new operation?",
+    "yes": "Yes",
+    "no": "No"
   },
   "ru": {
     "input_name": "Введите ваше имя (например Джон Доу)",
@@ -75,7 +89,21 @@
     "done": "Готов",
     "how_long": "Сколько времени заняла работа?\nВведите в минутах (например, 30)",
     "duration_error": "Число должно быть от 5 до 480\nОтправьте еще раз",
-    "current_location": "Текущее местоположение:"
+    "current_location": "Текущее местоположение:",
+    "add_description": "Добавьте описание (по желанию) или нажмите Продолжить",
+    "continue": "Продолжить",
+    "preview": "Предпросмотр:",
+    "confirm": "Подтвердить",
+    "date:": "Дата:",
+    "operation": "Операция:",
+    "time": "Время:",
+    "comment": "Комментарий:",
+    "minutes": "мин",
+    "work_save": "✅ Работа сохранена!",
+    "another_work": "Записать еще работу",
+    "already_performed": "⚠️ Вы уже выполняли «{0}» для {1}-{2} сегодня. Вы уверены, что это новая операция?",
+    "yes": "Да",
+    "no": "Нет"
   },
   "es": {
     "name_error": "Nombre de usuario incorrecto ingresado, por favor inténtelo nuevamente",
@@ -114,6 +142,20 @@
     "done": "Listo",
     "how_long": "¿Cuánto tiempo tomó el trabajo?\nIntroduzca en minutos (por ejemplo, 30)",
     "duration_error": "El número debe estar entre 5 y 480\nEnviar de nuevo",
-    "current_location": "Ubicación actual:"
+    "current_location": "Ubicación actual:",
+    "add_description": "Añada una descripción (opcional) o pulse Continuar",
+    "continue": "Continuar",
+    "preview": "Vista previa:",
+    "confirm": "Confirmar",
+    "date:": "Fecha:",
+    "operation": "Operación:",
+    "time": "Tiempo:",
+    "comment": "Comentario:",
+    "minutes": "min",
+    "work_save": "✅ ¡Trabajo guardado!",
+    "another_work": "Registrar otro trabajo",
+    "already_performed": "⚠️ Ya ha realizado \"{0}\" para {1}-{2} hoy. ¿Está seguro de que es una nueva operación?",
+    "yes": "Sí",
+    "no": "No"
   }
 }

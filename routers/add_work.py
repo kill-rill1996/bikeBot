@@ -1,4 +1,9 @@
+import datetime
 from typing import Any
+
+from routers.menu import show_main_menu
+from schemas.operations import Operation, OperationAdd
+from settings import settings
 
 from aiogram import Router, F, types
 from aiogram.fsm.context import FSMContext
@@ -8,6 +13,7 @@ from utils.translator import translator as t
 from utils.validations import is_valid_vehicle_number, is_valid_duration
 from routers.states.add_work import AddWorkFSM
 from database.orm import AsyncOrm
+from utils.date_time_service import convert_date_time
 
 from routers.keyboards import add_works as kb
 
@@ -211,30 +217,47 @@ async def add_work_duration(callback: types.CallbackQuery, state: FSMContext) ->
 
 
 @router.message(AddWorkFSM.duration)
-async def get_duration(message: types.Message, state: FSMContext, session: Any) -> None:
+@router.callback_query(F.data.split("|")[0] == "back_to_work_location")
+async def get_duration(message: types.Message | types.CallbackQuery, state: FSMContext, session: Any) -> None:
     """Проверка правильности времени"""
     tg_id = str(message.from_user.id)
     lang = r.get(f"lang:{tg_id}").decode()
-    duration = message.text
-
     data = await state.get_data()
-    try:
-        await data["prev_mess"].delete()
-    except Exception:
-        pass
 
-    # неправильное число
-    if not is_valid_duration(duration):
-        jobtype_id = data["jobtype_id"]
-        text = await t.t("duration_error", lang)
-        keyboard = await kb.back_from_duration(jobtype_id, lang)
-        await message.answer(text, reply_markup=keyboard.as_markup())
+    # прямой порядок
+    if type(message) == types.Message:
+        duration = message.text
 
-    # правильное число
+        try:
+            await data["prev_mess"].delete()
+        except Exception:
+            pass
+
+        # неправильное число
+        if not is_valid_duration(duration):
+            jobtype_id = data["jobtype_id"]
+            text = await t.t("duration_error", lang)
+            keyboard = await kb.back_from_duration(jobtype_id, lang)
+            await message.answer(text, reply_markup=keyboard.as_markup())
+
+        # правильное число
+        else:
+            # записываем время в стейт
+            await state.update_data(duration=int(duration))
+
+            # меняем стейт
+            await state.set_state(AddWorkFSM.location)
+
+            # получаем локации
+            locations = await AsyncOrm.get_locations(session)
+
+            text = await t.t("current_location", lang)
+            job_id = data["job_id"]
+            keyboard = await kb.select_location(locations, job_id, lang)
+            await message.answer(text, reply_markup=keyboard.as_markup())
+
+    # назад с ввода комментария
     else:
-        # записываем время в стейт
-        await state.update_data(duration=int(duration))
-
         # меняем стейт
         await state.set_state(AddWorkFSM.location)
 
@@ -244,7 +267,192 @@ async def get_duration(message: types.Message, state: FSMContext, session: Any) 
         text = await t.t("current_location", lang)
         job_id = data["job_id"]
         keyboard = await kb.select_location(locations, job_id, lang)
-        await message.answer(text, reply_markup=keyboard.as_markup())
+        await message.message.edit_text(text, reply_markup=keyboard.as_markup())
+
+
+@router.callback_query(F.data.split("|")[0] == "work_location", AddWorkFSM.location)
+async def get_location(callback: types.CallbackQuery, state: FSMContext) -> None:
+    """Запись локации"""
+    tg_id = str(callback.from_user.id)
+    lang = r.get(f"lang:{tg_id}").decode()
+    location_id = int(callback.data.split("|")[1])
+
+    # записываем location
+    await state.update_data(location_id=location_id)
+
+    # меняем стейт
+    await state.set_state(AddWorkFSM.comment)
+
+    # для кнопки назад
+    data = await state.get_data()
+    duration = data["duration"]
+
+    # предлагаем отправить комментарий
+    text = await t.t("add_description", lang)
+    keyboard = await kb.back_from_comment_keyboard(duration, lang)
+    msg = await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
+    await state.update_data(prev_mess=msg)
+
+
+@router.message(AddWorkFSM.comment)
+@router.callback_query(F.data == "continue", AddWorkFSM.comment)
+async def get_comment(message: types.Message | types.CallbackQuery, state: FSMContext, session: Any) -> None:
+    """Запись комментария. Предпросмотр"""
+    tg_id = str(message.from_user.id)
+    lang = r.get(f"lang:{tg_id}").decode()
+    data = await state.get_data()
+
+    # при наличии комментария
+    if type(message) == types.Message:
+        # удаляем предыдущее сообщение
+        try:
+            await data["prev_mess"].delete()
+        except Exception:
+            pass
+
+        comment = message.text
+        waiting_message = await message.answer("Please wait...⏳")
+
+    # при отсутствии комментария
+    else:
+        comment = None
+        waiting_message = await message.message.edit_text("Please wait...⏳")
+
+    # записываем коммент в стейт
+    await state.update_data(comment=comment)
+
+    # меняем стейт
+    await state.set_state(AddWorkFSM.confirmation)
+
+    # ПРЕДПРОСМОТР
+    text = await t.t("preview", lang) + "\n"
+
+    # дата
+    current_date = convert_date_time(datetime.datetime.now(), settings.timezone)[0]
+    date_text = await t.t("date", lang) + " "
+    text += date_text + current_date + "\n"
+
+    # category
+    category = await AsyncOrm.get_category_by_id(data["category_id"], session)
+    subcategory = await AsyncOrm.get_subcategory_by_id(data["subcategory_id"], session)
+    text += await t.t(category.title, lang) + ": " + subcategory.title + "-" + str(data["serial_number"]) + "\n"
+
+    # operation
+    jobtype = await AsyncOrm.get_jobtype_by_id(data["jobtype_id"], session)
+    jobtype_title = await t.t(jobtype.title, lang)
+
+    # todo поправить список
+    jobs = await AsyncOrm.get_jobs_by_ids([data["job_id"]], session)
+    jobs_text = ""
+    for job in jobs:
+        jobs_text += await t.t(job.title, lang) + " "
+
+    text += await t.t("operation", lang) + " " + jobtype_title + " → " + jobs_text + "\n"
+
+    # time
+    text += await t.t("time", lang) + " " + str(data["duration"]) + " " + await t.t("minutes", lang) + "\n"
+
+    # comment
+    comment_text = comment if comment else "-"
+    text += await t.t("comment", lang) + " " + comment_text
+
+    keyboard = await kb.preview_keyboard(lang)
+    await waiting_message.edit_text(text, reply_markup=keyboard.as_markup())
+
+
+@router.callback_query(AddWorkFSM.confirmation)
+async def confirmation(callback: types.CallbackQuery, state: FSMContext, admin: bool) -> None:
+    """Подтверждение или отмена"""
+    # при отмене
+    if callback.data == "cancel":
+        await show_main_menu(callback, admin, state)
+        return
+
+    tg_id = str(callback.from_user.id)
+    lang = r.get(f"lang:{tg_id}").decode()
+
+    # меняем стейт
+    await state.set_state(AddWorkFSM.second_confirmation)
+
+    text = await t.t("work_save", lang)
+    keyboard = await kb.work_saved_keyboard(lang)
+    await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
+
+
+@router.callback_query(AddWorkFSM.second_confirmation)
+async def second_confirmation(callback: types.CallbackQuery, state: FSMContext, session: Any) -> None:
+    """Подтверждение недублирования операции"""
+    tg_id = str(callback.from_user.id)
+    lang = r.get(f"lang:{tg_id}").decode()
+
+    # меняем стейт
+    await state.set_state(AddWorkFSM.save)
+
+    data = await state.get_data()
+
+    # todo проверяем была ли такая операция сегодня
+
+    # запись operation в БД
+    data = await state.get_data()
+    transport_id = await AsyncOrm.get_transport_id(data["category_id"], data["subcategory_id"], data["serial_number"], session)
+
+    operation = OperationAdd(
+        tg_id=tg_id,
+        transport_id=int(transport_id),
+        job_id=data["job_id"],
+        duration=data["duration"],
+        location_id=data["location_id"],
+        comment=data["comment"],
+        created_at=datetime.datetime.now(),
+        updated_at=datetime.datetime.now()
+    )
+    await AsyncOrm.create_operation(operation, session)
+
+#
+#     text = await t.t("already_performed", lang)
+#
+#     # job
+#     jobs = await AsyncOrm.get_jobs_by_ids([data["job_id"]], session)
+#     jobs_text = ", ".join([job.title for job in jobs])
+#     # subcategory
+#     subcategory = await AsyncOrm.get_subcategory_by_id(data["subcategory_id"], session)
+#     # serial_number
+#     serial_number = str(data["serial_number"])
+#     formatted_text = text.format(jobs_text, subcategory.title, serial_number)
+#
+#     keyboard = await kb.second_confirmation_keyboard(lang)
+#     await callback.message.edit_text(formatted_text, reply_markup=keyboard.as_markup())
+#
+#
+# @router.callback_query(AddWorkFSM.save)
+# async def save_operation(callback: types.CallbackQuery, state: FSMContext, admin: bool, session: Any) -> None:
+#     """Сохранение операции"""
+#     # при повторном сохранении
+#     if callback.data == "no":
+#         await show_main_menu(callback, admin, state)
+#         return
+#
+#     tg_id = str(callback.from_user.id)
+#
+#     await callback.message.delete()
+#
+#     # запись operation в БД
+#     data = await state.get_data()
+#     transport_id = await AsyncOrm.get_transport_id(data["category_id"], data["subcategory_id"], data["serial_number"], session)
+#
+#     operation = OperationAdd(
+#         tg_id=tg_id,
+#         transport_id=int(transport_id),
+#         job_id=data["job_id"],
+#         duration=data["duration"],
+#         location_id=data["location_id"],
+#         comment=data["comment"],
+#         created_at=datetime.datetime.now(),
+#         updated_at=datetime.datetime.now()
+#     )
+#     await AsyncOrm.create_operation(operation, session)
+
+
 
 
 

@@ -10,4 +10,7 @@ class AddWorkFSM(StatesGroup):
     duration = State()
     location = State()
     comment = State()
+    confirmation = State()
+    second_confirmation = State()
+    save = State()
 

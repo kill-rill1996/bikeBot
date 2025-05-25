@@ -6,6 +6,7 @@ from typing import Any, List
 from logger import logger
 from schemas.categories_and_jobs import Category, Subcategory, Jobtype, Job
 from schemas.location import Location
+from schemas.operations import Operation, OperationAdd
 
 from schemas.users import User
 
@@ -130,6 +131,23 @@ class AsyncOrm:
             logger.error(f"Ошибка при получение всех категорий транспорта: {e}")
 
     @staticmethod
+    async def get_category_by_id(category_id: int, session: Any) -> Category:
+        """Получение категории по id"""
+        try:
+            row = await session.fetchrow(
+                """
+                SELECT *
+                FROM categories
+                WHERE id = $1
+                """,
+                category_id
+            )
+
+            return Category.model_validate(row)
+        except Exception as e:
+            logger.error(f"Ошибка при получении категории с id {category_id}: {e}")
+
+    @staticmethod
     async def get_subcategories_by_category(category_id: int, session: Any) -> List[Subcategory]:
         """Получение подкатегорий для категории"""
         try:
@@ -147,6 +165,20 @@ class AsyncOrm:
 
         except Exception as e:
             logger.error(f"Ошибка при получение всех подкатегорий для категории транспорта с id {category_id}: {e}")
+
+    @staticmethod
+    async def get_subcategory_by_id(subcategory_id: int, session: Any) -> Subcategory:
+        """Получение подкатегории по id"""
+        try:
+            row = await session.fetchrow("""
+                SELECT *
+                FROM subcategories
+                WHERE id = $1
+                """, subcategory_id)
+
+            return Subcategory.model_validate(row)
+        except Exception as e:
+            logger.error(f"Ошибка при получении подкатегории с id {subcategory_id}: {e}")
 
     @staticmethod
     async def get_sn_by_category_and_subcategory(category_id: int, subcategory_id: int, session: Any) -> List[int]:
@@ -168,6 +200,25 @@ class AsyncOrm:
                          f"категории {category_id} и подкатегории {subcategory_id}: {e}")
 
     @staticmethod
+    async def get_transport_id(category_id: int, subcategory_id: int, serial_number: int, session: Any) -> int:
+        """Получение id транспорта по категории, подкатегории, серийному номеру"""
+        try:
+            row = await session.fetchval(
+                """
+                SELECT id
+                FROM transports
+                WHERE category_id = $1 AND subcategory_id = $2 AND serial_number = $3
+                """,
+                category_id, subcategory_id, serial_number
+            )
+
+            return row
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении транспорта category_id: {category_id}, "
+                         f"subcategory_id: {subcategory_id}, serial_number: {serial_number}: {e}")
+
+    @staticmethod
     async def get_job_types_by_category(category_id: int, session: Any) -> List[Jobtype]:
         """Получение групп узлов (Jjobtypes) для категории"""
         try:
@@ -185,6 +236,23 @@ class AsyncOrm:
             return jobtypes
         except Exception as e:
             logger.error(f"Ошибка при получение групп узлов для категории {category_id}: {e}")
+
+    @staticmethod
+    async def get_jobtype_by_id(jobtype_id: int, session: Any) -> Jobtype:
+        """Получение группы узлов по id"""
+        try:
+            row = await session.fetchrow(
+                """
+                SELECT *
+                FROM jobtypes
+                WHERE id = $1
+                """,
+                jobtype_id
+            )
+
+            return Jobtype.model_validate(row)
+        except Exception as e:
+            logger.error(f"Ошибка при получение групп узлов по id {jobtype_id}: {e}")
 
     @staticmethod
     async def get_all_jobs_by_jobtype_id(jobtype_id: int, session: Any) -> List[Job]:
@@ -206,6 +274,24 @@ class AsyncOrm:
             logger.error(f"Ошибка при получении jobs для jobtype_id {jobtype_id}: {e}")
 
     @staticmethod
+    async def get_jobs_by_ids(jobs_ids: List[int], session: Any) -> List[Job]:
+        """Получение Job по списку id"""
+        jobs_ids_list = f"({', '.join([str(job_id) for job_id in jobs_ids])})"
+        try:
+            rows = await session.fetch(
+                f"""
+                SELECT *
+                FROM jobs
+                WHERE id in {jobs_ids_list}
+                """
+            )
+
+            jobs = [Job.model_validate(row) for row in rows]
+            return jobs
+        except Exception as e:
+            logger.error(f"Получение работ по списку id {jobs_ids}: {e}")
+
+    @staticmethod
     async def get_locations(session: Any) -> List[Location]:
         """Получение всех локаций"""
         try:
@@ -221,3 +307,19 @@ class AsyncOrm:
 
         except Exception as e:
             logger.error(f"Ошибка при получении всех локаций: {e}")
+
+    @staticmethod
+    async def create_operation(operation: OperationAdd, session: Any) -> None:
+        """Создание операции"""
+        try:
+            await session.execute(
+                """
+                INSERT INTO operations (tg_id, transport_id, job_id, duration, location_id, comment, created_at, updated_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                """,
+                operation.tg_id, operation.transport_id, operation.job_id, operation.duration, operation.location_id,
+                operation.comment, operation.created_at, operation.updated_at
+            )
+            logger.info(f"Записана операция пользователем {operation.tg_id}")
+        except Exception as e:
+            logger.error(f"Ошибка при создании операции {operation}: {e}")

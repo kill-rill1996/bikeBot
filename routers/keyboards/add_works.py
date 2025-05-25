@@ -141,3 +141,56 @@ async def select_location(locations: List[Location], job_id: int, lang: str) -> 
     keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
 
     return keyboard
+
+
+async def back_from_comment_keyboard(duration: int, lang: str) -> InlineKeyboardBuilder:
+    """"Клавиатура для возврата назад из комментария"""
+    keyboard = InlineKeyboardBuilder()
+
+    # назад
+    back_button: tuple = await btn.get_back_button(f"back_to_work_location|{duration}", lang)
+    keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
+
+    # продолжить
+    keyboard.row(InlineKeyboardButton(text=f"{await t.t('continue', lang)}", callback_data="continue"))
+
+    return keyboard
+
+
+async def preview_keyboard(lang: str) -> InlineKeyboardBuilder:
+    """Клавиатура для предпросмотра"""
+    keyboard = InlineKeyboardBuilder()
+
+    # подтвердить
+    keyboard.row(InlineKeyboardButton(text=f"{await t.t('confirm', lang)}", callback_data="confirm"))
+
+    # отменить
+    keyboard.row(InlineKeyboardButton(text=f"{await t.t('cancel', lang)}", callback_data="cancel"))
+
+    return keyboard
+
+
+async def work_saved_keyboard(lang: str) -> InlineKeyboardBuilder:
+    """Клавиатура после сохранения работы"""
+    keyboard = InlineKeyboardBuilder()
+
+    # Записать еще работу
+    keyboard.row(InlineKeyboardButton(text=f"{await t.t('another_work', lang)}", callback_data="works|add-works"))
+
+    # Главное меню
+    keyboard.row(InlineKeyboardButton(text=f"{await t.t('main_menu', lang)}", callback_data="main-menu"))
+
+    return keyboard
+
+
+async def second_confirmation_keyboard(lang: str) -> InlineKeyboardBuilder:
+    """Клавиатура повторного подтверджения работы"""
+    keyboard = InlineKeyboardBuilder()
+
+    # да
+    keyboard.row(InlineKeyboardButton(text=f"{await t.t('yes', lang)}", callback_data="yes"))
+
+    # нет
+    keyboard.row(InlineKeyboardButton(text=f"{await t.t('no', lang)}", callback_data="no"))
+
+    return keyboard
