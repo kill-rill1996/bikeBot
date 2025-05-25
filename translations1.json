@@ -62,7 +62,14 @@
     "work_details": "Work details",
     "vehicle": "Vehicle",
     "edit": "Change comment",
-    "delete": "Delete"
+    "delete": "Delete",
+    "work_24": "You cannot edit a job created more than 24 hours ago.",
+    "your_comment": "Your old comment",
+    "enter_new_comment": "Send a new comment to the chat",
+    "your_new_comment": "Your new comment:",
+    "save_changes": "Save changes",
+    "comment_saved": "✅ Comment successfully changed\n"
+
   },
   "ru": {
     "input_name": "Введите ваше имя (например Джон Доу)",
@@ -127,8 +134,13 @@
     "work_details": "Детали работы",
     "vehicle": "Транспорт",
     "edit": "Изменить комментарий",
-    "delete": "удалить"
-
+    "delete": "Удалить",
+    "work_24": "Вы не можете изменить работу созданную более 24 часов назад",
+    "your_comment": "Ваш старый комментарий",
+    "enter_new_comment": "Отправьте в чат новый комментарий",
+    "your_new_comment": "Ваш новый комментарий:",
+    "save_changes": "Сохранить изменения",
+    "comment_saved": "✅ Комментарий успешно изменен"
   },
   "es": {
     "name_error": "Nombre de usuario incorrecto ingresado, por favor inténtelo nuevamente",
@@ -193,6 +205,12 @@
     "work_details": "Detalles del trabajo",
     "vehicle": "Operación",
     "edit": "Cambiar comentario",
-    "delete": "Eliminar"
+    "delete": "Eliminar",
+    "work_24": "No se puede editar un trabajo creado hace más de 24 horas.",
+    "your_comment": "Tu viejo comentario",
+    "enter_new_comment": "Enviar un nuevo comentario al chat",
+    "your_new_comment": "Tu nuevo comentario:",
+    "save_changes": "Guardar cambios",
+    "comment_saved": "✅ Comentario cambiado exitosamente"
   }
 }

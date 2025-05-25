@@ -9,7 +9,7 @@ async def work_detail_message(lang: str, work: OperationDetails) -> str:
     comment = work.comment if work.comment else "-"
 
     message = await t.t("work_details", lang) + "\n" \
-              + await t.t("date", lang) + f" {local_date}, {work.id}\n" \
+              + await t.t("date", lang) + f" {local_date}, ID: {work.id}\n" \
               + await t.t("vehicle", lang) + ": " + await t.t(f"{work.transport_category}", lang) + " "\
               + f"{work.transport_subcategory}-{work.serial_number}\n" \
               + await t.t("operation", lang) + " " + await t.t(work.job_title, lang) + "\n" \
@@ -17,3 +17,4 @@ async def work_detail_message(lang: str, work: OperationDetails) -> str:
               + await t.t("comment", lang) + " " + comment
 
     return message
+
