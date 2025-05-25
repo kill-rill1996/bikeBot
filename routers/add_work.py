@@ -59,15 +59,6 @@ async def add_work_vehicle_category(callback: types.CallbackQuery, state: FSMCon
     keyboard = await kb.select_subcategory_keyboard(subcategories, lang)
     await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
 
-    # TODO убрать если ненужно
-    # # категория не велосипед
-    # else:
-    #     # пропускаем подкатегорию, номер и переходим в стейт AddWorkFSM.work_category
-    #     await state.set_state(AddWorkFSM.work_category)
-    #
-    #     text = t.t("select_work_category", lang)
-    #     await callback.message.edit_text(text, reply_markup=kb.select_work_category(lang).as_markup())
-
 
 @router.callback_query(F.data.split("|")[0] == "vehicle_subcategory", AddWorkFSM.vehicle_subcategory)
 async def add_work_vehicle_subcategory(callback: types.CallbackQuery, state: FSMContext) -> None:
@@ -186,7 +177,9 @@ async def add_work_category(callback: types.CallbackQuery, state: FSMContext, se
     # category_id необходимо, чтобы создать кнопку назад
     data = await state.get_data()
     category_id = data["category_id"]
-    keyboard = await kb.select_jobs_keyboard(jobs, category_id, lang)
+    page = 1
+    nums_on_page = 4
+    keyboard = await kb.select_jobs_keyboard(jobs, page, nums_on_page, category_id, lang)
 
     await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
 
@@ -329,8 +322,8 @@ async def get_comment(message: types.Message | types.CallbackQuery, state: FSMCo
 
     # дата
     current_date = convert_date_time(datetime.datetime.now(), settings.timezone)[0]
-    date_text = await t.t("date", lang) + " "
-    text += date_text + current_date + "\n"
+    date_text = await t.t("date", lang)
+    text += date_text + " " + current_date + "\n"
 
     # category
     category = await AsyncOrm.get_category_by_id(data["category_id"], session)
@@ -361,7 +354,7 @@ async def get_comment(message: types.Message | types.CallbackQuery, state: FSMCo
 
 
 @router.callback_query(AddWorkFSM.confirmation)
-async def confirmation(callback: types.CallbackQuery, state: FSMContext, admin: bool) -> None:
+async def confirmation(callback: types.CallbackQuery, state: FSMContext, admin: bool, session: Any) -> None:
     """Подтверждение или отмена"""
     # при отмене
     if callback.data == "cancel":
@@ -370,87 +363,96 @@ async def confirmation(callback: types.CallbackQuery, state: FSMContext, admin: 
 
     tg_id = str(callback.from_user.id)
     lang = r.get(f"lang:{tg_id}").decode()
+    data = await state.get_data()
 
-    # меняем стейт
-    await state.set_state(AddWorkFSM.second_confirmation)
+    # проверка дублирования
+    transport_id = await AsyncOrm.get_transport_id(data["category_id"], data["subcategory_id"], data["serial_number"], session)
+    operation: Operation | None = await AsyncOrm.get_operation_by_params(transport_id, data["job_id"], data["location_id"], session)
 
-    text = await t.t("work_save", lang)
-    keyboard = await kb.work_saved_keyboard(lang)
-    await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
+    # если такая работа уже была
+    if operation:
+        # меняем стейт
+        await state.set_state(AddWorkFSM.second_confirmation)
+
+        text = await t.t("already_performed", lang)
+
+        # job
+        jobs = await AsyncOrm.get_jobs_by_ids([data["job_id"]], session)
+        jobs_text = ", ".join([job.title for job in jobs])
+        # subcategory
+        subcategory = await AsyncOrm.get_subcategory_by_id(data["subcategory_id"], session)
+        # serial_number
+        serial_number = str(data["serial_number"])
+        formatted_text = text.format(jobs_text, subcategory.title, serial_number)
+
+        keyboard = await kb.second_confirmation_keyboard(lang)
+        await callback.message.edit_text(formatted_text, reply_markup=keyboard.as_markup())
+
+    # если работы не было
+    else:
+        text = await t.t("work_save", lang)
+        keyboard = await kb.work_saved_keyboard(lang)
+        await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
+
+        # сброс стейта
+        await state.clear()
+
+        # запись operation в БД
+        transport_id = await AsyncOrm.get_transport_id(data["category_id"], data["subcategory_id"],
+                                                       data["serial_number"], session)
+
+        operation_add = OperationAdd(
+            tg_id=tg_id,
+            transport_id=int(transport_id),
+            job_id=data["job_id"],
+            duration=data["duration"],
+            location_id=data["location_id"],
+            comment=data["comment"],
+            created_at=datetime.datetime.now(),
+            updated_at=datetime.datetime.now()
+        )
+        await AsyncOrm.create_operation(operation_add, session)
 
 
 @router.callback_query(AddWorkFSM.second_confirmation)
-async def second_confirmation(callback: types.CallbackQuery, state: FSMContext, session: Any) -> None:
+async def second_confirmation(callback: types.CallbackQuery, state: FSMContext, admin: bool, session: Any) -> None:
     """Подтверждение недублирования операции"""
     tg_id = str(callback.from_user.id)
     lang = r.get(f"lang:{tg_id}").decode()
 
-    # меняем стейт
-    await state.set_state(AddWorkFSM.save)
+    # подтверждение, что не дубликат
+    if callback.data == "yes":
+        data = await state.get_data()
 
-    data = await state.get_data()
+        text = await t.t("work_save", lang)
+        keyboard = await kb.work_saved_keyboard(lang)
+        await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
 
-    # todo проверяем была ли такая операция сегодня
+        # сброс стейта
+        await state.clear()
 
-    # запись operation в БД
-    data = await state.get_data()
-    transport_id = await AsyncOrm.get_transport_id(data["category_id"], data["subcategory_id"], data["serial_number"], session)
+        # запись operation в БД
+        transport_id = await AsyncOrm.get_transport_id(data["category_id"], data["subcategory_id"],
+                                                       data["serial_number"], session)
 
-    operation = OperationAdd(
-        tg_id=tg_id,
-        transport_id=int(transport_id),
-        job_id=data["job_id"],
-        duration=data["duration"],
-        location_id=data["location_id"],
-        comment=data["comment"],
-        created_at=datetime.datetime.now(),
-        updated_at=datetime.datetime.now()
-    )
-    await AsyncOrm.create_operation(operation, session)
+        operation_add = OperationAdd(
+            tg_id=tg_id,
+            transport_id=int(transport_id),
+            job_id=data["job_id"],
+            duration=data["duration"],
+            location_id=data["location_id"],
+            comment=data["comment"],
+            created_at=datetime.datetime.now(),
+            updated_at=datetime.datetime.now()
+        )
+        await AsyncOrm.create_operation(operation_add, session)
 
-#
-#     text = await t.t("already_performed", lang)
-#
-#     # job
-#     jobs = await AsyncOrm.get_jobs_by_ids([data["job_id"]], session)
-#     jobs_text = ", ".join([job.title for job in jobs])
-#     # subcategory
-#     subcategory = await AsyncOrm.get_subcategory_by_id(data["subcategory_id"], session)
-#     # serial_number
-#     serial_number = str(data["serial_number"])
-#     formatted_text = text.format(jobs_text, subcategory.title, serial_number)
-#
-#     keyboard = await kb.second_confirmation_keyboard(lang)
-#     await callback.message.edit_text(formatted_text, reply_markup=keyboard.as_markup())
-#
-#
-# @router.callback_query(AddWorkFSM.save)
-# async def save_operation(callback: types.CallbackQuery, state: FSMContext, admin: bool, session: Any) -> None:
-#     """Сохранение операции"""
-#     # при повторном сохранении
-#     if callback.data == "no":
-#         await show_main_menu(callback, admin, state)
-#         return
-#
-#     tg_id = str(callback.from_user.id)
-#
-#     await callback.message.delete()
-#
-#     # запись operation в БД
-#     data = await state.get_data()
-#     transport_id = await AsyncOrm.get_transport_id(data["category_id"], data["subcategory_id"], data["serial_number"], session)
-#
-#     operation = OperationAdd(
-#         tg_id=tg_id,
-#         transport_id=int(transport_id),
-#         job_id=data["job_id"],
-#         duration=data["duration"],
-#         location_id=data["location_id"],
-#         comment=data["comment"],
-#         created_at=datetime.datetime.now(),
-#         updated_at=datetime.datetime.now()
-#     )
-#     await AsyncOrm.create_operation(operation, session)
+    # если дубликат
+    else:
+        await state.clear()
+        await show_main_menu(callback, admin, state)
+
+
 
 
 
