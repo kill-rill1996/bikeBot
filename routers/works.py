@@ -83,6 +83,7 @@ async def my_works_list(callback: types.CallbackQuery, tg_id: str, session: Any)
 
     text = await t.t("works_list", lang)
 
+    # TODO пагинация
     await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
 
 

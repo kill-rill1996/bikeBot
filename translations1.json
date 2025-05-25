@@ -61,7 +61,7 @@
     "empty_works": "You have no completed work yet",
     "work_details": "Work details",
     "vehicle": "Vehicle",
-    "edit": "Edit",
+    "edit": "Change comment",
     "delete": "Delete"
   },
   "ru": {
@@ -126,7 +126,7 @@
     "empty_works": "У вас пока нет выполненных работ",
     "work_details": "Детали работы",
     "vehicle": "Транспорт",
-    "edit": "Редактировать",
+    "edit": "Изменить комментарий",
     "delete": "удалить"
 
   },
@@ -192,7 +192,7 @@
     "empty_works": "Aún no tienes ningún trabajo completado",
     "work_details": "Detalles del trabajo",
     "vehicle": "Operación",
-    "edit": "Editar",
+    "edit": "Cambiar comentario",
     "delete": "Eliminar"
   }
 }
