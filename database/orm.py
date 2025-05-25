@@ -6,7 +6,7 @@ from typing import Any, List
 from logger import logger
 from schemas.categories_and_jobs import Category, Subcategory, Jobtype, Job
 from schemas.location import Location
-from schemas.operations import Operation, OperationAdd
+from schemas.operations import Operation, OperationAdd, OperationShow, OperationDetails
 
 from schemas.users import User
 
@@ -343,3 +343,51 @@ class AsyncOrm:
         except Exception as e:
             logger.error(f"Ошибка при получении операции за последний день по параметрам transport_id {transport_id} "
                          f"job_id {job_id} location_id {location_id}: {e}")
+
+    @staticmethod
+    async def select_operations(start_period: datetime.datetime, end_period: datetime.datetime,
+                                tg_id: str, session: Any) -> list[OperationShow]:
+        """Вывод операций за выбранный период"""
+        try:
+            rows = await session.fetch(
+                """
+                SELECT o.id, t.serial_number, c.title AS transport_category, sc.title AS transport_subcategory, 
+                o.created_at, j.title AS job_title
+                FROM operations AS o
+                JOIN transports AS t ON o.transport_id = t.id
+                JOIN jobs AS j ON o.job_id = j.id
+                JOIN categories AS c ON t.category_id = c.id
+                JOIN subcategories AS sc ON t.subcategory_id = sc.id
+                WHERE o.tg_id = $1 AND o.created_at >= $2 AND o.created_at <= $3
+                ORDER BY o.created_at DESC
+                """,
+                tg_id, start_period, end_period
+            )
+            operations: list[OperationShow] = [OperationShow.model_validate(row) for row in rows]
+            return operations
+
+        except Exception as e:
+            logger.error(f"Ошибка при выборе списка операций за период {start_period} - {end_period} для пользователя {tg_id}: {e}")
+
+    @staticmethod
+    async def select_operation(operation_id: int, session: Any) -> OperationDetails:
+        """Вывод операций за выбранный период"""
+        try:
+            query = await session.fetchrow(
+                """
+                SELECT o.id, o.created_at, o.comment, o.duration, t.serial_number, c.title AS transport_category, 
+                sc.title AS transport_subcategory, j.title AS job_title 
+                FROM operations AS o
+                JOIN transports AS t ON o.transport_id = t.id
+                JOIN jobs AS j ON o.job_id = j.id
+                JOIN categories AS c ON t.category_id = c.id
+                JOIN subcategories AS sc ON t.subcategory_id = sc.id
+                WHERE o.id = $1 
+                """,
+                operation_id
+            )
+            return OperationDetails.model_validate(query)
+
+        except Exception as e:
+            logger.error(
+                f"Ошибка при выборе операции id {operation_id}: {e}")

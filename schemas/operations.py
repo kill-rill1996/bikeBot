@@ -15,3 +15,24 @@ class OperationAdd(BaseModel):
 
 class Operation(OperationAdd):
     id: int
+
+
+class OperationShow(BaseModel):
+    id: int
+    serial_number: int
+    transport_category: str
+    transport_subcategory: str
+    created_at: datetime.datetime
+    job_title: str
+
+
+class OperationDetails(BaseModel):
+    id: int
+    created_at: datetime.datetime
+    comment: str
+    duration: int
+    serial_number: int
+    transport_category: str
+    transport_subcategory: str
+    job_title: str
+
