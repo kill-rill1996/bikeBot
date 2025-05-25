@@ -6,6 +6,7 @@ from aiogram.fsm.context import FSMContext
 
 from cache import r
 from utils.translator import translator as t
+from utils.date_time_service import convert_date_time
 
 from routers.keyboards.works import works_menu_keyboard
 from routers.keyboards import my_works as kb
@@ -31,6 +32,7 @@ async def works_reports_menu(callback: types.CallbackQuery) -> None:
     await callback.message.edit_text(text=text, reply_markup=keyboard.as_markup())
 
 
+# MY WORKS
 @router.callback_query(F.data.split("|")[1] == "my-works")
 async def my_works_period(callback: types.CallbackQuery, tg_id: str) -> None:
     """Мои работы выбор периода"""
@@ -107,6 +109,7 @@ async def work_detail(callback: types.CallbackQuery, tg_id: str, session: Any) -
     await callback.message.edit_text(message, reply_markup=keyboard.as_markup())
 
 
+# UPDATE WORK
 @router.callback_query(F.data.split("|")[0] == "edit-work")
 async def edit_my_work(callback: types.CallbackQuery, tg_id: str, session: Any, state: FSMContext) -> None:
     """Изменение работы"""
@@ -199,14 +202,44 @@ async def save_new_comment(callback: types.CallbackQuery, state: FSMContext, tg_
     await waiting_message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
+# DELETE WORK
 @router.callback_query(F.data.split("|")[0] == "delete-work")
 async def delete_my_work(callback: types.CallbackQuery, tg_id: str, session: Any) -> None:
     """Удаление работы"""
     lang = r.get(f"lang:{tg_id}").decode()
     operation_id = int(callback.data.split("|")[1])
+    period = callback.data.split("|")[2]
 
     operation: OperationDetails = await AsyncOrm.select_operation(operation_id, session)
 
+    # формируем текст с данными из перевода
+    created_at = convert_date_time(operation.created_at, True)[0]
+    transport_category = await t.t(operation.transport_category, lang)
+    job_title = await t.t(operation.job_title, lang)
+    text = f"{created_at}|{operation.id}|{transport_category}|{operation.transport_subcategory}-{operation.serial_number}|{job_title}"
 
-    # text = await ms.work_detail_message(lang, operation) + "\n\n" + await
-    await callback.message.answer("УДалени работы")
+    # добавляем вопрос об удалении
+    text += "\n\n" + f"<b>{await t.t('sure_delete', lang)}</b>"
+    keyboard = await kb.delete_work(lang, operation_id, period)
+
+    await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
+
+
+@router.callback_query(F.data.split("|")[0] == "delete-work-confirm")
+async def delete_my_work(callback: types.CallbackQuery, tg_id: str, session: Any) -> None:
+    """Удаление работы"""
+    lang = r.get(f"lang:{tg_id}").decode()
+    operation_id = int(callback.data.split("|")[1])
+
+    # защита от ошибки при удалении из БД
+    try:
+        await AsyncOrm.delete_work(operation_id, session)
+    except:
+        await callback.message.edit_text("Error while deleting, try again later...")
+        return
+
+    # успешное удаление
+    text = await t.t("success_delete", lang)
+    keyboard = await kb.after_comment_updated_keyboard(lang)
+    await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
+

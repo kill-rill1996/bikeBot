@@ -58,18 +58,20 @@
     "month": "Month",
     "custom_period": "Custom period",
     "works_list": "Works list",
-    "empty_works": "You have no completed work yet",
+    "empty_works": "You have no completed work for the selected period",
     "work_details": "Work details",
     "vehicle": "Vehicle",
     "delete": "Delete",
     "please_wait": "Please wait...⏳",
-    "edit": "Change comment",
+    "edit": "Edit comment",
     "work_24": "You cannot edit a job created more than 24 hours ago.",
     "your_comment": "Your old comment",
     "enter_new_comment": "Send a new comment to the chat",
     "your_new_comment": "Your new comment:",
     "save_changes": "Save changes",
-    "comment_saved": "✅ Comment successfully changed\n"
+    "comment_saved": "✅ Comment successfully changed",
+    "sure_delete": "Are you sure you want to delete the job?",
+    "success_delete": "✅ Job deleted successfully"
   },
   "ru": {
     "input_name": "Введите ваше имя (например Джон Доу)",
@@ -130,18 +132,20 @@
     "month": "Месяц",
     "custom_period": "Произвольный период",
     "works_list": "Список работ",
-    "empty_works": "У вас пока нет выполненных работ",
+    "empty_works": "У вас нет выполненных работ за выбранный период",
     "work_details": "Детали работы",
     "vehicle": "Транспорт",
     "delete": "Удалить",
     "please_wait": "Пожалуйста подождите...⏳",
-    "edit": "Изменить комментарий",
+    "edit": "Ред. комментарий",
     "work_24": "Вы не можете изменить работу созданную более 24 часов назад",
     "your_comment": "Ваш старый комментарий",
     "enter_new_comment": "Отправьте в чат новый комментарий",
     "your_new_comment": "Ваш новый комментарий:",
     "save_changes": "Сохранить изменения",
-    "comment_saved": "✅ Комментарий успешно изменен"
+    "comment_saved": "✅ Комментарий успешно изменен",
+    "sure_delete": "Вы уверены что хотите удалить работу?",
+    "success_delete": "✅ Работа успешно удалена"
   },
   "es": {
     "name_error": "Nombre de usuario incorrecto ingresado, por favor inténtelo nuevamente",
@@ -202,7 +206,7 @@
     "month": "Mes",
     "custom_period": "Período personalizado",
     "works_list": "Lista de trabajos",
-    "empty_works": "Aún no tienes ningún trabajo completado",
+    "empty_works": "No tienes ningún trabajo completado para el periodo seleccionado",
     "work_details": "Detalles del trabajo",
     "vehicle": "Operación",
     "please_wait": "Espere por favor...⏳",
@@ -213,6 +217,8 @@
     "enter_new_comment": "Enviar un nuevo comentario al chat",
     "your_new_comment": "Tu nuevo comentario:",
     "save_changes": "Guardar cambios",
-    "comment_saved": "✅ Comentario cambiado exitosamente"
+    "comment_saved": "✅ Comentario cambiado exitosamente",
+    "sure_delete": "¿Estás seguro que deseas eliminar el trabajo?",
+    "success_delete": "✅ Trabajo eliminado exitosamente"
   }
 }

@@ -59,6 +59,8 @@ async def work_details(lang: str, operation_id: int, period: str) -> InlineKeybo
 
     keyboard.row(
         InlineKeyboardButton(text=await t.t("edit", lang), callback_data=f"edit-work|{operation_id}|{period}"),
+    )
+    keyboard.row(
         InlineKeyboardButton(text=await t.t("delete", lang), callback_data=f"delete-work|{operation_id}|{period}")
     )
 
@@ -105,11 +107,29 @@ async def confirm_edit_comment_keyboard(lang: str, operation_id: int, period: st
     return keyboard
 
 
-async def after_comment_updated_keyboard(lang: str ) -> InlineKeyboardBuilder:
+async def after_comment_updated_keyboard(lang: str) -> InlineKeyboardBuilder:
     """Клавиатура после успешного изменения комментария"""
     keyboard = InlineKeyboardBuilder()
 
     keyboard.row(InlineKeyboardButton(text=f"🗂 {await t.t('my_works', lang)}", callback_data="works|my-works"))
     keyboard.row(InlineKeyboardButton(text=await t.t("main_menu", lang), callback_data="main-menu"))
 
+    return keyboard
+
+
+async def delete_work(lang: str, operation_id: int, period: str) -> InlineKeyboardBuilder:
+    """Предложение удалить работу"""
+    keyboard = InlineKeyboardBuilder()
+
+    # кнопка назад
+    back_button: tuple = await btn.get_back_button(f"my-works-list|{operation_id}|{period}", lang)
+
+    keyboard.row(
+        InlineKeyboardButton(text=await t.t("yes", lang), callback_data=f"delete-work-confirm|{operation_id}"),
+        InlineKeyboardButton(text=await t.t("no", lang), callback_data=back_button[1]),
+    )
+
+    keyboard.row(
+        InlineKeyboardButton(text=back_button[0], callback_data=back_button[1])
+    )
     return keyboard

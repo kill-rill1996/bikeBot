@@ -389,8 +389,7 @@ class AsyncOrm:
             return OperationDetails.model_validate(query)
 
         except Exception as e:
-            logger.error(
-                f"Ошибка при выборе операции id {operation_id}: {e}")
+            logger.error(f"Ошибка при выборе операции id {operation_id}: {e}")
 
     @staticmethod
     async def update_comment(operation_id: int, new_comment: str, session: Any) -> None:
@@ -405,5 +404,19 @@ class AsyncOrm:
             )
 
         except Exception as e:
-            logger.error(
-                f"Ошибка при обновлении комментария work id {operation_id}: {e}")
+            logger.error(f"Ошибка при обновлении комментария work id {operation_id}: {e}")
+
+    @staticmethod
+    async def delete_work(operation_id: int, session: Any) -> None:
+        """Удаление работы"""
+        try:
+            await session.execute(
+                """
+                DELETE FROM operations WHERE id=$1 
+                """,
+                operation_id
+            )
+
+        except Exception as e:
+            logger.error(f"Ошибка при удалении работы operation_id {operation_id}: {e}")
+            raise
