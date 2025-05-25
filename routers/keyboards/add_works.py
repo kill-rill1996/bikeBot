@@ -99,7 +99,7 @@ async def select_work_category(jobtypes: List[Jobtype], category_id: int, lang: 
     return keyboard
 
 
-async def select_jobs_keyboard(jobs: List[Job], page: int, category_id: int, lang: str) -> InlineKeyboardBuilder:
+async def select_jobs_keyboard(jobs: List[Job], page: int, category_id: int, lang: str, selected_jobs: list[int] = []) -> InlineKeyboardBuilder:
     """Клавиатура для выбора jobs после выбора группы узлов с пагинацией"""
     keyboard = InlineKeyboardBuilder()
 
@@ -121,11 +121,17 @@ async def select_jobs_keyboard(jobs: List[Job], page: int, category_id: int, lan
 
     for job in page_jobs:
         text = await t.t(job.title, lang)
-        keyboard.row(InlineKeyboardButton(text=text, callback_data=f"work_job|{job.id}"))
 
-    # готово
-    # TODO доделать
-    keyboard.row(InlineKeyboardButton(text=f"✅ {await t.t('done', lang)}", callback_data="done"))
+        # помечаем выбранные
+        if job.id in selected_jobs:
+            text = "✓ " + text
+
+        # keyboard.row(InlineKeyboardButton(text=text, callback_data=f"work_job|{job.id}"))
+        keyboard.row(InlineKeyboardButton(text=text, callback_data=f"work_job_select|{job.id}|{page}"))
+
+    # готово если есть хоть одна работа
+    if len(selected_jobs) != 0:
+        keyboard.row(InlineKeyboardButton(text=f"✅ {await t.t('done', lang)}", callback_data="work_job_done"))
 
     # pages
     if len(jobs) > nums_on_page:
@@ -153,7 +159,7 @@ async def back_from_duration(jobtype_id: int, lang: str) -> InlineKeyboardBuilde
     return keyboard
 
 
-async def select_location(locations: List[Location], job_id: int, lang: str) -> InlineKeyboardBuilder:
+async def select_location(locations: List[Location], lang: str) -> InlineKeyboardBuilder:
     """Для выбора локации"""
     keyboard = InlineKeyboardBuilder()
 
@@ -162,7 +168,7 @@ async def select_location(locations: List[Location], job_id: int, lang: str) -> 
         keyboard.row(InlineKeyboardButton(text=text, callback_data=f"work_location|{location.id}"))
 
     # назад
-    back_button: tuple = await btn.get_back_button(f"back_to_work_job|{job_id}", lang)
+    back_button: tuple = await btn.get_back_button(f"back_to_work_job", lang)
     keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
 
     return keyboard

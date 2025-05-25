@@ -159,12 +159,20 @@ async def add_work_vehicle_number(message: types.Message | types.CallbackQuery, 
 @router.callback_query(F.data.split("|")[0] == "back_to_work_jobtype")
 async def add_work_category(callback: types.CallbackQuery, state: FSMContext, session: Any) -> None:
     """Запись категории работы"""
-    jobtype_id = int(callback.data.split("|")[1])
     tg_id = str(callback.from_user.id)
     lang = r.get(f"lang:{tg_id}").decode()
+    data = await state.get_data()
 
-    # записываем категорию работы
-    await state.update_data(jobtype_id=jobtype_id)
+    # для кнопок назад
+    if callback.data.split("|")[0] == "work_jobtype":
+        jobtype_id = int(callback.data.split("|")[1])
+        # записываем категорию работы
+        await state.update_data(jobtype_id=jobtype_id)
+    else:
+        jobtype_id = data["jobtype_id"]
+
+    # добавляем список для мультиселекта
+    await state.update_data(selected_jobs=[])
 
     # меняем стейт
     await state.set_state(AddWorkFSM.job)
@@ -175,11 +183,40 @@ async def add_work_category(callback: types.CallbackQuery, state: FSMContext, se
     text = await t.t("select_operation", lang)
 
     # category_id необходимо, чтобы создать кнопку назад
-    data = await state.get_data()
     category_id = data["category_id"]
     page = 1
     keyboard = await kb.select_jobs_keyboard(jobs, page, category_id, lang)
 
+    await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
+
+
+@router.callback_query(F.data.split("|")[0] == "work_job_select", AddWorkFSM.job)
+async def job_multiselect(callback: types.CallbackQuery, state: FSMContext, session) -> None:
+    """Вспомогательный хэндлер для мультиселекта"""
+    job_id = int(callback.data.split("|")[1])
+    page = int(callback.data.split("|")[2])
+    tg_id = str(callback.from_user.id)
+    lang = r.get(f"lang:{tg_id}").decode()
+
+    # добавляем или удаляем работу из списка
+    data = await state.get_data()
+    selected_jobs = data["selected_jobs"]
+    # удаляем если уже есть
+    if job_id in selected_jobs:
+        selected_jobs.remove(job_id)
+    # добавляем если нет
+    else:
+        selected_jobs.append(job_id)
+    await state.update_data(selected_jobs=selected_jobs)
+
+    # получаем jobs для этого jobtype
+    jobs = await AsyncOrm.get_all_jobs_by_jobtype_id(data["jobtype_id"], session)
+
+    text = await t.t("select_operation", lang)
+
+    # сообщение
+    category_id = data["category_id"]
+    keyboard = await kb.select_jobs_keyboard(jobs, page, category_id, lang, selected_jobs)
     await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
@@ -208,23 +245,22 @@ async def pagination_handler(callback: types.CallbackQuery, state: FSMContext, s
     jobtype_id = data["jobtype_id"]
     jobs = await AsyncOrm.get_all_jobs_by_jobtype_id(jobtype_id, session)
 
+    # для мультиселекта
+    selected_jobs = data["selected_jobs"]
+
     text = await t.t("select_operation", lang)
     # category_id необходимо, чтобы создать кнопку назад
     category_id = data["category_id"]
-    keyboard = await kb.select_jobs_keyboard(jobs, page, category_id, lang)
+    keyboard = await kb.select_jobs_keyboard(jobs, page, category_id, lang, selected_jobs)
     await wait_message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
-@router.callback_query(F.data.split("|")[0] == "work_job", AddWorkFSM.job)
+@router.callback_query(F.data.split("|")[0] == "work_job_done", AddWorkFSM.job)
 @router.callback_query(F.data.split("|")[0] == "back_to_work_job")
 async def add_work_duration(callback: types.CallbackQuery, state: FSMContext) -> None:
-    """Запись job_id"""
-    job_id = int(callback.data.split("|")[1])
+    """Отправка сообщения записи времени"""
     tg_id = str(callback.from_user.id)
     lang = r.get(f"lang:{tg_id}").decode()
-
-    # записываем работу
-    await state.update_data(job_id=job_id)
 
     # меняем стейт
     await state.set_state(AddWorkFSM.duration)
@@ -276,8 +312,7 @@ async def get_duration(message: types.Message | types.CallbackQuery, state: FSMC
             locations = await AsyncOrm.get_locations(session)
 
             text = await t.t("current_location", lang)
-            job_id = data["job_id"]
-            keyboard = await kb.select_location(locations, job_id, lang)
+            keyboard = await kb.select_location(locations, lang)
             await message.answer(text, reply_markup=keyboard.as_markup())
 
     # назад с ввода комментария
@@ -289,8 +324,7 @@ async def get_duration(message: types.Message | types.CallbackQuery, state: FSMC
         locations = await AsyncOrm.get_locations(session)
 
         text = await t.t("current_location", lang)
-        job_id = data["job_id"]
-        keyboard = await kb.select_location(locations, job_id, lang)
+        keyboard = await kb.select_location(locations, lang)
         await message.message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
