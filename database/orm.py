@@ -51,10 +51,11 @@ class AsyncOrm:
     async def get_user_by_tg_id(tg_id: str, session: Any) -> User:
         """Получает пользователя"""
         try:
-            row = await session.fetch(
+            row = await session.fetchrow(
                 """
-                SELECT * FROM users
-                WHERE tg_id=$1
+                SELECT * 
+                FROM users
+                WHERE tg_id = $1;
                 """,
                 tg_id
             )
@@ -68,7 +69,7 @@ class AsyncOrm:
     async def get_user_by_id(user_id: int, session: Any) -> User:
         """Получение пользователя по id"""
         try:
-            row = await session.fetch(
+            row = await session.fetchrow(
                 """
                 SELECT * 
                 FROM users

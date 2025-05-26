@@ -15,6 +15,7 @@ class User(BaseModel):
     username: str
     created_at: datetime.datetime
     role: str
+    is_active: bool
     lang: str  # en, ru, es
 
 
