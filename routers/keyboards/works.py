@@ -13,7 +13,6 @@ async def works_menu_keyboard(lang: str) -> InlineKeyboardBuilder:
     keyboard.row(InlineKeyboardButton(text=f"🗂 {await t.t('my_works', lang)}", callback_data="works|my-works"))
     keyboard.row(InlineKeyboardButton(text=f"📊 {await t.t('statistic', lang)}", callback_data="works|works-statistic"))
     keyboard.row(InlineKeyboardButton(text=f"🔍 {await t.t('search_vehicle', lang)}", callback_data="works|search-vehicle"))
-    keyboard.row(InlineKeyboardButton(text=f"⚙️ {await t.t('settings', lang)}", callback_data="works|settings"))
 
     back_button: tuple = await btn.get_back_button("main-menu", lang)
     keyboard.row(
