@@ -18,3 +18,4 @@ class User(BaseModel):
     lang: str  # en, ru, es
 
 
+

@@ -1,6 +1,13 @@
 --ALLOWED_USERS
 INSERT INTO allowed_users (tg_id) VALUES ('714371204');
 INSERT INTO allowed_users (tg_id) VALUES ('420551454');
+-- USERS
+INSERT INTO users (tg_id, tg_username, username, created_at, role, lang, is_active) VALUES ('11111111', 'alejandro_mech', 'Alejandro Fernandes', '2025-05-27 18:29:08.878314', 'mechanic', 'es', true);
+INSERT INTO users (tg_id, tg_username, username, created_at, role, lang, is_active) VALUES ('22222222', 'adrian_mech', 'Adrian Lopes', '2025-05-27 18:29:08.878314', 'mechanic', 'es', true);
+INSERT INTO users (tg_id, tg_username, username, created_at, role, lang, is_active) VALUES ('33333333', 'david_mech', 'David Martinez', '2025-05-27 18:29:08.878314', 'mechanic', 'es', true);
+INSERT INTO users (tg_id, tg_username, username, created_at, role, lang, is_active) VALUES ('44444444', 'dima_mech', 'Dmitry Sobolev', '2025-05-27 18:29:08.878314', 'mechanic', 'ru', true);
+INSERT INTO users (tg_id, tg_username, username, created_at, role, lang, is_active) VALUES ('55555555', 'nikolay_mech', 'Nikolay Ivanov', '2025-05-27 18:29:08.878314', 'mechanic', 'en', true);
+INSERT INTO users (tg_id, tg_username, username, created_at, role, lang, is_active) VALUES ('66666666', 'diego_mech', 'Diego Sanchez', '2025-05-27 18:29:08.878314', 'mechanic', 'es', false);
 -- CATEGORIES
 INSERT INTO categories (title, emoji) values ('bicycles', '🚲');
 INSERT INTO categories (title, emoji) values ('ebicycles', '⚡');

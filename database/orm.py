@@ -65,6 +65,24 @@ class AsyncOrm:
             logger.error(f"Ошибка при получении пользователя {tg_id}: {e}")
 
     @staticmethod
+    async def get_user_by_id(user_id: int, session: Any) -> User:
+        """Получение пользователя по id"""
+        try:
+            row = await session.fetch(
+                """
+                SELECT * 
+                FROM users
+                WHERE id = $1 
+                """,
+                user_id
+            )
+            user = User.model_validate(row)
+            return user
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении пользователя id {user_id}: {e}")
+
+    @staticmethod
     async def get_user_language(session: Any, tg_id: str) -> str:
         """Получение языка пользователя"""
         try:
@@ -96,6 +114,24 @@ class AsyncOrm:
 
         except Exception as e:
             logger.error(f"Ошибка получения всех id из allowed_users: {e}")
+
+    @staticmethod
+    async def get_all_mechanics(session: Any) -> List[User]:
+        """Получение всех механиков"""
+        try:
+            rows = await session.fetch(
+                """
+                SELECT id, tg_id, tg_username, username, created_at, role, lang
+                FROM users
+                WHERE role = 'mechanic' AND is_active = true
+                ORDER BY username
+                """
+            )
+            users = [User.model_validate(row) for row in rows]
+            return users
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении всех механиков: {e}")
 
     @staticmethod
     async def change_user_language(tg_id: str, lang: str, session: Any) -> None:
@@ -390,6 +426,41 @@ class AsyncOrm:
 
         except Exception as e:
             logger.error(f"Ошибка при выборе операции id {operation_id}: {e}")
+
+    @staticmethod
+    async def get_operations_for_user_by_period(tg_id: str, period: str, session: Any) -> List[Operation]:
+        """Получение операций за период для пользователя"""
+        if period == "today":
+            start_date = datetime.datetime.now() - datetime.timedelta(days=1)
+            end_date = datetime.datetime.now()
+        elif period == "yesterday":
+            start_date = datetime.datetime.now() - datetime.timedelta(days=2)
+            end_date = datetime.datetime.now() - datetime.timedelta(days=1)
+        elif period == "week":
+            start_date = datetime.datetime.now() - datetime.timedelta(weeks=1)
+            end_date = datetime.datetime.now()
+        elif period == "month":
+            start_date = datetime.datetime.now() - datetime.timedelta(days=30)
+            end_date = datetime.datetime.now()
+        # TODO доделать произвольный период
+        else:
+            pass
+
+        try:
+            rows = await session.fetch(
+                """
+                SELECT *
+                FROM operations
+                WHERE tg_id = $1 AND created_at > $2 AND created_at < $3
+                """,
+                tg_id, start_date, end_date
+            )
+            operations = [Operation.model_validate(row) for row in rows]
+            return operations
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении операций пользователя {tg_id} с {start_date} до {end_date}: {e}")
+
 
     @staticmethod
     async def update_comment(operation_id: int, new_comment: str, session: Any) -> None:
