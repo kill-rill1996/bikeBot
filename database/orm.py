@@ -48,7 +48,7 @@ class AsyncOrm:
             logger.error(f"Ошибка при создании пользователя tg_id {tg_id}: {e}")
 
     @staticmethod
-    async def get_user_by_tg_id(session: Any, tg_id: str) -> User:
+    async def get_user_by_tg_id(tg_id: str, session: Any) -> User:
         """Получает пользователя"""
         try:
             row = await session.fetch(

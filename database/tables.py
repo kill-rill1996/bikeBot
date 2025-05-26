@@ -46,12 +46,16 @@ class Operation(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     tg_id: Mapped[str] = mapped_column(index=True)
     transport_id: Mapped[int] = mapped_column(nullable=False)        # bicycles, ebicycles, segways
-    job_id: Mapped[int] = mapped_column(nullable=False)
     duration: Mapped[int] = mapped_column(nullable=False)       # в минутах
     location_id: Mapped[int] = mapped_column(nullable=False)
     comment: Mapped[str] = mapped_column(nullable=True)
     created_at: Mapped[datetime.datetime]
     updated_at: Mapped[datetime.datetime] = mapped_column(nullable=True, default=None)
+
+    jobs: Mapped[list["Job"]] = relationship(
+        back_populates="operations",
+        secondary="operations_jobs"
+    )
 
 
 class Job(Base):
@@ -61,6 +65,28 @@ class Job(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     title: Mapped[str] = mapped_column(nullable=False)
     jobtype_id: Mapped[int] = mapped_column(nullable=False)
+
+    operations: Mapped[list["Operation"]] = relationship(
+        back_populates="jobs",
+        secondary="operations_jobs"
+    )
+
+
+class OperationsJobs(Base):
+    """Работы входящие в операцию"""
+    __tablename__ = "operations_jobs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+
+    operation_id: Mapped[int] = mapped_column(
+        ForeignKey("operations.id"),
+        primary_key=True
+    )
+
+    job_id: Mapped[int] = mapped_column(
+        ForeignKey("jobs.id"),
+        primary_key=True
+    )
 
 
 class Jobtype(Base):

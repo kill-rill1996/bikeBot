@@ -1,8 +1,6 @@
 from typing import Any
 
 from aiogram import Router, types, F
-from aiogram.filters import Command
-from aiogram.fsm.context import FSMContext
 
 from database.orm import AsyncOrm
 from routers.keyboards import settings as kb
@@ -25,10 +23,14 @@ async def settings_menu(callback: types.CallbackQuery, tg_id: str) -> None:
 
 
 @router.callback_query(F.data == "settings|change_language")
-async def choose_language(callback: types.CallbackQuery, tg_id: str) -> None:
+async def choose_language(callback: types.CallbackQuery, tg_id: str, session: Any) -> None:
     lang = r.get(f"lang:{tg_id}").decode()
 
-    text = "Выберите язык / Choose language / Elija idioma:"
+    user = await AsyncOrm.get_user_by_tg_id(tg_id, session)
+
+    text = user.username + "\n\n"
+
+    text += "Выберите язык / Choose language / Elija idioma:"
     keyboard = await kb.choose_lang_keyboard(lang)
     await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
 
