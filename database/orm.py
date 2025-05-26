@@ -6,7 +6,7 @@ from typing import Any, List
 from logger import logger
 from schemas.categories_and_jobs import Category, Subcategory, Jobtype, Job
 from schemas.location import Location
-from schemas.operations import Operation, OperationAdd, OperationShow, OperationDetails
+from schemas.operations import Operation, OperationAdd, OperationJobs, OperationDetailJobs
 
 from schemas.users import User
 
@@ -382,16 +382,15 @@ class AsyncOrm:
 
     @staticmethod
     async def select_operations(start_period: datetime.datetime, end_period: datetime.datetime,
-                                tg_id: str, session: Any) -> list[OperationShow]:
+                                tg_id: str, session: Any) -> list[OperationJobs]:
         """Вывод операций за выбранный период"""
         try:
+            # выбираем операции со всеми необходимыми компонентами
             rows = await session.fetch(
                 """
-                SELECT o.id, t.serial_number, c.title AS transport_category, sc.title AS transport_subcategory, 
-                o.created_at, j.title AS job_title
+                SELECT o.id, t.serial_number, c.title AS transport_category, sc.title AS transport_subcategory, o.created_at
                 FROM operations AS o
                 JOIN transports AS t ON o.transport_id = t.id
-                JOIN jobs AS j ON o.job_id = j.id
                 JOIN categories AS c ON t.category_id = c.id
                 JOIN subcategories AS sc ON t.subcategory_id = sc.id
                 WHERE o.tg_id = $1 AND o.created_at >= $2 AND o.created_at <= $3
@@ -399,30 +398,67 @@ class AsyncOrm:
                 """,
                 tg_id, start_period, end_period
             )
-            operations: list[OperationShow] = [OperationShow.model_validate(row) for row in rows]
+            operations: list[OperationJobs] = [OperationJobs.model_validate(row) for row in rows]
+
+            # проходим по каждой операции и записываем для нее все job.title
+            for operation in operations:
+                try:
+                    rows = await session.fetch(
+                        """
+                        SELECT j.title AS title 
+                        FROM operations_jobs AS oj
+                        JOIN jobs AS j ON oj.job_id = j.id
+                        WHERE oj.operation_id = $1
+                        """,
+                        operation.id
+                    )
+                    operation.jobs_titles = [row["title"] for row in rows]
+
+                except Exception as e:
+                    logger.error(f"Ошибка при выборе работ для операции {operation.id}: {e}")
+
             return operations
 
         except Exception as e:
             logger.error(f"Ошибка при выборе списка операций за период {start_period} - {end_period} для пользователя {tg_id}: {e}")
 
     @staticmethod
-    async def select_operation(operation_id: int, session: Any) -> OperationDetails:
+    async def select_operation(operation_id: int, session: Any) -> OperationDetailJobs:
         """Вывод операций за выбранный период"""
         try:
+            # получаем operations без jobs
             query = await session.fetchrow(
                 """
                 SELECT o.id, o.created_at, o.comment, o.duration, t.serial_number, c.title AS transport_category, 
-                sc.title AS transport_subcategory, j.title AS job_title 
+                sc.title AS transport_subcategory 
                 FROM operations AS o
                 JOIN transports AS t ON o.transport_id = t.id
-                JOIN jobs AS j ON o.job_id = j.id
                 JOIN categories AS c ON t.category_id = c.id
                 JOIN subcategories AS sc ON t.subcategory_id = sc.id
                 WHERE o.id = $1 
                 """,
                 operation_id
             )
-            return OperationDetails.model_validate(query)
+            operation = OperationDetailJobs.model_validate(query)
+
+            # получаем все jobs для операции
+            try:
+                rows = await session.fetch(
+                    """
+                    SELECT j.title AS title 
+                    FROM operations_jobs AS oj
+                    JOIN jobs AS j ON oj.job_id = j.id
+                    WHERE oj.operation_id = $1
+                    """,
+                    operation.id
+                )
+
+                operation.jobs_titles = [row["title"] for row in rows]
+
+            except Exception as e:
+                logger.error(f"Ошибка при выборе работ для операции {operation.id}: {e}")
+
+            return operation
 
         except Exception as e:
             logger.error(f"Ошибка при выборе операции id {operation_id}: {e}")

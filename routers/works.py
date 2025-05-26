@@ -13,7 +13,7 @@ from routers.keyboards import my_works as kb
 from routers.messages import my_works as ms
 from routers.states.edit_work import EditWorkFSM
 
-from schemas.operations import OperationShow, OperationDetails
+from schemas.operations import OperationJobs, OperationDetailJobs
 
 from database.orm import AsyncOrm
 
@@ -74,8 +74,9 @@ async def my_works_list(callback: types.CallbackQuery, tg_id: str, session: Any)
         await callback.message.edit_text("Введите кастомный период")
         return
 
-    # получаем Operations
-    operations: list[OperationShow] = await AsyncOrm.select_operations(start_period, end_period, tg_id, session)
+    # получаем operations с их jobs
+    # TODO add cache
+    operations: list[OperationJobs] = await AsyncOrm.select_operations(start_period, end_period, tg_id, session)
 
     # формируем клавиатуру
     keyboard = await kb.works_my_works_list(lang, operations, period)
@@ -101,7 +102,8 @@ async def work_detail(callback: types.CallbackQuery, tg_id: str, session: Any) -
 
     operation_id = int(callback.data.split("|")[1])
 
-    operation: OperationDetails = await AsyncOrm.select_operation(operation_id, session)
+    # TODO add cache
+    operation: OperationDetailJobs = await AsyncOrm.select_operation(operation_id, session)
 
     message = await ms.work_detail_message(lang, operation)
     keyboard = await kb.work_details(lang, operation_id, period)
@@ -125,7 +127,7 @@ async def edit_my_work(callback: types.CallbackQuery, tg_id: str, session: Any, 
     period = callback.data.split("|")[2]
 
     # получаем работу
-    operation: OperationDetails = await AsyncOrm.select_operation(operation_id, session)
+    operation: OperationDetailJobs = await AsyncOrm.select_operation(operation_id, session)
 
     # проверяем когда была создана работа, если больше чем 24 часа, то запрещаем изменение
     if operation.created_at < datetime.datetime.now() - datetime.timedelta(hours=24):
@@ -210,7 +212,7 @@ async def delete_my_work(callback: types.CallbackQuery, tg_id: str, session: Any
     operation_id = int(callback.data.split("|")[1])
     period = callback.data.split("|")[2]
 
-    operation: OperationDetails = await AsyncOrm.select_operation(operation_id, session)
+    operation: OperationDetailJobs = await AsyncOrm.select_operation(operation_id, session)
 
     # формируем текст с данными из перевода
     created_at = convert_date_time(operation.created_at, True)[0]
