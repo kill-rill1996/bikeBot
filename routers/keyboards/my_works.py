@@ -36,7 +36,7 @@ async def works_my_works_list(lang: str, works: list[OperationJobs], period: str
         # формируем данные с переводом
         created_at = convert_date_time(w.created_at, True)[0]
         transport_category = await t.t(w.transport_category, lang)
-        job_title = await t.t(w.jobs_titles[0], lang) # TODO подумать что выводить в кнопку (т.к. работ может быть много, берем пока только 1-ую)
+        job_title = await t.t(w.jobs_titles[0], lang)   # TODO подумать что выводить в кнопку (т.к. работ может быть много, берем пока только 1-ую)
 
         # в callback добавляем период, чтобы в след. хэндлере можно было его использовать в кнопке назад
         keyboard.row(

@@ -12,13 +12,14 @@ async def work_detail_message(lang: str, work: OperationDetailJobs) -> str:
               + await t.t("date", lang) + f" {local_date}, ID: {work.id}\n" \
               + await t.t("vehicle", lang) + ": " + await t.t(f"{work.transport_category}", lang) + " "\
               + f"{work.transport_subcategory}-{work.serial_number}\n" \
-              + await t.t("operation", lang) + "\n" + await t.t("time", lang) + " " + f"{work.duration}" + " " \
-              + await t.t("minutes", lang) + "\n"
+              + await t.t("time", lang) + " " + f"{work.duration}" + " " \
+              + await t.t("minutes", lang) + "\n" \
+              + await t.t("operation", lang) + "\n" \
 
     for job_title in work.jobs_titles:
-        message += f"- {await t.t(job_title, lang)}"
+        message += f"- {await t.t(job_title, lang)}\n"
 
-    message += "\n\n" + await t.t("comment", lang) + " " + comment
+    message += "\n" + await t.t("comment", lang) + " " + f"<i>{comment}</i>"
 
     return message
 

@@ -17,13 +17,22 @@ class Operation(OperationAdd):
     id: int
 
 
+class OperationJob(BaseModel):
+    id: int
+    serial_number: int
+    transport_category: str
+    transport_subcategory: str
+    created_at: datetime.datetime
+    job_title: str
+
+
 class OperationJobs(BaseModel):
     id: int
     serial_number: int
     transport_category: str
     transport_subcategory: str
     created_at: datetime.datetime
-    jobs_titles: list[str] | None = None
+    jobs_titles: list[str] = None
 
 
 class OperationDetailJobs(BaseModel):

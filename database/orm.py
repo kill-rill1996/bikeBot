@@ -6,7 +6,7 @@ from typing import Any, List
 from logger import logger
 from schemas.categories_and_jobs import Category, Subcategory, Jobtype, Job
 from schemas.location import Location
-from schemas.operations import Operation, OperationAdd, OperationJobs, OperationDetailJobs
+from schemas.operations import Operation, OperationAdd, OperationJobs, OperationDetailJobs, OperationJob
 
 from schemas.users import User
 
@@ -388,36 +388,45 @@ class AsyncOrm:
             # выбираем операции со всеми необходимыми компонентами
             rows = await session.fetch(
                 """
-                SELECT o.id, t.serial_number, c.title AS transport_category, sc.title AS transport_subcategory, o.created_at
+                SELECT o.id, t.serial_number, c.title AS transport_category, 
+                sc.title AS transport_subcategory, o.created_at, j.title AS job_title
                 FROM operations AS o
                 JOIN transports AS t ON o.transport_id = t.id
                 JOIN categories AS c ON t.category_id = c.id
                 JOIN subcategories AS sc ON t.subcategory_id = sc.id
+                JOIN operations_jobs AS oj ON o.id = oj.operation_id
+                JOIN jobs AS j ON oj.job_id = j.id
                 WHERE o.tg_id = $1 AND o.created_at >= $2 AND o.created_at <= $3
                 ORDER BY o.created_at DESC
                 """,
                 tg_id, start_period, end_period
             )
-            operations: list[OperationJobs] = [OperationJobs.model_validate(row) for row in rows]
+            operations: list[OperationJob] = [OperationJob.model_validate(row) for row in rows]
 
-            # проходим по каждой операции и записываем для нее все job.title
+            operations_jobs = {}
             for operation in operations:
-                try:
-                    rows = await session.fetch(
-                        """
-                        SELECT j.title AS title 
-                        FROM operations_jobs AS oj
-                        JOIN jobs AS j ON oj.job_id = j.id
-                        WHERE oj.operation_id = $1
-                        """,
-                        operation.id
-                    )
-                    operation.jobs_titles = [row["title"] for row in rows]
+                if operation.id in operations_jobs.keys():
+                    operations_jobs[operation.id].append(operation.job_title)
+                else:
+                    operations_jobs[operation.id] = [operation.job_title]
 
-                except Exception as e:
-                    logger.error(f"Ошибка при выборе работ для операции {operation.id}: {e}")
+            result = []
+            for key, value in operations_jobs.items():
+                for operation in operations:
+                    if operation.id == key:
+                        result.append(
+                            OperationJobs(
+                                id=operation.id,
+                                serial_number=operation.serial_number,
+                                transport_category=operation.transport_category,
+                                transport_subcategory=operation.transport_subcategory,
+                                created_at=operation.created_at,
+                                jobs_titles=value,
+                            )
+                        )
+                        break
 
-            return operations
+            return sorted(result, key=lambda x: x.created_at, reverse=True)
 
         except Exception as e:
             logger.error(f"Ошибка при выборе списка операций за период {start_period} - {end_period} для пользователя {tg_id}: {e}")
