@@ -75,8 +75,7 @@ async def add_work_vehicle_subcategory(callback: types.CallbackQuery, state: FSM
     # меняем стейт
     await state.set_state(AddWorkFSM.vehicle_number)
 
-    # TODO перевести текст для всех
-    text = f"Введите номер велосипеда для подкатегории {subcategory_title}"
+    text = await t.t("enter_the_number", lang) + " " + subcategory_title
 
     # category_id нужна для кнопки назад
     data = await state.get_data()
@@ -114,9 +113,7 @@ async def add_work_vehicle_number(message: types.Message | types.CallbackQuery, 
         # если номер неправильный
         if not is_valid_vehicle_number(serial_number, serial_numbers):
             # отправляем сообщение о необходимости ввести номер еще раз
-            # TODO перевод!!! и поправить сообщение по смыслу
-            text = f"Номер введен неправильно для категории {data['subcategory_title']}\n" \
-                   f"Необходимо отправить число от 1 до 100, отправьте номер еще раз"
+            text = await t.t("wrong_number", lang) + " " + f"{data['subcategory_title']}\n" + await t.t("one_more", lang)
             keyboard = await kb.select_bicycle_number(category_id, lang)
             msg = await message.answer(text, reply_markup=keyboard.as_markup())
 
@@ -179,8 +176,9 @@ async def add_work_category(callback: types.CallbackQuery, state: FSMContext, se
     # меняем стейт
     await state.set_state(AddWorkFSM.job)
 
-    # получаем jobs для этого jobtype
+    # получаем jobs для этого jobtype и записываем в стейт для использования во вспомогательных функциях
     jobs = await AsyncOrm.get_all_jobs_by_jobtype_id(jobtype_id, session)
+    await state.update_data(jobs_for_select=jobs)
 
     text = await t.t("select_operation", lang)
 
@@ -212,7 +210,7 @@ async def job_multiselect(callback: types.CallbackQuery, state: FSMContext, sess
     await state.update_data(selected_jobs=selected_jobs)
 
     # получаем jobs для этого jobtype
-    jobs = await AsyncOrm.get_all_jobs_by_jobtype_id(data["jobtype_id"], session)
+    jobs = data["jobs_for_select"]
 
     text = await t.t("select_operation", lang)
 
@@ -244,8 +242,7 @@ async def pagination_handler(callback: types.CallbackQuery, state: FSMContext, s
 
     # получаем jobs для этого jobtype
     data = await state.get_data()
-    jobtype_id = data["jobtype_id"]
-    jobs = await AsyncOrm.get_all_jobs_by_jobtype_id(jobtype_id, session)
+    jobs = data["jobs_for_select"]
 
     # для мультиселекта
     selected_jobs = data["selected_jobs"]
@@ -435,7 +432,6 @@ async def confirmation(callback: types.CallbackQuery, state: FSMContext, admin: 
     data = await state.get_data()
 
     # проверка дублирования
-    # TODO Переделать
     transport_id = await AsyncOrm.get_transport_id(data["category_id"], data["subcategory_id"], data["serial_number"], session)
     operations: List[Operation] | None = await AsyncOrm.get_operation_by_params(transport_id, data["selected_jobs"], session)
 
@@ -446,8 +442,7 @@ async def confirmation(callback: types.CallbackQuery, state: FSMContext, admin: 
 
         text = await t.t("already_performed", lang)
 
-        # job
-        # TODO Переделать
+        # jobs
         jobs = await AsyncOrm.get_jobs_by_ids(data["selected_jobs"], session)
         jobs_text = ", ".join([await t.t(job.title, lang) for job in jobs])
         # subcategory
@@ -486,7 +481,8 @@ async def confirmation(callback: types.CallbackQuery, state: FSMContext, admin: 
         try:
             await AsyncOrm.create_operation(operation_add, session)
         except Exception:
-            await callback.message.edit_text("Error while creating operation")
+            text = await t.t("operation_error", lang)
+            await callback.message.edit_text(text)
 
 
 @router.callback_query(AddWorkFSM.second_confirmation)
@@ -523,7 +519,8 @@ async def second_confirmation(callback: types.CallbackQuery, state: FSMContext, 
         try:
             await AsyncOrm.create_operation(operation_add, session)
         except Exception:
-            await callback.message.edit_text("Error while creating operation")
+            text = await t.t("operation_error", lang)
+            await callback.message.edit_text(text)
 
     # если дубликат
     else:
