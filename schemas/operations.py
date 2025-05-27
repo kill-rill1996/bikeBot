@@ -1,3 +1,5 @@
+from typing import List
+
 from pydantic import BaseModel
 import datetime
 
@@ -5,12 +7,12 @@ import datetime
 class OperationAdd(BaseModel):
     tg_id: str
     transport_id: int
-    job_id: int
     duration: int
     location_id: int
     comment: str | None
     created_at: datetime.datetime
     updated_at: datetime.datetime
+    jobs_ids: List[int] | None = None
 
 
 class Operation(OperationAdd):

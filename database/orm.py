@@ -51,10 +51,11 @@ class AsyncOrm:
     async def get_user_by_tg_id(tg_id: str, session: Any) -> User:
         """Получает пользователя"""
         try:
-            row = await session.fetch(
+            row = await session.fetchrow(
                 """
-                SELECT * FROM users
-                WHERE tg_id=$1
+                SELECT * 
+                FROM users
+                WHERE tg_id = $1;
                 """,
                 tg_id
             )
@@ -68,7 +69,7 @@ class AsyncOrm:
     async def get_user_by_id(user_id: int, session: Any) -> User:
         """Получение пользователя по id"""
         try:
-            row = await session.fetch(
+            row = await session.fetchrow(
                 """
                 SELECT * 
                 FROM users
@@ -348,37 +349,52 @@ class AsyncOrm:
     async def create_operation(operation: OperationAdd, session: Any) -> None:
         """Создание операции"""
         try:
-            await session.execute(
+            # создание operations
+            operation_id = await session.fetchval(
                 """
-                INSERT INTO operations (tg_id, transport_id, job_id, duration, location_id, comment, created_at, updated_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                INSERT INTO operations (tg_id, transport_id, duration, location_id, comment, created_at, updated_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7)
+                RETURNING id
                 """,
-                operation.tg_id, operation.transport_id, operation.job_id, operation.duration, operation.location_id,
+                operation.tg_id, operation.transport_id, operation.duration, operation.location_id,
                 operation.comment, operation.created_at, operation.updated_at
             )
-            logger.info(f"Записана операция пользователем {operation.tg_id}")
+
+            # создание operations_jobs
+            for job_id in operation.jobs_ids:
+                await session.execute(
+                    """
+                    INSERT INTO operations_jobs (operation_id, job_id)
+                    VALUES ($1, $2)
+                    """,
+                    operation_id, job_id
+                )
+            logger.info(f"Записана операция {operation_id} пользователем {operation.tg_id}")
         except Exception as e:
             logger.error(f"Ошибка при создании операции {operation}: {e}")
+            raise
 
     @staticmethod
-    async def get_operation_by_params(transport_id: int, job_id: int, location_id: int, session: Any) -> Operation | None:
+    async def get_operation_by_params(transport_id: int, jobs_id: List[int], session: Any) -> List[Operation] | None:
         """Получение операции по параметрам, не позднее дня"""
         check_date = datetime.datetime.now() - datetime.timedelta(days=1)
+
         try:
-            row = await session.fetchrow(
+            rows = await session.fetch(
                 """
-                SELECT *
-                FROM operations
-                WHERE transport_id = $1 AND job_id = $2 AND location_id = $3 AND created_at > $4
+                SELECT o.*
+                FROM operations AS o
+                JOIN operations_jobs AS oj ON o.id = oj.operation_id
+                WHERE o.transport_id = $1 AND o.created_at > $2 AND oj.job_id = ANY($3::int[])
                 """,
-                transport_id, job_id, location_id, check_date
+                transport_id, check_date, jobs_id
             )
-            if row:
-                return Operation.model_validate(row)
+            if rows:
+                return [Operation.model_validate(row) for row in rows]
             return None
         except Exception as e:
             logger.error(f"Ошибка при получении операции за последний день по параметрам transport_id {transport_id} "
-                         f"job_id {job_id} location_id {location_id}: {e}")
+                         f"jobs_ids ({', '.join([str(job_id) for job_id in jobs_id])}): {e}")
 
     @staticmethod
     async def select_operations(start_period: datetime.datetime, end_period: datetime.datetime,

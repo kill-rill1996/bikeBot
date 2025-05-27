@@ -183,12 +183,12 @@ async def preview_keyboard(lang: str) -> InlineKeyboardBuilder:
     return keyboard
 
 
-async def work_saved_keyboard(lang: str) -> InlineKeyboardBuilder:
+async def work_saved_keyboard(category_id: int, lang: str) -> InlineKeyboardBuilder:
     """Клавиатура после сохранения работы"""
     keyboard = InlineKeyboardBuilder()
 
     # Записать еще работу
-    keyboard.row(InlineKeyboardButton(text=f"{await t.t('another_work', lang)}", callback_data="works|add-works"))
+    keyboard.row(InlineKeyboardButton(text=f"{await t.t('another_work', lang)}", callback_data=f"another_work|{category_id}"))
 
     # Главное меню
     keyboard.row(InlineKeyboardButton(text=f"{await t.t('main_menu', lang)}", callback_data="main-menu"))

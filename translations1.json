@@ -87,7 +87,11 @@
     "work_categories_report": "Work categories report",
     "inefficiency_report": "Inefficiency report",
     "select_mechanic": "Select a mechanic:",
-    "number_of_works": "Total number of works completed:"
+    "number_of_works": "Total number of works completed:",
+    "enter_the_number": "Enter the vehicle number for the subcategory",
+    "wrong_number": "The number entered is incorrect for the subcategory",
+    "one_more": "Send the number again",
+    "operation_error": "Error while creating operation"
   },
   "ru": {
     "input_name": "Введите ваше имя (например Джон Доу)",
@@ -177,7 +181,11 @@
     "work_categories_report": "Отчет по категориям работ",
     "inefficiency_report": "Отчет по неэффективности",
     "select_mechanic": "Выберите механика:",
-    "number_of_works": "Общее количество выполненных работ:"
+    "number_of_works": "Общее количество выполненных работ:",
+    "enter_the_number": "Введите номер транспорта для подкатегории",
+    "wrong_number": "Номер введен неправильно для подкатегории",
+    "one_more": "Отправьте номер еще раз",
+    "operation_error": "Ошибка во время создания операции"
   },
   "es": {
     "name_error": "Nombre de usuario incorrecto ingresado, por favor inténtelo nuevamente",
@@ -267,6 +275,10 @@
     "work_categories_report": "Informe por categorías de trabajo",
     "inefficiency_report": "Informe de ineficiencia",
     "select_mechanic": "Seleccione un mecánico",
-    "number_of_works": "Número total de trabajos realizados:"
+    "number_of_works": "Número total de trabajos realizados:",
+    "enter_the_number": "Introduzca el número de vehículo para la subcategoría",
+    "wrong_number": "El número ingresado es incorrecto para la subcategoría",
+    "one_more": "Enviar el numero nuevamente",
+    "operation_error": "Error al crear la operación"
   }
 }
