@@ -76,8 +76,6 @@ class OperationsJobs(Base):
     """Работы входящие в операцию"""
     __tablename__ = "operations_jobs"
 
-    # id: Mapped[int] = mapped_column(primary_key=True)
-
     operation_id: Mapped[int] = mapped_column(
         ForeignKey("operations.id"),
         primary_key=True

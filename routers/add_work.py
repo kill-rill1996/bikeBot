@@ -1,5 +1,5 @@
 import datetime
-from typing import Any
+from typing import Any, List
 
 from routers.menu import show_main_menu
 from schemas.operations import Operation, OperationAdd
@@ -89,6 +89,8 @@ async def add_work_vehicle_subcategory(callback: types.CallbackQuery, state: FSM
 
 @router.message(AddWorkFSM.vehicle_number)
 @router.callback_query(F.data.split("|")[0] == "back_to_jobtype")
+# добавление еще одной операции после создания
+@router.callback_query(F.data.split("|")[0] == "another_work")
 async def add_work_vehicle_number(message: types.Message | types.CallbackQuery, state: FSMContext, session: Any) -> None:
     """Валидация и запись номера и запись его в стейт"""
     # прямой путь
@@ -137,7 +139,7 @@ async def add_work_vehicle_number(message: types.Message | types.CallbackQuery, 
             keyboard = await kb.select_work_category(jobtypes, category_id, lang)
             await message.answer(text, reply_markup=keyboard.as_markup())
 
-    # если вернулись назад с job (callback)
+    # если вернулись назад с job (callback) или переход для добавления еще одной работы
     else:
         category_id = int(message.data.split("|")[1])
         tg_id = str(message.from_user.id)
@@ -401,11 +403,11 @@ async def get_comment(message: types.Message | types.CallbackQuery, state: FSMCo
     jobtype = await AsyncOrm.get_jobtype_by_id(data["jobtype_id"], session)
     jobtype_title = await t.t(jobtype.title, lang)
 
-    # todo поправить список
-    jobs = await AsyncOrm.get_jobs_by_ids([data["job_id"]], session)
-    jobs_text = ""
+    jobs = await AsyncOrm.get_jobs_by_ids(data["selected_jobs"], session)
+    translated_jobs = []
     for job in jobs:
-        jobs_text += await t.t(job.title, lang) + " "
+        translated_jobs.append(await t.t(job.title, lang) + " ")
+    jobs_text = ", ".join(translated_jobs)
 
     text += await t.t("operation", lang) + " " + jobtype_title + " → " + jobs_text + "\n"
 
@@ -433,19 +435,21 @@ async def confirmation(callback: types.CallbackQuery, state: FSMContext, admin: 
     data = await state.get_data()
 
     # проверка дублирования
+    # TODO Переделать
     transport_id = await AsyncOrm.get_transport_id(data["category_id"], data["subcategory_id"], data["serial_number"], session)
-    operation: Operation | None = await AsyncOrm.get_operation_by_params(transport_id, data["job_id"], data["location_id"], session)
+    operations: List[Operation] | None = await AsyncOrm.get_operation_by_params(transport_id, data["selected_jobs"], session)
 
     # если такая работа уже была
-    if operation:
+    if operations:
         # меняем стейт
         await state.set_state(AddWorkFSM.second_confirmation)
 
         text = await t.t("already_performed", lang)
 
         # job
-        jobs = await AsyncOrm.get_jobs_by_ids([data["job_id"]], session)
-        jobs_text = ", ".join([job.title for job in jobs])
+        # TODO Переделать
+        jobs = await AsyncOrm.get_jobs_by_ids(data["selected_jobs"], session)
+        jobs_text = ", ".join([await t.t(job.title, lang) for job in jobs])
         # subcategory
         subcategory = await AsyncOrm.get_subcategory_by_id(data["subcategory_id"], session)
         # serial_number
@@ -458,11 +462,12 @@ async def confirmation(callback: types.CallbackQuery, state: FSMContext, admin: 
     # если работы не было
     else:
         text = await t.t("work_save", lang)
-        keyboard = await kb.work_saved_keyboard(lang)
+        keyboard = await kb.work_saved_keyboard(data["category_id"], lang)
         await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
 
-        # сброс стейта
-        await state.clear()
+        # меняем стейт и данные для перехода к новой записи по этому транспорту
+        await state.set_state(AddWorkFSM.vehicle_number)
+        await state.update_data(selected_jobs=[])
 
         # запись operation в БД
         transport_id = await AsyncOrm.get_transport_id(data["category_id"], data["subcategory_id"],
@@ -471,14 +476,17 @@ async def confirmation(callback: types.CallbackQuery, state: FSMContext, admin: 
         operation_add = OperationAdd(
             tg_id=tg_id,
             transport_id=int(transport_id),
-            job_id=data["job_id"],
+            jobs_ids=data["selected_jobs"],
             duration=data["duration"],
             location_id=data["location_id"],
             comment=data["comment"],
             created_at=datetime.datetime.now(),
             updated_at=datetime.datetime.now()
         )
-        await AsyncOrm.create_operation(operation_add, session)
+        try:
+            await AsyncOrm.create_operation(operation_add, session)
+        except Exception:
+            await callback.message.edit_text("Error while creating operation")
 
 
 @router.callback_query(AddWorkFSM.second_confirmation)
@@ -505,14 +513,17 @@ async def second_confirmation(callback: types.CallbackQuery, state: FSMContext, 
         operation_add = OperationAdd(
             tg_id=tg_id,
             transport_id=int(transport_id),
-            job_id=data["job_id"],
+            jobs_ids=data["selected_jobs"],
             duration=data["duration"],
             location_id=data["location_id"],
             comment=data["comment"],
             created_at=datetime.datetime.now(),
             updated_at=datetime.datetime.now()
         )
-        await AsyncOrm.create_operation(operation_add, session)
+        try:
+            await AsyncOrm.create_operation(operation_add, session)
+        except Exception:
+            await callback.message.edit_text("Error while creating operation")
 
     # если дубликат
     else:
