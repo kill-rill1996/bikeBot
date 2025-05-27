@@ -17,16 +17,16 @@ class Operation(OperationAdd):
     id: int
 
 
-class OperationShow(BaseModel):
+class OperationJobs(BaseModel):
     id: int
     serial_number: int
     transport_category: str
     transport_subcategory: str
     created_at: datetime.datetime
-    job_title: str
+    jobs_titles: list[str] | None = None
 
 
-class OperationDetails(BaseModel):
+class OperationDetailJobs(BaseModel):
     id: int
     created_at: datetime.datetime
     comment: str
@@ -34,5 +34,6 @@ class OperationDetails(BaseModel):
     serial_number: int
     transport_category: str
     transport_subcategory: str
-    job_title: str
+    jobs_titles: list[str] | None = None
+
 

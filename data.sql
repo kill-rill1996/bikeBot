@@ -86,9 +86,19 @@ INSERT INTO jobs (title, jobtype_id) values ('work with electric 3', 6);
 INSERT INTO locations (name) values ('first location');
 INSERT INTO locations (name) values ('second location');
 -- OPERATIONS
-INSERT into operations(tg_id, transport_id, duration, location_id, comment, created_at, updated_at) values('420551454', 1, 45, 2, 'some comment', '2025-05-13 20:00:10', null);
-INSERT into operations(tg_id, transport_id, duration, location_id, comment, created_at, updated_at) values('420551454', 1, 30, 1, 'some comment', '2025-05-14 20:00:10', null);
-INSERT into operations(tg_id, transport_id, duration, location_id, comment, created_at, updated_at) values('420551454', 1, 30, 1, 'new comment', '2025-05-17 20:00:10', null);
-INSERT into operations(tg_id, transport_id, duration, location_id, comment, created_at, updated_at) values('420551454', 1, 30, 1, 'new comment2', '2025-05-12 20:00:10', null);
-INSERT into operations(tg_id, transport_id, duration, location_id, comment, created_at, updated_at) values('420551454', 1, 30, 1, 'some comment 34', '2025-05-10 20:00:10', null);
+INSERT INTO operations(tg_id, transport_id, duration, location_id, comment, created_at, updated_at) values('420551454', 1, 45, 2, 'some comment', '2025-05-13 20:00:10', null);
+INSERT INTO operations(tg_id, transport_id, duration, location_id, comment, created_at, updated_at) values('420551454', 1, 30, 1, 'some comment', '2025-05-14 20:00:10', null);
+INSERT INTO operations(tg_id, transport_id, duration, location_id, comment, created_at, updated_at) values('420551454', 12, 30, 1, 'new comment', '2025-05-17 20:00:10', null);
+INSERT INTO operations(tg_id, transport_id, duration, location_id, comment, created_at, updated_at) values('420551454', 12, 30, 1, 'new comment2', '2025-05-12 20:00:10', null);
+INSERT INTO operations(tg_id, transport_id, duration, location_id, comment, created_at, updated_at) values('420551454', 12, 30, 1, 'some comment 34', '2025-05-10 20:00:10', null);
 -- OPERATIONS_JOBS
+INSERT INTO operations_jobs(operation_id, job_id) VALUES(1, 1);
+INSERT INTO operations_jobs(operation_id, job_id) VALUES(1, 2);
+INSERT INTO operations_jobs(operation_id, job_id) VALUES(1, 3);
+INSERT INTO operations_jobs(operation_id, job_id) VALUES(2, 4);
+INSERT INTO operations_jobs(operation_id, job_id) VALUES(3, 1);
+INSERT INTO operations_jobs(operation_id, job_id) VALUES(4, 2);
+INSERT INTO operations_jobs(operation_id, job_id) VALUES(4, 4);
+INSERT INTO operations_jobs(operation_id, job_id) VALUES(4, 5);
+INSERT INTO operations_jobs(operation_id, job_id) VALUES(4, 7);
+INSERT INTO operations_jobs(operation_id, job_id) VALUES(5, 3);

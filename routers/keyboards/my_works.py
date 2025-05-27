@@ -4,7 +4,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 from routers.buttons import buttons as btn
 from utils.translator import translator as t
 from utils.date_time_service import convert_date_time
-from schemas.operations import OperationShow
+from schemas.operations import OperationJobs
 
 
 async def works_period_keyboard(lang: str) -> InlineKeyboardBuilder:
@@ -28,7 +28,7 @@ async def works_period_keyboard(lang: str) -> InlineKeyboardBuilder:
     return keyboard
 
 
-async def works_my_works_list(lang: str, works: list[OperationShow], period: str) -> InlineKeyboardBuilder:
+async def works_my_works_list(lang: str, works: list[OperationJobs], period: str) -> InlineKeyboardBuilder:
     """Вывод списка работ в кнопках"""
     keyboard = InlineKeyboardBuilder()
 
@@ -36,7 +36,7 @@ async def works_my_works_list(lang: str, works: list[OperationShow], period: str
         # формируем данные с переводом
         created_at = convert_date_time(w.created_at, True)[0]
         transport_category = await t.t(w.transport_category, lang)
-        job_title = await t.t(w.job_title, lang)
+        job_title = await t.t(w.jobs_titles[0], lang) # TODO подумать что выводить в кнопку (т.к. работ может быть много, берем пока только 1-ую)
 
         # в callback добавляем период, чтобы в след. хэндлере можно было его использовать в кнопке назад
         keyboard.row(
