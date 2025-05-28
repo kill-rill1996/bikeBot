@@ -91,7 +91,12 @@
     "enter_the_number": "Enter the vehicle number for the subcategory",
     "wrong_number": "The number entered is incorrect for the subcategory",
     "one_more": "Send the number again",
-    "operation_error": "Error while creating operation"
+    "operation_error": "Error while creating operation",
+    "statistic_view": "Statistics view",
+    "works": "works",
+    "total_number_of_works": "Total number of works",
+    "average_time": "Average time",
+    "total_time": "Total time"
   },
   "ru": {
     "input_name": "Введите ваше имя (например Джон Доу)",
@@ -185,7 +190,12 @@
     "enter_the_number": "Введите номер транспорта для подкатегории",
     "wrong_number": "Номер введен неправильно для подкатегории",
     "one_more": "Отправьте номер еще раз",
-    "operation_error": "Ошибка во время создания операции"
+    "operation_error": "Ошибка во время создания операции",
+    "statistic_view": "Просмотр статистики",
+    "works": "работ",
+    "total_number_of_works": "Общее кол-во работ",
+    "average_time": "Среднее время",
+    "total_time": "Общее время"
   },
   "es": {
     "name_error": "Nombre de usuario incorrecto ingresado, por favor inténtelo nuevamente",
@@ -279,6 +289,11 @@
     "enter_the_number": "Introduzca el número de vehículo para la subcategoría",
     "wrong_number": "El número ingresado es incorrecto para la subcategoría",
     "one_more": "Enviar el numero nuevamente",
-    "operation_error": "Error al crear la operación"
+    "operation_error": "Error al crear la operación",
+    "statistic_view": "Visualización de estadísticas",
+    "works": "trabajos",
+    "total_number_of_works": "Número total de trabajos",
+    "average_time": "Tiempo promedio",
+    "total_time": "Tiempo total"
   }
 }

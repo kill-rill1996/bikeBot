@@ -14,10 +14,10 @@ async def work_detail_message(lang: str, work: OperationDetailJobs) -> str:
               + f"{work.transport_subcategory}-{work.serial_number}\n" \
               + await t.t("time", lang) + " " + f"{work.duration}" + " " \
               + await t.t("minutes", lang) + "\n" \
-              + await t.t("operation", lang) + "\n" \
+              + f"{await t.t('operation', lang)}\n" \
 
     for job_title in work.jobs_titles:
-        message += f"- {await t.t(job_title, lang)}\n"
+        message += f"\t\t• {await t.t(job_title, lang)}\n"
 
     message += "\n" + await t.t("comment", lang) + " " + f"<i>{comment}</i>"
 

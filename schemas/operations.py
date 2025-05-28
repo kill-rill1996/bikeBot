@@ -21,6 +21,7 @@ class Operation(OperationAdd):
 
 class OperationJob(BaseModel):
     id: int
+    duration: int
     serial_number: int
     transport_category: str
     transport_subcategory: str
@@ -30,6 +31,7 @@ class OperationJob(BaseModel):
 
 class OperationJobs(BaseModel):
     id: int
+    duration: int
     serial_number: int
     transport_category: str
     transport_subcategory: str

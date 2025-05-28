@@ -404,7 +404,7 @@ class AsyncOrm:
             # выбираем операции со всеми необходимыми компонентами
             rows = await session.fetch(
                 """
-                SELECT o.id, t.serial_number, c.title AS transport_category, 
+                SELECT o.id, o.duration AS duration, t.serial_number, c.title AS transport_category, 
                 sc.title AS transport_subcategory, o.created_at, j.title AS job_title
                 FROM operations AS o
                 JOIN transports AS t ON o.transport_id = t.id
@@ -433,6 +433,7 @@ class AsyncOrm:
                         result.append(
                             OperationJobs(
                                 id=operation.id,
+                                duration=operation.duration,
                                 serial_number=operation.serial_number,
                                 transport_category=operation.transport_category,
                                 transport_subcategory=operation.transport_subcategory,
@@ -542,13 +543,51 @@ class AsyncOrm:
     async def delete_work(operation_id: int, session: Any) -> None:
         """Удаление работы"""
         try:
-            await session.execute(
-                """
-                DELETE FROM operations WHERE id=$1 
-                """,
-                operation_id
-            )
+            async with session.transaction():
+                # удаляем из таблицы связей operations_jobs
+                await session.execute(
+                    """
+                    DELETE FROM operations_jobs WHERE operation_id=$1 
+                    """,
+                    operation_id
+                )
+                # удаляем из таблицы operations
+                await session.execute(
+                    """
+                    DELETE FROM operations WHERE id=$1 
+                    """,
+                    operation_id
+                )
 
         except Exception as e:
             logger.error(f"Ошибка при удалении работы operation_id {operation_id}: {e}")
             raise
+
+    @staticmethod
+    async def get_statistic_for_period(start_date: datetime.datetime, end_date: datetime.datetime,
+                                       tg_id: str, session: Any) -> None:
+        """Получение статистики по определенному периоду"""
+        # SELECT
+        # t.serial_number, c.title
+        # AS
+        # category, sc.title
+        # AS
+        # subcategory,
+        # COUNT(*) as jobs_count, o.duration
+        try:
+            data = await session.fetch(
+                """
+                SELECT * 
+                FROM operations AS o
+                JOIN transports AS t ON o.transport_id = t.id
+                JOIN categories AS c ON t.category_id = c.id
+                JOIN subcategories AS sc ON t.subcategory_id = sc.id
+                JOIN operations_jobs AS oj ON o.id = oj.operation_id
+                JOIN jobs AS j ON oj.job_id = j.id
+                """,
+            )
+            print(data)
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении статистики для пользователя {tg_id} за период "
+                         f"{start_date} - {end_date}: {e}")

@@ -210,9 +210,14 @@ async def delete_my_work(callback: types.CallbackQuery, tg_id: str, session: Any
 
     # формируем текст с данными из перевода
     created_at = convert_date_time(operation.created_at, True)[0]
+
     transport_category = await t.t(operation.transport_category, lang)
-    job_title = await t.t(operation.job_title, lang)
-    text = f"{created_at}|{operation.id}|{transport_category}|{operation.transport_subcategory}-{operation.serial_number}|{job_title}"
+
+    jobs_titles = ""
+    for job_title in operation.jobs_titles:
+        jobs_titles += f"{await t.t(job_title, lang)}|"
+
+    text = f"{created_at}|{operation.id}|{transport_category}|{operation.transport_subcategory}-{operation.serial_number}|{jobs_titles[:-1]}"
 
     # добавляем вопрос об удалении
     text += "\n\n" + f"<b>{await t.t('sure_delete', lang)}</b>"

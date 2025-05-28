@@ -88,9 +88,9 @@ INSERT INTO locations (name) values ('second location');
 -- OPERATIONS
 INSERT INTO operations(tg_id, transport_id, duration, location_id, comment, created_at, updated_at) values('420551454', 1, 45, 2, 'some comment', '2025-05-13 20:00:10', null);
 INSERT INTO operations(tg_id, transport_id, duration, location_id, comment, created_at, updated_at) values('420551454', 1, 30, 1, 'some comment', '2025-05-14 20:00:10', null);
-INSERT INTO operations(tg_id, transport_id, duration, location_id, comment, created_at, updated_at) values('420551454', 12, 30, 1, 'new comment', '2025-05-17 20:00:10', null);
-INSERT INTO operations(tg_id, transport_id, duration, location_id, comment, created_at, updated_at) values('420551454', 12, 30, 1, 'new comment2', '2025-05-12 20:00:10', null);
-INSERT INTO operations(tg_id, transport_id, duration, location_id, comment, created_at, updated_at) values('420551454', 12, 30, 1, 'some comment 34', '2025-05-10 20:00:10', null);
+INSERT INTO operations(tg_id, transport_id, duration, location_id, comment, created_at, updated_at) values('420551454', 3, 30, 1, 'new comment', '2025-05-17 20:00:10', null);
+INSERT INTO operations(tg_id, transport_id, duration, location_id, comment, created_at, updated_at) values('420551454', 3, 30, 1, 'new comment2', '2025-05-12 20:00:10', null);
+INSERT INTO operations(tg_id, transport_id, duration, location_id, comment, created_at, updated_at) values('420551454', 3, 30, 1, 'some comment 34', '2025-05-10 20:00:10', null);
 -- OPERATIONS_JOBS
 INSERT INTO operations_jobs(operation_id, job_id) VALUES(1, 1);
 INSERT INTO operations_jobs(operation_id, job_id) VALUES(1, 2);
