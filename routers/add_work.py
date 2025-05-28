@@ -496,7 +496,7 @@ async def second_confirmation(callback: types.CallbackQuery, state: FSMContext, 
         data = await state.get_data()
 
         text = await t.t("work_save", lang)
-        keyboard = await kb.work_saved_keyboard(lang)
+        keyboard = await kb.work_saved_keyboard(data["category_id"], lang)
         await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
 
         # сброс стейта
