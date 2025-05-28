@@ -3,13 +3,16 @@ from typing import List
 from pydantic import BaseModel
 import datetime
 
+from schemas.categories_and_jobs import Jobtype
+from schemas.transport import Transport
+
 
 class OperationAdd(BaseModel):
     tg_id: str
     transport_id: int
     duration: int
     location_id: int
-    comment: str | None
+    comment: str | None = None
     created_at: datetime.datetime
     updated_at: datetime.datetime
     jobs_ids: List[int] | None = None

@@ -7,6 +7,7 @@ from logger import logger
 from schemas.categories_and_jobs import Category, Subcategory, Jobtype, Job
 from schemas.location import Location
 from schemas.operations import Operation, OperationAdd, OperationJobs, OperationDetailJobs, OperationJob
+from schemas.reports import OperationWithJobs, JobWithJobtypeTitle
 
 from schemas.users import User
 
@@ -122,7 +123,7 @@ class AsyncOrm:
         try:
             rows = await session.fetch(
                 """
-                SELECT id, tg_id, tg_username, username, created_at, role, lang
+                SELECT id, tg_id, tg_username, username, created_at, role, lang, is_active
                 FROM users
                 WHERE role = 'mechanic' AND is_active = true
                 ORDER BY username
@@ -490,35 +491,40 @@ class AsyncOrm:
             logger.error(f"Ошибка при выборе операции id {operation_id}: {e}")
 
     @staticmethod
-    async def get_operations_for_user_by_period(tg_id: str, period: str, session: Any) -> List[Operation]:
+    async def get_operations_for_user_by_period(tg_id: str, start_date: datetime.datetime,
+                                                end_date: datetime.datetime, session: Any) -> List[OperationWithJobs]:
         """Получение операций за период для пользователя"""
-        if period == "today":
-            start_date = datetime.datetime.now() - datetime.timedelta(days=1)
-            end_date = datetime.datetime.now()
-        elif period == "yesterday":
-            start_date = datetime.datetime.now() - datetime.timedelta(days=2)
-            end_date = datetime.datetime.now() - datetime.timedelta(days=1)
-        elif period == "week":
-            start_date = datetime.datetime.now() - datetime.timedelta(weeks=1)
-            end_date = datetime.datetime.now()
-        elif period == "month":
-            start_date = datetime.datetime.now() - datetime.timedelta(days=30)
-            end_date = datetime.datetime.now()
-        # TODO доделать произвольный период
-        else:
-            pass
-
         try:
+            # получение операций
             rows = await session.fetch(
                 """
-                SELECT *
-                FROM operations
-                WHERE tg_id = $1 AND created_at > $2 AND created_at < $3
+                SELECT o.*, c.title AS transport_category, sc.title AS transport_subcategory, t.serial_number AS transport_serial_number
+                FROM operations AS o
+                JOIN transports AS t ON o.transport_id = t.id
+                JOIN categories AS c ON t.category_id = c.id
+                JOIN subcategories sc ON sc.id = t.category_id
+                WHERE o.tg_id = $1 AND o.created_at > $2 AND o.created_at < $3
                 """,
                 tg_id, start_date, end_date
             )
-            operations = [Operation.model_validate(row) for row in rows]
-            return operations
+            operations = [OperationWithJobs.model_validate(row) for row in rows]
+
+            # получение jobs с jobtype для операций
+            for i in range(len(operations)):
+                rows = await session.fetch(
+                    """
+                    SELECT j.id, j.title, jt.title AS jobtype_title
+                    FROM jobs AS j
+                    JOIN operations_jobs AS oj ON j.id = oj.job_id
+                    JOIN jobtypes AS jt ON j.jobtype_id = jt.id
+                    WHERE oj.operation_id = $1 
+                    """,
+                    operations[i].id
+                )
+                jobs_with_jobtype = [JobWithJobtypeTitle.model_validate(row) for row in rows]
+                operations[i].jobs = jobs_with_jobtype
+
+            return sorted(operations, key=lambda o:o.created_at, reverse=True)
 
         except Exception as e:
             logger.error(f"Ошибка при получении операций пользователя {tg_id} с {start_date} до {end_date}: {e}")
