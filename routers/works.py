@@ -21,8 +21,12 @@ router = Router()
 
 
 @router.callback_query(F.data.split("|")[1] == "works-records")
-async def works_reports_menu(callback: types.CallbackQuery) -> None:
+async def works_reports_menu(callback: types.CallbackQuery, state: FSMContext) -> None:
     """Меню учета выполненных работ"""
+    # скидываем state из приходящего callback
+    if state:
+        await state.clear()
+
     tg_id = str(callback.from_user.id)
     lang = r.get(f"lang:{tg_id}").decode()
 

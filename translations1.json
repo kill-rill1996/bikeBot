@@ -111,7 +111,13 @@
     "choose_vehicle_report_type": "Select report type",
     "by_transport": "By transport",
     "by_subcategory": "By subcategory",
-    "choose_subcategory": "Select subcategory"
+    "choose_subcategory": "Select subcategory",
+    "vehicle_history": "Vehicle History",
+    "enter_transport_number": "Enter vehicle number or work description",
+    "wrong_text_data": "Invalid data format sent. Try again.",
+    "empty_search": "Nothing found for your search, please try again.",
+    "search_result": "Search results",
+    "select_found_vehicle": "Select found vehicle"
   },
   "ru": {
     "input_name": "Введите ваше имя (например Джон Доу)",
@@ -225,7 +231,13 @@
     "choose_vehicle_report_type": "Выберите тип отчета",
     "by_transport": "По транспорту",
     "by_subcategory": "По подкатегории",
-    "choose_subcategory": "Выберите подкатегорию"
+    "choose_subcategory": "Выберите подкатегорию",
+    "vehicle_history": "История транспорта",
+    "enter_transport_number": "Введите номер транспорта или описание работы",
+    "wrong_text_data": "Отправлен неверный формат данных, попробуйте еще раз.",
+    "empty_search": "По вашему запросу ничего не найдено, попробуйте еще раз.",
+    "search_result": "Результаты поиска",
+    "select_found_vehicle": "Выбор найденного транспорта"
   },
   "es": {
     "name_error": "Nombre de usuario incorrecto ingresado, por favor inténtelo nuevamente",
@@ -339,6 +351,13 @@
     "choose_vehicle_report_type": "Seleccione el tipo de informe",
     "by_transport": "Por transporte",
     "by_subcategory": "Por subcategoría",
-    "choose_subcategory": "Seleccionar subcategoría"
+    "choose_subcategory": "Seleccionar subcategoría",
+    "vehicle_history": "Historial del vehículo",
+    "enter_transport_number": "Introduzca el número del vehículo o la descripción del trabajo",
+    "wrong_text_data": "Formato de datos enviado no válido. intentar otra vez.",
+    "empty_search": "No se encontró nada para su búsqueda, por favor inténtelo de nuevo.",
+    "search_result": "Resultados de la búsqueda",
+    "select_found_vehicle": "Selección del vehículo encontrado"
+
   }
 }

@@ -9,6 +9,17 @@ class Category(BaseModel):
     emoji: str | None = None
 
 
+class TransportNumber(BaseModel):
+    id: int
+    subcategory_title: str
+    serial_number: int
+
+
+class JobTitle(BaseModel):
+    id: int
+    title: str
+
+
 class Subcategory(BaseModel):
     id: int
     title: str
