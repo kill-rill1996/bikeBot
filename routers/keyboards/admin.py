@@ -4,6 +4,7 @@ from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from routers.buttons import buttons as btn
+from schemas.categories_and_jobs import Subcategory
 from schemas.users import User
 from utils.translator import translator as t
 
@@ -95,7 +96,7 @@ async def report_details_keyboard(period: str, report_type: str, lang: str) -> I
     keyboard = InlineKeyboardBuilder()
 
     keyboard.row(
-        # TODO
+        # TODO поправить
         InlineKeyboardButton(text=f"{await t.t('excel_export', lang)}", callback_data=f"excel_export"),
         InlineKeyboardButton(text=f"{await t.t('graphic', lang)}", callback_data=f"graphic")
     )
@@ -116,7 +117,7 @@ async def summary_report_details_keyboard(report_type: str, lang: str) -> Inline
     keyboard = InlineKeyboardBuilder()
 
     keyboard.row(
-        # TODO
+        # TODO поправить
         InlineKeyboardButton(text=f"{await t.t('excel_export', lang)}", callback_data=f"excel_export"),
         InlineKeyboardButton(text=f"{await t.t('graphic', lang)}", callback_data=f"graphic")
     )
@@ -143,6 +144,58 @@ async def select_vehicle_report_type(report_type: str, period: str, lang: str) -
 
     # назад
     back_button: tuple = await btn.get_back_button(f"admin-reports|{report_type}", lang)
+    keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
+
+    # главное меню
+    main_menu_button: tuple = await btn.get_main_menu_button(lang)
+    keyboard.row(InlineKeyboardButton(text=main_menu_button[0], callback_data=main_menu_button[1]))
+
+    return keyboard
+
+
+async def select_vehicle_subcategory(subcategories: List[Subcategory], report_type: str, period: str, lang: str) -> InlineKeyboardBuilder:
+    """Выбор подкатегории для отчета по транспорту"""
+    keyboard = InlineKeyboardBuilder()
+
+    for sc in subcategories:
+        keyboard.row(InlineKeyboardButton(text=sc.title, callback_data=f"vr_by_sc|{report_type}|{period}|{sc.id}"))
+
+    keyboard.adjust(3)
+
+    # назад
+    back_button: tuple = await btn.get_back_button(f"reports-period|{report_type}|{period}", lang)
+    keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
+
+    # главное меню
+    main_menu_button: tuple = await btn.get_main_menu_button(lang)
+    keyboard.row(InlineKeyboardButton(text=main_menu_button[0], callback_data=main_menu_button[1]))
+
+    return keyboard
+
+
+async def back_to_choose_subcategory(period: str, report_type: str, lang: str) -> InlineKeyboardBuilder:
+    """Клавиатура возврата к выбору подкатегории"""
+    keyboard = InlineKeyboardBuilder()
+
+    # назад
+    back_button: tuple = await btn.get_back_button(f"vehicle_report_type|{report_type}|{period}", lang)
+    keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
+
+    return keyboard
+
+
+async def vehicle_report_by_category_details_keyboard(period: str, report_type: str, lang: str) -> InlineKeyboardBuilder:
+    """Клавиатура возврата к выбору периода"""
+    keyboard = InlineKeyboardBuilder()
+
+    keyboard.row(
+        # TODO поправить
+        InlineKeyboardButton(text=f"{await t.t('excel_export', lang)}", callback_data=f"excel_export"),
+        InlineKeyboardButton(text=f"{await t.t('graphic', lang)}", callback_data=f"graphic")
+    )
+
+    # назад
+    back_button: tuple = await btn.get_back_button(f"vehicle_report_type|{report_type}|{period}", lang)
     keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
 
     # главное меню

@@ -186,6 +186,23 @@ class AsyncOrm:
             logger.error(f"Ошибка при получении категории с id {category_id}: {e}")
 
     @staticmethod
+    async def get_all_subcategories(session: Any) -> List[Subcategory]:
+        """Получение всех подкатегорий"""
+        try:
+            rows = await session.fetch(
+                """
+                SELECT *
+                FROM subcategories
+                ORDER BY category_id;
+                """
+            )
+            subcategories = [Subcategory.model_validate(row) for row in rows]
+            return subcategories
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении всех подкатегорий: {e}")
+
+    @staticmethod
     async def get_subcategories_by_category(category_id: int, session: Any) -> List[Subcategory]:
         """Получение подкатегорий для категории"""
         try:
@@ -345,6 +362,23 @@ class AsyncOrm:
 
         except Exception as e:
             logger.error(f"Ошибка при получении всех локаций: {e}")
+
+    @staticmethod
+    async def get_location_by_id(location_id: int, session: Any) -> Location:
+        """Получение локации по id"""
+        try:
+            row = await session.fetchrow(
+                """
+                SELECT *
+                FROM locations
+                WHERE id = $1;
+                """,
+                location_id
+            )
+            return Location.model_validate(row)
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении локации по id {location_id}: {e}")
 
     @staticmethod
     async def create_operation(operation: OperationAdd, session: Any) -> None:
@@ -529,6 +563,43 @@ class AsyncOrm:
         except Exception as e:
             logger.error(f"Ошибка при получении операций пользователя {tg_id} с {start_date} до {end_date}: {e}")
 
+    @staticmethod
+    async def get_operations_by_subcategory_and_period(subcategory_id: int, start_date: datetime.datetime,
+                                                       end_date: datetime.datetime, session: Any) -> List[OperationWithJobs]:
+        """Получение операций по подкатегории за период"""
+        try:
+            rows = await session.fetch(
+                """
+                SELECT o.*, c.title AS transport_category, sc.title AS transport_subcategory, t.serial_number AS transport_serial_number
+                FROM operations AS o
+                JOIN transports AS t ON o.transport_id = t.id
+                JOIN categories AS c ON t.category_id = c.id
+                JOIN subcategories sc ON t.category_id = $1
+                WHERE o.created_at > $2 AND o.created_at < $3
+                """,
+                subcategory_id, start_date, end_date
+            )
+            operations = [OperationWithJobs.model_validate(row) for row in rows]
+
+            # получение jobs с jobtype для операций
+            for i in range(len(operations)):
+                rows = await session.fetch(
+                    """
+                    SELECT j.id, j.title, jt.title AS jobtype_title
+                    FROM jobs AS j
+                    JOIN operations_jobs AS oj ON j.id = oj.job_id
+                    JOIN jobtypes AS jt ON j.jobtype_id = jt.id
+                    WHERE oj.operation_id = $1 
+                    """, operations[i].id
+                )
+                jobs_with_jobtype = [JobWithJobtypeTitle.model_validate(row) for row in rows]
+                operations[i].jobs = jobs_with_jobtype
+
+            return sorted(operations, key=lambda o: o.created_at, reverse=True)
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении операций по подкатегории {subcategory_id} с {start_date} "
+                         f"до {end_date}: {e}")
 
     @staticmethod
     async def update_comment(operation_id: int, new_comment: str, session: Any) -> None:

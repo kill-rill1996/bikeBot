@@ -111,7 +111,8 @@
     "choose_vehicle_report_type": "Select report type",
     "by_transport": "By transport",
     "by_subcategory": "By subcategory",
-    "choose_subcategory": "Select subcategory"
+    "choose_subcategory": "Select subcategory",
+    "subcategory": "Subcategory"
   },
   "ru": {
     "input_name": "Введите ваше имя (например Джон Доу)",
@@ -225,7 +226,8 @@
     "choose_vehicle_report_type": "Выберите тип отчета",
     "by_transport": "По транспорту",
     "by_subcategory": "По подкатегории",
-    "choose_subcategory": "Выберите подкатегорию"
+    "choose_subcategory": "Выберите подкатегорию",
+    "subcategory": "Подкатегория"
   },
   "es": {
     "name_error": "Nombre de usuario incorrecto ingresado, por favor inténtelo nuevamente",
@@ -339,6 +341,7 @@
     "choose_vehicle_report_type": "Seleccione el tipo de informe",
     "by_transport": "Por transporte",
     "by_subcategory": "Por subcategoría",
-    "choose_subcategory": "Seleccionar subcategoría"
+    "choose_subcategory": "Seleccionar subcategoría",
+    "subcategory": "Subcategoría"
   }
 }
