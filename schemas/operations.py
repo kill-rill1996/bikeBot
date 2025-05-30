@@ -53,3 +53,12 @@ class OperationDetailJobs(BaseModel):
     jobs_titles: list[str] | None = None
 
 
+class OperationJobsTransport(BaseModel):
+    id: int
+    transport_id: int
+    serial_number: int
+    transport_subcategory: str
+    job_id: int
+    job_title: str
+
+

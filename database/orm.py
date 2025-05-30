@@ -4,9 +4,10 @@ from collections.abc import Mapping
 from typing import Any, List
 
 from logger import logger
-from schemas.categories_and_jobs import Category, Subcategory, Jobtype, Job
+from schemas.categories_and_jobs import Category, Subcategory, Jobtype, Job, JobTitle, TransportNumber
 from schemas.location import Location
-from schemas.operations import Operation, OperationAdd, OperationJobs, OperationDetailJobs, OperationJob
+from schemas.operations import Operation, OperationAdd, OperationJobs, OperationDetailJobs, OperationJob, \
+    OperationJobsTransport
 from schemas.reports import OperationWithJobs, JobWithJobtypeTitle
 
 from schemas.users import User
@@ -641,30 +642,69 @@ class AsyncOrm:
             raise
 
     @staticmethod
-    async def get_statistic_for_period(start_date: datetime.datetime, end_date: datetime.datetime,
-                                       tg_id: str, session: Any) -> None:
-        """Получение статистики по определенному периоду"""
-        # SELECT
-        # t.serial_number, c.title
-        # AS
-        # category, sc.title
-        # AS
-        # subcategory,
-        # COUNT(*) as jobs_count, o.duration
+    async def get_all_transports(session: Any) -> list[TransportNumber]:
+        """Получение всех subcategory_title + serial_number и jobs.title"""
         try:
-            data = await session.fetch(
+            rows = await session.fetch(
                 """
-                SELECT * 
+                SELECT t.id, t.serial_number, sc.title AS subcategory_title 
+                FROM transports AS t 
+                join subcategories AS sc ON t.subcategory_id = sc.id;
+                """
+            )
+            transport_numbers: list[TransportNumber] = [
+                TransportNumber.model_validate(row) for row in rows
+            ]
+
+            return transport_numbers
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении названия всех подкатегорий и названия всех работ: {e}")
+
+    @staticmethod
+    async def select_operations_with_jobs(session: Any) -> list[OperationJobsTransport]:
+        """Вывод операций за выбранный период"""
+        try:
+            # выбираем операции со всеми необходимыми компонентами
+            rows = await session.fetch(
+                """
+                SELECT o.id, t.id AS transport_id, t.serial_number, sc.title AS transport_subcategory, 
+                j.id AS job_id, j.title AS job_title
                 FROM operations AS o
                 JOIN transports AS t ON o.transport_id = t.id
-                JOIN categories AS c ON t.category_id = c.id
                 JOIN subcategories AS sc ON t.subcategory_id = sc.id
                 JOIN operations_jobs AS oj ON o.id = oj.operation_id
                 JOIN jobs AS j ON oj.job_id = j.id
                 """,
             )
-            print(data)
+            operations: list[OperationJobsTransport] = [OperationJobsTransport.model_validate(row) for row in rows]
+
+            # operations_jobs = {}
+            # for operation in operations:
+            #     if operation.id in operations_jobs.keys():
+            #         operations_jobs[operation.id].append(operation.job_title)
+            #     else:
+            #         operations_jobs[operation.id] = [operation.job_title]
+            #
+            # result = []
+            # for key, value in operations_jobs.items():
+            #     for operation in operations:
+            #         if operation.id == key:
+            #             result.append(
+            #                 OperationJobs(
+            #                     id=operation.id,
+            #                     duration=operation.duration,
+            #                     serial_number=operation.serial_number,
+            #                     transport_category=operation.transport_category,
+            #                     transport_subcategory=operation.transport_subcategory,
+            #                     created_at=operation.created_at,
+            #                     jobs_titles=value,
+            #                 )
+            #             )
+            #             break
+
+            return operations
 
         except Exception as e:
-            logger.error(f"Ошибка при получении статистики для пользователя {tg_id} за период "
-                         f"{start_date} - {end_date}: {e}")
+            logger.error(
+                f"Ошибка при выборе списка операций с работами и транспортом: {e}")
