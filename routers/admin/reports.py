@@ -158,7 +158,6 @@ async def summary_report_by_mechanics(callback: types.CallbackQuery, tg_id: str,
 @router.callback_query(and_f(F.data.split("|")[0] == "reports-period", F.data.split("|")[1] == "vehicle_report"))
 async def vehicle_report_select_type(callback: types.CallbackQuery, tg_id: str) -> None:
     """Выбор типа отчета по транспорту"""
-    print(callback.data.split("|"))
     lang = r.get(f"lang:{tg_id}").decode()
     report_type = callback.data.split("|")[1]
     period = callback.data.split("|")[2]
@@ -172,7 +171,6 @@ async def vehicle_report_select_type(callback: types.CallbackQuery, tg_id: str) 
 @router.callback_query(F.data.split("|")[0] == "vehicle_report_type" and F.data.split("|")[1] == "by_subcategory")
 async def vehicle_report_by_subcategory_choose_subcategory(callback: types.CallbackQuery, tg_id: str, session: Any) -> None:
     """Выбор подкатегории"""
-    print(callback.data.split("|"))
     lang = r.get(f"lang:{tg_id}").decode()
     report_type = callback.data.split("|")[2]
     period = callback.data.split("|")[3]
@@ -184,45 +182,48 @@ async def vehicle_report_by_subcategory_choose_subcategory(callback: types.Callb
     await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
-@router.callback_query(F.data.split("|")[0] == "vr_by_sc")
+@router.callback_query(F.data.split("|")[0] == "vehicle_report_by_sc")
 async def vehicle_report_by_subcategory(callback: types.CallbackQuery, tg_id: str, session: Any) -> None:
     """Отчет по транспорту по подкатегории"""
-    print("report", callback.data)
-    print("yes")
-    # lang = r.get(f"lang:{tg_id}").decode()
-    # report_type = callback.data.split("|")[1]
-    # period = callback.data.split("|")[2]
-    # subcategory_id = int(callback.data.split("|")[3])
-    #
-    # waiting_message = await callback.message.edit_text(await t.t("please_wait", lang))
-    #
-    # start_date, end_date = get_dates_by_period(period)
-    # operations = await AsyncOrm.get_operations_by_subcategory_and_period(subcategory_id, start_date, end_date, session)
-    #
-    # if not operations:
-    #     msg_text = await t.t("no_operations", lang)
-    #     keyboard = await kb.back_to_choose_subcategory(period, report_type, lang)
-    #     await waiting_message.edit_text(msg_text, reply_markup=keyboard.as_markup())
-    #     return
-    #
-    # subcategory = await AsyncOrm.get_subcategory_by_id(subcategory_id, session)
-    # text = f"📆 {await t.t('vehicle_report', lang)}\n{await t.t('subcategory', lang)} <b>{subcategory.title}</b>\n\n"
-    #
-    # # operations
-    # for idx, operation in enumerate(operations, start=1):
-    #     mechanic = await AsyncOrm.get_user_by_tg_id(operation.tg_id, session)
-    #     location = await AsyncOrm.get_location_by_id(operation.location_id, session)
-    #     row_text = f"<b>{idx})</b> {convert_date_time(operation.created_at, with_tz=settings.timezone)[0]} | {mechanic.username} | {await t.t(location.name, lang)}\n"
-    #     # суммарное время обслуживания
-    #     row_text += f"{await t.t('works_time', lang)} {operation.duration} {await t.t('minutes', lang)}\n"
-    #     row_text += f"{await t.t('comment', lang)} <i>'{operation.comment}'</i>\n"
-    #
-    #     # jobs
-    #     for job in operation.jobs:
-    #         row_text += "\t\t• " + await t.t(job.title, lang) + "\n"
-    #
-    # keyboard = await kb.vehicle_report_by_category_details_keyboard(period, report_type, lang)
-    # await waiting_message.edit_text(text, reply_markup=keyboard.as_markup())
+    lang = r.get(f"lang:{tg_id}").decode()
+    report_type = callback.data.split("|")[1]
+    period = callback.data.split("|")[2]
+    subcategory_id = int(callback.data.split("|")[3])
+
+    waiting_message = await callback.message.edit_text(await t.t("please_wait", lang))
+
+    start_date, end_date = get_dates_by_period(period)
+    operations = await AsyncOrm.get_operations_by_subcategory_and_period(subcategory_id, start_date, end_date, session)
+
+    if not operations:
+        msg_text = await t.t("no_operations", lang)
+        keyboard = await kb.back_to_choose_subcategory(period, report_type, lang)
+        await waiting_message.edit_text(msg_text, reply_markup=keyboard.as_markup())
+        return
+
+    subcategory = await AsyncOrm.get_subcategory_by_id(subcategory_id, session)
+    text = f"📆 {await t.t('vehicle_report', lang)}\n{await t.t('subcategory', lang)} <b>{subcategory.title}</b>\n\n"
+
+    # operations
+    for idx, operation in enumerate(operations, start=1):
+        mechanic = await AsyncOrm.get_user_by_tg_id(operation.tg_id, session)
+        location = await AsyncOrm.get_location_by_id(operation.location_id, session)
+        row_text = f"<b>{idx})</b> {convert_date_time(operation.created_at, with_tz=settings.timezone)[0]} | " \
+                   f"{operation.transport_subcategory}-{operation.transport_serial_number} | " \
+                   f"{mechanic.username} | {await t.t(location.name, lang)}\n"
+        # суммарное время обслуживания
+        row_text += f"{await t.t('works_time', lang)} {operation.duration} {await t.t('minutes', lang)}\n"
+        comment = operation.comment if operation.comment else "-"
+        row_text += f"{await t.t('comment', lang)} <i>'{comment}'</i>\n"
+
+        # jobs
+        for job in operation.jobs:
+            row_text += "\t\t• " + await t.t(job.title, lang) + "\n"
+
+        text += row_text
+
+    keyboard = await kb.vehicle_report_by_category_details_keyboard(period, report_type, lang)
+    await waiting_message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
 

@@ -158,7 +158,7 @@ async def select_vehicle_subcategory(subcategories: List[Subcategory], report_ty
     keyboard = InlineKeyboardBuilder()
 
     for sc in subcategories:
-        keyboard.row(InlineKeyboardButton(text=sc.title, callback_data=f"vr_by_sc|{report_type}|{period}|{sc.id}"))
+        keyboard.row(InlineKeyboardButton(text=sc.title, callback_data=f"vehicle_report_by_sc|{report_type}|{period}|{sc.id}"))
 
     keyboard.adjust(3)
 
@@ -178,7 +178,7 @@ async def back_to_choose_subcategory(period: str, report_type: str, lang: str) -
     keyboard = InlineKeyboardBuilder()
 
     # назад
-    back_button: tuple = await btn.get_back_button(f"vehicle_report_type|{report_type}|{period}", lang)
+    back_button: tuple = await btn.get_back_button(f"vehicle_report_type|by_subcategory|{report_type}|{period}", lang)
     keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
 
     return keyboard
@@ -195,7 +195,7 @@ async def vehicle_report_by_category_details_keyboard(period: str, report_type: 
     )
 
     # назад
-    back_button: tuple = await btn.get_back_button(f"vehicle_report_type|{report_type}|{period}", lang)
+    back_button: tuple = await btn.get_back_button(f"vehicle_report_type|by_subcategory|{report_type}|{period}", lang)
     keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
 
     # главное меню

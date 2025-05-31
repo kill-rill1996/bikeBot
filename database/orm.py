@@ -575,10 +575,10 @@ class AsyncOrm:
                 FROM operations AS o
                 JOIN transports AS t ON o.transport_id = t.id
                 JOIN categories AS c ON t.category_id = c.id
-                JOIN subcategories sc ON t.category_id = $1
-                WHERE o.created_at > $2 AND o.created_at < $3
+                JOIN subcategories AS sc ON t.subcategory_id = sc.id
+                WHERE o.created_at > $1 AND o.created_at < $2 AND sc.id = $3;
                 """,
-                subcategory_id, start_date, end_date
+                start_date, end_date, subcategory_id
             )
             operations = [OperationWithJobs.model_validate(row) for row in rows]
 
