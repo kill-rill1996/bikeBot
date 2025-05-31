@@ -12,7 +12,7 @@ async def search_transport_result(operations: list[OperationJobsUserLocation], l
         date: str = convert_date_time(operation.created_at)[0]
         category_title = await t.t(operation.category_title, lang)
 
-        message += f"{date}: {operation.id} | {category_title} | {operation.subcategory_title}-{operation.serial_number} | "
+        message += f"{date}: ID {operation.id} | {category_title} | {operation.subcategory_title}-{operation.serial_number} | "
 
         # добавляем все названия работ
         for job in operation.jobs:
