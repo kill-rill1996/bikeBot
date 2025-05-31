@@ -5,7 +5,7 @@ from settings import settings
 
 
 def convert_date_time(date: datetime.datetime, with_tz: bool = None) -> (str, str):
-    """Перевод даты в формат для вывода"""
+    """Перевод даты в формат для вывода (date, time)"""
     # перевод в текущий часовой пояс
     if with_tz:
         date = date.astimezone(tz=pytz.timezone(settings.timezone))
