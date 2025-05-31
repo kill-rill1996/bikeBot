@@ -35,7 +35,7 @@ class OperationJobUserLocation(BaseModel):
     location: str
     username: str
     role: str
-    comment: str
+    comment: str | None = None
 
 
 class OperationJobsUserLocation(BaseModel):
@@ -49,7 +49,7 @@ class OperationJobsUserLocation(BaseModel):
     location: str
     username: str
     role: str
-    comment: str
+    comment: str | None = None
 
 
 class ListOperations(BaseModel):

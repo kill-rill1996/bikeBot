@@ -5,6 +5,12 @@ from utils.date_time_service import convert_date_time
 
 async def search_transport_result(operations: list[OperationJobsUserLocation], lang: str) -> str:
     """Сообщение о результатах поиска"""
+    operations_count: int = len(operations)
+    # если работ нет
+    if operations_count == 0:
+        message = await t.t("empty_search", lang)
+        return message
+
     text = await t.t("searched_work_count", lang)
     message = f"<b>{text.format(len(operations))}\n\n</b>"
 
@@ -32,7 +38,9 @@ async def operation_detail_message(operation: OperationJobsUserLocation, lang: s
     for job in operation.jobs:
         message += f"\t\t• {await t.t(job[1], lang)} -> {await t.t(job[0], lang)}\n"
 
-    message += f"\n{operation.location}\n{operation.username}: " \
-               f"\"<i>{operation.comment}</i>\""
+    message += f"\n{operation.location}\n{operation.username}"
+
+    if operation.comment:
+        message += f": \"<i>{operation.comment}</i>\""
 
     return message

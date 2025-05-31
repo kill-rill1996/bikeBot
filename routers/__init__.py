@@ -9,6 +9,7 @@ from routers.statistic import router as statistic_router
 from routers.search import router as search_router
 from routers.admin.menu import router as admin_menu_router
 from routers.admin.reports import router as admin_reports_router
+from routers.admin.transports import router as admin_transports_router
 
 
 main_router = Router()
@@ -21,6 +22,7 @@ main_router.include_routers(
     settings_router,
     admin_menu_router,
     admin_reports_router,
+    admin_transports_router,
     statistic_router,
     search_router,
 )

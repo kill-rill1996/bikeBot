@@ -6,6 +6,7 @@ from typing import Any, List
 from logger import logger
 from schemas.categories_and_jobs import Category, Subcategory, Jobtype, Job
 from schemas.location import Location
+from schemas import management as m
 from schemas.operations import Operation, OperationAdd, OperationJobs, OperationDetailJobs, OperationJob, \
     OperationJobTransport
 from schemas.reports import OperationWithJobs, JobWithJobtypeTitle
@@ -748,25 +749,16 @@ class AsyncOrm:
                 f"Ошибка при получении операции с работами, механиком и транспортом: {e}")
 
     @staticmethod
-    async def get_operation_user_location(operaion_id: int, session: Any) -> list[OperationJobTransport]:
-        """Вывод операций за выбранный период"""
+    async def add_category(category: m.TransportCategory, session: Any) -> None:
+        """Добавление новой категории"""
         try:
-            # выбираем операции со всеми необходимыми компонентами
-            rows = await session.fetch(
+            await session.execute(
                 """
-                SELECT o.id, t.id AS transport_id, t.serial_number, sc.title AS transport_subcategory, 
-                j.id AS job_id, j.title AS job_title
-                FROM operations AS o
-                JOIN transports AS t ON o.transport_id = t.id
-                JOIN subcategories AS sc ON t.subcategory_id = sc.id
-                JOIN operations_jobs AS oj ON o.id = oj.operation_id
-                JOIN jobs AS j ON oj.job_id = j.id
+                INSERT INTO categories(title, emoji) values($1, $2)
                 """,
+                category.title, category.emoji
             )
-            operations: list[OperationJobTransport] = [OperationJobTransport.model_validate(row) for row in rows]
-
-            return operations
 
         except Exception as e:
-            logger.error(
-                f"Ошибка при выборе списка операций с работами и транспортом: {e}")
+            logger.error(f"Ошибка при создании категории {category}: {e}")
+            raise
