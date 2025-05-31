@@ -6,12 +6,13 @@ from aiogram import Router, F, types
 from aiogram.fsm.context import FSMContext
 
 from cache import r
-from schemas.categories_and_jobs import TransportNumber, JobTitle
-from schemas.operations import OperationJobsTransport
+from schemas.search import OperationJobTransport, TransportNumber, OperationJobsUserLocation, ListOperations
 from utils.translator import translator as t
+from utils.date_time_service import get_dates_by_period
 
 from routers.keyboards import search as kb
 from routers.states.search import SearchWorkFSM
+from routers.messages import search as ms
 
 from database.orm import AsyncOrm
 
@@ -74,7 +75,7 @@ async def get_data_to_search(message: types.Message | types.CallbackQuery, tg_id
     db_transports = await AsyncOrm.get_all_transports(session)
 
     # получаем из БД операции с транспортом и работами
-    operations: list[OperationJobsTransport] = await AsyncOrm.select_operations_with_jobs(session)
+    operations: list[OperationJobTransport] = await AsyncOrm.get_operations_with_jobs(session)
 
     # получаем текст от пользователя
     if type(message) == types.Message:
@@ -112,6 +113,7 @@ async def get_data_to_search(message: types.Message | types.CallbackQuery, tg_id
 
 
 @router.callback_query(SearchWorkFSM.select_transport, F.data.split("|")[0] == "searched_transport")
+@router.callback_query(SearchWorkFSM.works_list, F.data.split("|")[0] == "searched_transport")  # для кнопки назад
 async def select_transport(callback: types.CallbackQuery, tg_id: str, state: FSMContext) -> None:
     """Выбор периода для вывода работ"""
     lang = r.get(f"lang:{tg_id}").decode()
@@ -119,6 +121,11 @@ async def select_transport(callback: types.CallbackQuery, tg_id: str, state: FSM
     await state.set_state(SearchWorkFSM.period)
 
     transport_id: str = callback.data.split("|")[1]
+
+    # удаляем старый кэш
+    r.delete(f"searched-operations|{transport_id}")
+
+    # записываем выбранный транспорт
     await state.update_data(transport_id=transport_id)
 
     text = await t.t("select_period", lang)
@@ -126,8 +133,78 @@ async def select_transport(callback: types.CallbackQuery, tg_id: str, state: FSM
     await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
+@router.callback_query(F.data.split("|")[0] == "search_period", SearchWorkFSM.period)
+@router.callback_query(F.data.split("|")[0] == "search_period", SearchWorkFSM.works_list)   # для кнопки назад
+async def select_period(callback: types.CallbackQuery, tg_id: str, session: Any, state: FSMContext) -> None:
+    """Получаем выбранный пользователем период и выводим список работ по транспорту"""
+    lang = r.get(f"lang:{tg_id}").decode()
+    period: str = callback.data.split("|")[1]
+
+    # сообщение об ожидании
+    wait_mess = await callback.message.edit_text(await t.t("please_wait", lang))
+
+    # сохраняем период для дальнейшей передачи
+    await state.update_data(period=period)
+
+    # меняем state
+    await state.set_state(SearchWorkFSM.works_list)
+
+    data = await state.get_data()
+    transport_id = int(data["transport_id"])
+
+    start_date, end_date = get_dates_by_period(period)
+
+    operations_for_transport: ListOperations = await AsyncOrm.get_operations_jobs_user_for_transport(
+        transport_id, start_date, end_date, session
+    )
+
+    # если работ нет -> возвращаемся к выбору периода
+    if not operations_for_transport:
+        keyboard = await kb.back_keyboard(lang, f"searched_transport|{transport_id}")
+        await wait_mess.edit_text(await t.t("empty_works", lang), reply_markup=keyboard.as_markup())
+        return
+
+    # записываем кэш
+    operations_for_transport_json = operations_for_transport.model_dump_json()
+    r.set(f"searched-operations|{transport_id}", operations_for_transport_json)
+
+    message = await ms.search_transport_result(operations_for_transport.operations, lang)
+    keyboard = await kb.found_operations_keyboard(operations_for_transport.operations, lang, f"searched_transport|{transport_id}")
+
+    await wait_mess.edit_text(message, reply_markup=keyboard.as_markup())
+
+
+@router.callback_query(F.data.split("|")[0] == "operation-detail", SearchWorkFSM.works_list)
+async def select_period(callback: types.CallbackQuery, tg_id: str, session: Any, state: FSMContext) -> None:
+    """Выводим детали выбранной работы"""
+    lang = r.get(f"lang:{tg_id}").decode()
+    data = await state.get_data()
+    period = data["period"]
+    transport_id = int(data["transport_id"])
+    operation_id = int(callback.data.split("|")[1])
+
+    # получаем все операции по этому транспорту за выбранный период из кэша
+    cached_data = r.get(f"searched-operations|{transport_id}")
+    list_operations = ListOperations.model_validate_json(cached_data)
+
+    # заглушка для message
+    message = "Something goes wrong"
+
+    # выбираем нужную нам
+    for operation in list_operations.operations:
+        if operation.id == operation_id:
+            message = await ms.operation_detail_message(operation, lang)
+
+    keyboard = await kb.back_and_main_menu_keyboard(f"search_period|{period}", lang)
+
+    await callback.message.edit_text(message, reply_markup=keyboard.as_markup())
+
+    # удаляем кэш
+    r.delete(f"searched-operations|{transport_id}")
+
+
 async def get_match_transport_or_job(
-        input_data: str, transports: list[TransportNumber], operations: [OperationJobsTransport], lang: str
+        input_data: str, transports: list[TransportNumber], operations: [OperationJobTransport], lang: str
 ) -> list[str]:
     """Парсит введенные данные и возвращает варианты для дальнейшего поиска"""
     # формируем названия транспорта
@@ -160,8 +237,3 @@ async def get_match_transport_or_job(
                         break
 
     return transports
-
-
-
-
-

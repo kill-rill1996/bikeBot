@@ -117,7 +117,11 @@
     "wrong_text_data": "Invalid data format sent. Try again.",
     "empty_search": "Nothing found for your search, please try again.",
     "search_result": "Search results",
-    "select_found_vehicle": "Select found vehicle"
+    "select_found_vehicle": "Select found vehicle",
+    "list_of_works_by_vehicle": "List of works by vehicle",
+    "searched_work_count": "Works found {0}",
+    "mechanic": "Mechanic",
+    "selected_work_details": "Selected work details"
   },
   "ru": {
     "input_name": "Введите ваше имя (например Джон Доу)",
@@ -237,7 +241,11 @@
     "wrong_text_data": "Отправлен неверный формат данных, попробуйте еще раз.",
     "empty_search": "По вашему запросу ничего не найдено, попробуйте еще раз.",
     "search_result": "Результаты поиска",
-    "select_found_vehicle": "Выбор найденного транспорта"
+    "select_found_vehicle": "Выбор найденного транспорта",
+    "list_of_works_by_vehicle": "Список работ по транспорту",
+    "searched_work_count": "Найдено работ {0}",
+    "mechanic": "Механик",
+    "selected_work_details": "Детали выбранной работы"
   },
   "es": {
     "name_error": "Nombre de usuario incorrecto ingresado, por favor inténtelo nuevamente",
@@ -357,7 +365,10 @@
     "wrong_text_data": "Formato de datos enviado no válido. intentar otra vez.",
     "empty_search": "No se encontró nada para su búsqueda, por favor inténtelo de nuevo.",
     "search_result": "Resultados de la búsqueda",
-    "select_found_vehicle": "Selección del vehículo encontrado"
-
+    "select_found_vehicle": "Selección del vehículo encontrado",
+    "list_of_works_by_vehicle": "Lista de trabajos por vehículo",
+    "searched_work_count": "Obras encontradas {0}",
+    "mechanic": "Mecánico",
+    "selected_work_details": "Detalles del trabajo seleccionado"
   }
 }

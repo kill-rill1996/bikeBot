@@ -4,11 +4,12 @@ from collections.abc import Mapping
 from typing import Any, List
 
 from logger import logger
-from schemas.categories_and_jobs import Category, Subcategory, Jobtype, Job, JobTitle, TransportNumber
+from schemas.categories_and_jobs import Category, Subcategory, Jobtype, Job
 from schemas.location import Location
 from schemas.operations import Operation, OperationAdd, OperationJobs, OperationDetailJobs, OperationJob, \
-    OperationJobsTransport
+    OperationJobTransport
 from schemas.reports import OperationWithJobs, JobWithJobtypeTitle
+from schemas.search import TransportNumber, OperationJobUserLocation, OperationJobsUserLocation, ListOperations
 
 from schemas.users import User
 
@@ -591,7 +592,7 @@ class AsyncOrm:
             logger.error(f"Ошибка при получении названия всех подкатегорий и названия всех работ: {e}")
 
     @staticmethod
-    async def select_operations_with_jobs(session: Any) -> list[OperationJobsTransport]:
+    async def get_operations_with_jobs(session: Any) -> list[OperationJobTransport]:
         """Вывод операций за выбранный период"""
         try:
             # выбираем операции со всеми необходимыми компонентами
@@ -606,31 +607,92 @@ class AsyncOrm:
                 JOIN jobs AS j ON oj.job_id = j.id
                 """,
             )
-            operations: list[OperationJobsTransport] = [OperationJobsTransport.model_validate(row) for row in rows]
+            operations: list[OperationJobTransport] = [OperationJobTransport.model_validate(row) for row in rows]
 
-            # operations_jobs = {}
-            # for operation in operations:
-            #     if operation.id in operations_jobs.keys():
-            #         operations_jobs[operation.id].append(operation.job_title)
-            #     else:
-            #         operations_jobs[operation.id] = [operation.job_title]
-            #
-            # result = []
-            # for key, value in operations_jobs.items():
-            #     for operation in operations:
-            #         if operation.id == key:
-            #             result.append(
-            #                 OperationJobs(
-            #                     id=operation.id,
-            #                     duration=operation.duration,
-            #                     serial_number=operation.serial_number,
-            #                     transport_category=operation.transport_category,
-            #                     transport_subcategory=operation.transport_subcategory,
-            #                     created_at=operation.created_at,
-            #                     jobs_titles=value,
-            #                 )
-            #             )
-            #             break
+            return operations
+
+        except Exception as e:
+            logger.error(
+                f"Ошибка при выборе списка операций с работами и транспортом: {e}")
+
+    @staticmethod
+    async def get_operations_jobs_user_for_transport(
+            transport_id: int, start_date: datetime.datetime, end_date: datetime.datetime, session: Any) -> ListOperations:
+        """Получает операцию с работами, механиком, транспортом, местоположением и тд."""
+        try:
+            # выбираем операции со всеми необходимыми компонентами
+            rows = await session.fetch(
+                """
+                SELECT o.id, o.created_at, c.title AS category_title, sc.title AS subcategory_title, t.serial_number,
+                j.title AS job_title, jt.title AS job_type, o.duration, l.name AS location, u.username, u.role, o.comment
+                FROM operations AS o
+                JOIN transports AS t ON o.transport_id = t.id
+                JOIN categories AS c ON t.category_id = c.id
+                JOIN subcategories AS sc ON t.subcategory_id = sc.id
+                JOIN operations_jobs AS oj ON o.id = oj.operation_id
+                JOIN jobs AS j ON oj.job_id = j.id
+                JOIN jobtypes AS jt ON j.jobtype_id = jt.id
+                JOIN locations AS l ON o.location_id = l.id
+                JOIN users AS u ON o.tg_id = u.tg_id
+                WHERE t.id = $1 AND o.created_at >= $2 AND o.created_at <= $3
+                """,
+                transport_id, start_date, end_date
+            )
+            operations: list[OperationJobUserLocation] = [OperationJobUserLocation.model_validate(row) for row in rows]
+
+            operations_jobs = {}
+            for operation in operations:
+                if operation.id in operations_jobs.keys():
+                    operations_jobs[operation.id].append((operation.job_title, operation.job_type))
+                else:
+                    operations_jobs[operation.id] = [(operation.job_title, operation.job_type)]
+
+            result = []
+            for key, value in operations_jobs.items():
+                for operation in operations:
+                    if operation.id == key:
+                        result.append(
+                            OperationJobsUserLocation(
+                                id=operation.id,
+                                created_at=operation.created_at,
+                                category_title=operation.category_title,
+                                subcategory_title=operation.subcategory_title,
+                                serial_number=operation.serial_number,
+                                jobs=value,  # jop_title, job_type
+                                duration=operation.duration,
+                                location=operation.location,
+                                username=operation.username,
+                                role=operation.role,
+                                comment=operation.comment
+                            )
+                        )
+                        break
+
+            return ListOperations(
+                operations=sorted(result, key=lambda x: x.created_at, reverse=True)
+            )
+
+        except Exception as e:
+            logger.error(
+                f"Ошибка при получении операции с работами, механиком и транспортом: {e}")
+
+    @staticmethod
+    async def get_operation_user_location(operaion_id: int, session: Any) -> list[OperationJobTransport]:
+        """Вывод операций за выбранный период"""
+        try:
+            # выбираем операции со всеми необходимыми компонентами
+            rows = await session.fetch(
+                """
+                SELECT o.id, t.id AS transport_id, t.serial_number, sc.title AS transport_subcategory, 
+                j.id AS job_id, j.title AS job_title
+                FROM operations AS o
+                JOIN transports AS t ON o.transport_id = t.id
+                JOIN subcategories AS sc ON t.subcategory_id = sc.id
+                JOIN operations_jobs AS oj ON o.id = oj.operation_id
+                JOIN jobs AS j ON oj.job_id = j.id
+                """,
+            )
+            operations: list[OperationJobTransport] = [OperationJobTransport.model_validate(row) for row in rows]
 
             return operations
 
