@@ -26,3 +26,9 @@ class OperationWithJobs(BaseModel):
 
 class OperationWithJobsMech(OperationWithJobs):
     mechanic: str
+
+
+class JobForJobtypes(BaseModel):
+    job_title: str
+    subcategory_title: str
+    serial_number: int

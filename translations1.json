@@ -132,7 +132,10 @@
     "bulk_vehicle_addition": "Bulk vehicle addition",
     "enter_category_name": "Enter category name:\n(e.g., \"Scooter\")",
     "category_emoji": "Submit emoji for category",
-    "miss_emoji": "Continue without emoji"
+    "miss_emoji": "Continue without emoji",
+    "choose_transport": "Select transport",
+    "choose_jobtypes": "Select subcategories of work",
+    "no_works": "There are no works in this category"
   },
   "ru": {
     "input_name": "Введите ваше имя (например Джон Доу)",
@@ -267,7 +270,10 @@
     "bulk_vehicle_addition": "Массовое добавление транспорта",
     "enter_category_name": "Введите название категории:\n(например, \"Самокат\")",
     "category_emoji": "Отправьте эмодзи для категории",
-    "miss_emoji": "Продолжить без эмодзи"
+    "miss_emoji": "Продолжить без эмодзи",
+    "choose_transport": "Выберите транспорт",
+    "choose_jobtypes": "Выберите подкатегории работ",
+    "no_works": "Работ по данной категории нет"
   },
   "es": {
     "name_error": "Nombre de usuario incorrecto ingresado, por favor inténtelo nuevamente",
@@ -402,6 +408,9 @@
     "bulk_vehicle_addition": "Adición masiva de vehículos",
     "enter_category_name": "Introduzca el nombre de la categoría:\n(por ejemplo, \"Patinete\")",
     "category_emoji": "Enviar emoji para la categoría",
-    "miss_emoji": "Continuar sin emoji"
+    "miss_emoji": "Continuar sin emoji",
+    "choose_transport": "Seleccionar transporte",
+    "choose_jobtypes": "Seleccionar subcategorías de trabajo",
+    "no_works": "No existen operaciones en esta categoría"
   }
 }

@@ -108,7 +108,6 @@ async def select_jobs_keyboard(jobs: List[Job], page: int, category_id: int, lan
         if job.id in selected_jobs:
             text = "✓ " + text
 
-        # keyboard.row(InlineKeyboardButton(text=text, callback_data=f"work_job|{job.id}"))
         keyboard.row(InlineKeyboardButton(text=text, callback_data=f"work_job_select|{job.id}|{page}"))
 
     # готово если есть хоть одна работа
