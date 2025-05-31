@@ -4,7 +4,9 @@ from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from routers.buttons import buttons as btn
-from schemas.categories_and_jobs import Subcategory
+from schemas.categories_and_jobs import Subcategory, Jobtype
+from schemas.search import TransportNumber
+from schemas.transport import Transport
 from schemas.users import User
 from utils.translator import translator as t
 
@@ -173,18 +175,18 @@ async def select_vehicle_subcategory(subcategories: List[Subcategory], report_ty
     return keyboard
 
 
-async def back_to_choose_subcategory(period: str, report_type: str, lang: str) -> InlineKeyboardBuilder:
+async def back_to_choose_subcategory(report_sub_type: str, period: str, report_type: str, lang: str) -> InlineKeyboardBuilder:
     """Клавиатура возврата к выбору подкатегории"""
     keyboard = InlineKeyboardBuilder()
 
     # назад
-    back_button: tuple = await btn.get_back_button(f"vehicle_report_type|by_subcategory|{report_type}|{period}", lang)
+    back_button: tuple = await btn.get_back_button(f"vehicle_report_type|{report_sub_type}|{report_type}|{period}", lang)
     keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
 
     return keyboard
 
 
-async def vehicle_report_by_category_details_keyboard(period: str, report_type: str, lang: str) -> InlineKeyboardBuilder:
+async def vehicle_report_by_category_details_keyboard(report_sub_type: str, period: str, report_type: str, lang: str) -> InlineKeyboardBuilder:
     """Клавиатура возврата к выбору периода"""
     keyboard = InlineKeyboardBuilder()
 
@@ -195,7 +197,78 @@ async def vehicle_report_by_category_details_keyboard(period: str, report_type: 
     )
 
     # назад
-    back_button: tuple = await btn.get_back_button(f"vehicle_report_type|by_subcategory|{report_type}|{period}", lang)
+    back_button: tuple = await btn.get_back_button(f"vehicle_report_type|{report_sub_type}|{report_type}|{period}", lang)
+    keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
+
+    # главное меню
+    main_menu_button: tuple = await btn.get_main_menu_button(lang)
+    keyboard.row(InlineKeyboardButton(text=main_menu_button[0], callback_data=main_menu_button[1]))
+
+    return keyboard
+
+
+async def select_transport(transports: List[TransportNumber], report_type: str, period: str, lang: str) -> InlineKeyboardBuilder:
+    """Клавиатура выбора транспорта"""
+    keyboard = InlineKeyboardBuilder()
+
+    for tr in transports:
+        keyboard.row(
+            InlineKeyboardButton(text=f"{tr.subcategory_title}-{tr.serial_number}", callback_data=f"vehicle_report_by_t|{report_type}|{period}|{tr.id}")
+        )
+
+    keyboard.adjust(4)
+
+    # назад
+    back_button: tuple = await btn.get_back_button(f"reports-period|{report_type}|{period}", lang)
+    keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
+
+    # главное меню
+    main_menu_button: tuple = await btn.get_main_menu_button(lang)
+    keyboard.row(InlineKeyboardButton(text=main_menu_button[0], callback_data=main_menu_button[1]))
+
+    return keyboard
+
+
+async def select_jobtypes(jobtypes: List[Jobtype], selected: List[int], report_type: str, period: str, lang: str) -> InlineKeyboardBuilder:
+    """Клавиатура мультивыбора jobtypes"""
+    keyboard = InlineKeyboardBuilder()
+
+    for jt in jobtypes:
+        emoji = jt.emoji + " " if jt.emoji else ""
+        text = emoji + await t.t(jt.title, lang)
+
+        # помечаем выбранные
+        if jt.id in selected:
+            text = "✓ " + text
+
+        keyboard.row(InlineKeyboardButton(text=text, callback_data=f"jobtypes_select|{jt.id}|{report_type}|{period}"))
+
+    if len(selected) != 0:
+        keyboard.row(InlineKeyboardButton(text=f"✅ {await t.t('done', lang)}", callback_data=f"jobtype_select_done|{report_type}|{period}"))
+
+    # назад
+    back_button: tuple = await btn.get_back_button(f"admin-reports|{report_type}", lang)
+    keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
+
+    # главное меню
+    main_menu_button: tuple = await btn.get_main_menu_button(lang)
+    keyboard.row(InlineKeyboardButton(text=main_menu_button[0], callback_data=main_menu_button[1]))
+
+    return keyboard
+
+
+async def jobtypes_report_details_keyboard(report_type: str, period: str, lang: str) -> InlineKeyboardBuilder:
+    """Клавиатура возврата к выбору jobtypes"""
+    keyboard = InlineKeyboardBuilder()
+
+    keyboard.row(
+        # TODO поправить
+        InlineKeyboardButton(text=f"{await t.t('excel_export', lang)}", callback_data=f"excel_export"),
+        InlineKeyboardButton(text=f"{await t.t('graphic', lang)}", callback_data=f"graphic")
+    )
+
+    # назад
+    back_button: tuple = await btn.get_back_button(f"back_to_select|{report_type}|{period}", lang)
     keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
 
     # главное меню

@@ -122,7 +122,10 @@
     "list_of_works_by_vehicle": "List of works by vehicle",
     "searched_work_count": "Works found {0}",
     "mechanic": "Mechanic",
-    "selected_work_details": "Selected work details"
+    "selected_work_details": "Selected work details",
+    "choose_transport": "Select transport",
+    "choose_jobtypes": "Select subcategories of work",
+    "no_works": "There are no works in this category"
   },
   "ru": {
     "input_name": "Введите ваше имя (например Джон Доу)",
@@ -247,7 +250,10 @@
     "list_of_works_by_vehicle": "Список работ по транспорту",
     "searched_work_count": "Найдено работ {0}",
     "mechanic": "Механик",
-    "selected_work_details": "Детали выбранной работы"
+    "selected_work_details": "Детали выбранной работы",
+    "choose_transport": "Выберите транспорт",
+    "choose_jobtypes": "Выберите подкатегории работ",
+    "no_works": "Работ по данной категории нет"
   },
   "es": {
     "name_error": "Nombre de usuario incorrecto ingresado, por favor inténtelo nuevamente",
@@ -372,6 +378,9 @@
     "list_of_works_by_vehicle": "Lista de trabajos por vehículo",
     "searched_work_count": "Obras encontradas {0}",
     "mechanic": "Mecánico",
-    "selected_work_details": "Detalles del trabajo seleccionado"
+    "selected_work_details": "Detalles del trabajo seleccionado",
+    "choose_transport": "Seleccionar transporte",
+    "choose_jobtypes": "Seleccionar subcategorías de trabajo",
+    "no_works": "No existen operaciones en esta categoría"
   }
 }

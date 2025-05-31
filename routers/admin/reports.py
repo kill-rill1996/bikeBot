@@ -2,8 +2,10 @@ from typing import Any
 
 from aiogram import Router, F, types
 from aiogram.filters import and_f
+from aiogram.fsm.context import FSMContext
 
 from cache import r
+from routers.states.reports import JobtypesReport
 from settings import settings
 from utils.translator import translator as t
 from utils.date_time_service import get_dates_by_period
@@ -168,6 +170,7 @@ async def vehicle_report_select_type(callback: types.CallbackQuery, tg_id: str) 
     await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
+# BY SUBCATEGORY
 @router.callback_query(F.data.split("|")[0] == "vehicle_report_type" and F.data.split("|")[1] == "by_subcategory")
 async def vehicle_report_by_subcategory_choose_subcategory(callback: types.CallbackQuery, tg_id: str, session: Any) -> None:
     """Выбор подкатегории"""
@@ -197,7 +200,7 @@ async def vehicle_report_by_subcategory(callback: types.CallbackQuery, tg_id: st
 
     if not operations:
         msg_text = await t.t("no_operations", lang)
-        keyboard = await kb.back_to_choose_subcategory(period, report_type, lang)
+        keyboard = await kb.back_to_choose_subcategory("by_subcategory", period, report_type, lang)
         await waiting_message.edit_text(msg_text, reply_markup=keyboard.as_markup())
         return
 
@@ -222,10 +225,166 @@ async def vehicle_report_by_subcategory(callback: types.CallbackQuery, tg_id: st
 
         text += row_text
 
-    keyboard = await kb.vehicle_report_by_category_details_keyboard(period, report_type, lang)
+    keyboard = await kb.vehicle_report_by_category_details_keyboard("by_subcategory", period, report_type, lang)
     await waiting_message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
+# BY TRANSPORT
+@router.callback_query(and_f(F.data.split("|")[0] == "vehicle_report_type", F.data.split("|")[1] == "by_transport"))
+async def vehicle_report_by_transport_choose_transport(callback: types.CallbackQuery, tg_id: str, session: Any) -> None:
+    """Выбор транспорта"""
+    lang = r.get(f"lang:{tg_id}").decode()
+    report_type = callback.data.split("|")[2]
+    period = callback.data.split("|")[3]
+
+    text = await t.t("choose_transport", lang)
+    transports = await AsyncOrm.get_all_transports(session)
+    keyboard = await kb.select_transport(transports, report_type, period, lang)
+
+    await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
+
+
+@router.callback_query(F.data.split("|")[0] == "vehicle_report_by_t")
+async def vehicle_report_by_transport(callback: types.CallbackQuery, tg_id: str, session: Any) -> None:
+    """Отчет по транспорту"""
+    lang = r.get(f"lang:{tg_id}").decode()
+    report_type = callback.data.split("|")[1]
+    period = callback.data.split("|")[2]
+    transport_id = int(callback.data.split("|")[3])
+
+    waiting_message = await callback.message.edit_text(await t.t("please_wait", lang))
+
+    start_date, end_date = get_dates_by_period(period)
+    operations = await AsyncOrm.get_operations_by_transport_and_period(transport_id, start_date, end_date, session)
+
+    if not operations:
+        msg_text = await t.t("no_operations", lang)
+        keyboard = await kb.back_to_choose_subcategory("by_transport", period, report_type, lang)
+        await waiting_message.edit_text(msg_text, reply_markup=keyboard.as_markup())
+        return
+
+    transport = await AsyncOrm.get_transport_by_id(transport_id, session)
+    text = f"📆 {await t.t('vehicle_report', lang)}\n<b>{transport.subcategory_title}-{transport.serial_number}</b>\n\n"
+
+    # operations
+    for idx, operation in enumerate(operations, start=1):
+        mechanic = await AsyncOrm.get_user_by_tg_id(operation.tg_id, session)
+        location = await AsyncOrm.get_location_by_id(operation.location_id, session)
+        row_text = f"<b>{idx})</b> {convert_date_time(operation.created_at, with_tz=settings.timezone)[0]} | " \
+                   f"{mechanic.username} | {await t.t(location.name, lang)}\n"
+        # суммарное время обслуживания
+        row_text += f"{await t.t('works_time', lang)} {operation.duration} {await t.t('minutes', lang)}\n"
+        comment = operation.comment if operation.comment else "-"
+        row_text += f"{await t.t('comment', lang)} <i>'{comment}'</i>\n"
+
+        # jobs
+        for job in operation.jobs:
+            row_text += "\t\t• " + await t.t(job.title, lang) + "\n"
+
+        text += row_text
+
+    keyboard = await kb.vehicle_report_by_category_details_keyboard("by_transport", period, report_type, lang)
+    await waiting_message.edit_text(text, reply_markup=keyboard.as_markup())
+
+
+# 📆 Отчет по категориям работ
+@router.callback_query(and_f(F.data.split("|")[0] == "reports-period", F.data.split("|")[1] == "work_categories_report"))
+@router.callback_query(F.data.split("|")[0] == "back_to_select")
+async def report_by_jobtypes_select_jobtypes(callback: types.CallbackQuery, tg_id: int, state: FSMContext, session: Any) -> None:
+    """Выбор jobtypes для отчета по работам"""
+    lang = r.get(f"lang:{tg_id}").decode()
+    report_type = callback.data.split("|")[1]
+    period = callback.data.split("|")[2]
+
+    # устанавливаем стейт для мультивыбора
+    await state.set_state(JobtypesReport.select)
+    await state.update_data(selected_jobtypes=[])
+
+    # для производительности храним в стейте
+    jobtypes = await AsyncOrm.get_all_jobtypes(session)
+    await state.update_data(jobtypes=jobtypes)
+
+    text = await t.t("choose_jobtypes", lang)
+    keyboard = await kb.select_jobtypes(jobtypes, [], report_type, period, lang)
+
+    await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
+
+
+@router.callback_query(F.data.split("|")[0] == "jobtypes_select", JobtypesReport.select)
+async def multiselect(callback: types.CallbackQuery, tg_id, state: FSMContext) -> None:
+    """Вспомогательная функция для мультиселекта"""
+    lang = r.get(f"lang:{tg_id}").decode()
+    report_type = callback.data.split("|")[2]
+    period = callback.data.split("|")[3]
+    jobtype_id = int(callback.data.split("|")[1])
+
+    # запись или удаление из стейта выбранного jobtype
+    data = await state.get_data()
+    selected_jobtypes = data["selected_jobtypes"]
+    # удаляем если уже есть
+    if jobtype_id in selected_jobtypes:
+        selected_jobtypes.remove(jobtype_id)
+    # записываем если еще нет
+    else:
+        selected_jobtypes.append(jobtype_id)
+    await state.update_data(selected_jobtypes=selected_jobtypes)
+
+    text = await t.t("choose_jobtypes", lang)
+    jobtypes = data["jobtypes"]
+    keyboard = await kb.select_jobtypes(jobtypes, selected_jobtypes, report_type, period, lang)
+
+    await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
+
+
+@router.callback_query(F.data.split("|")[0] == "jobtype_select_done", JobtypesReport.select)
+async def report_by_jobtypes(callback: types.CallbackQuery, tg_id, state: FSMContext, session: Any) -> None:
+    """Отчет по jobtypes"""
+    lang = r.get(f"lang:{tg_id}").decode()
+    report_type = callback.data.split("|")[1]
+    period = callback.data.split("|")[2]
+
+    waiting_message = await callback.message.edit_text(await t.t("please_wait", lang))
+
+    data = await state.get_data()
+    selected_jobtypes = data["selected_jobtypes"]
+
+    await state.clear()
+
+    jobtypes = await AsyncOrm.get_jobtypes_by_ids(selected_jobtypes, session)
+    start_date, end_date = get_dates_by_period(period)
+
+    text = f"📆 {await t.t('work_categories_report', lang)}\n\n"
+
+    for idx, jt in enumerate(jobtypes, start=1):
+        emoji = jt.emoji + " " if jt.emoji else ""
+        row_text = f"<b>{idx})</b> {emoji}{await t.t(jt.title, lang)}\n"
+
+        # количество выполненных операций по категории
+        jobs = await AsyncOrm.get_jobs_by_jobtype_with_operation(jt.id, start_date, end_date, session)
+
+        # если работ нет
+        if len(jobs) == 0:
+            row_text += await t.t("no_works", lang) + "\n\n"
+            text += row_text
+            continue
+
+        jobs_count = {}
+        for job in jobs:
+            if jobs_count.get(job.job_title):
+                jobs_count[job.job_title] += 1
+            else:
+                jobs_count[job.job_title] = 1
+
+        # сортировка работ по количеству
+        sorted_jobs = {k: v for k, v in sorted(jobs_count.items(), key=lambda item: item[1], reverse=True)}
+
+        for k, v in sorted_jobs.items():
+            row_text += f"{await t.t(k, lang)} {v}\n"
+
+        text += row_text + "\n"
+
+    keyboard = await kb.jobtypes_report_details_keyboard(report_type, period, lang)
+    await waiting_message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
 
