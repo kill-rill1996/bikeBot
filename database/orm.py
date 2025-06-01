@@ -36,7 +36,7 @@ class AsyncOrm:
             logger.error(f"Ошибка при проверке регистрации пользователя {tg_id}: {e}")
 
     @staticmethod
-    async def create_user(session: Any, tg_id: str, tg_username: str, username: str,
+    async def create_user(session: Any, tg_id: str, tg_username: str | None, username: str,
                           role: str, lang: str, is_active: bool = True):
         """Создает пользователя"""
         created_at = datetime.datetime.now()
@@ -51,6 +51,33 @@ class AsyncOrm:
             logger.info(f"Успешно создан пользователь tg_id: {tg_id}")
         except Exception as e:
             logger.error(f"Ошибка при создании пользователя tg_id {tg_id}: {e}")
+
+    @staticmethod
+    async def get_all_users(session: Any, only_active: bool = False) -> List[User]:
+        """Получение всех пользователей"""
+        try:
+            if only_active:
+                rows = await session.fetch(
+                    """
+                    SELECT *
+                    FROM users
+                    WHERE is_active = true
+                    ORDER BY username;
+                    """
+                )
+            else:
+                rows = await session.fetch(
+                    """
+                    SELECT *
+                    FROM users
+                    ORDER BY username;
+                    """
+                )
+            users = [User.model_validate(row) for row in rows]
+            return users
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении всех пользователей: {e}")
 
     @staticmethod
     async def get_user_by_tg_id(tg_id: str, session: Any) -> User:
@@ -105,6 +132,21 @@ class AsyncOrm:
             logger.error(f"Ошибка при получении языка пользователя {tg_id}: {e}")
 
     @staticmethod
+    async def create_allow_user(tg_id: str, session):
+        """Добавление в таблицу allowed_users"""
+        try:
+            await session.execute(
+                """
+                INSERT INTO allowed_users (tg_id)
+                VALUES ($1);
+                """,
+                tg_id
+            )
+            logger.info(f"Добавлен в allowed_user пользователь {tg_id}")
+        except Exception as e:
+            logger.error(f"Ошибка при добавлении в таблицу allowed_users tg_id {tg_id}: {e}")
+
+    @staticmethod
     async def get_allow_users(session: Any) -> List[str]:
         """Получение id всех пользователей из allowed_users"""
         try:
@@ -154,6 +196,32 @@ class AsyncOrm:
             logger.info(f"Пользователь {tg_id} сменил язык на {lang.upper()}")
         except Exception as e:
             logger.error(f"Ошибка при смене языка пользователя {tg_id} на {lang.upper()}: {e}")
+
+    @staticmethod
+    async def delete_user(tg_id: str, session: Any) -> None:
+        """Удаление пользователя"""
+        try:
+            # удаляем из users
+            await session.execute(
+                """
+                DELETE FROM users
+                WHERE tg_id = $1;
+                """,
+                tg_id
+            )
+
+            # удаляем из allowed_users
+            await session.execute(
+                """
+                DELETE FROM allowed_users
+                WHERE tg_id = $1
+                """,
+                tg_id
+            )
+            logger.info(f"Удален пользователь {tg_id}")
+
+        except Exception as e:
+            logger.error(f"Ошибка при удалении пользователя {tg_id}: {e}")
 
     @staticmethod
     async def get_all_categories(session: Any) -> List[Category]:

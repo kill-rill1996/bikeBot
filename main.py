@@ -33,13 +33,6 @@ async def set_commands(bot: io.Bot):
     """Перечень команд для бота"""
     commands = [
         BotCommand(command=f"{cmd.START[0]}", description=f"{cmd.START[1]}"),
-        # BotCommand(command=f"{cmd.MENU[0]}", description=f"{cmd.MENU[1]}"),
-        # BotCommand(command=f"{cmd.KEYS[0]}", description=f"{cmd.KEYS[1]}"),
-        # BotCommand(command=f"{cmd.BALANCE[0]}", description=f"{cmd.BALANCE[1]}"),
-        # BotCommand(command=f"{cmd.BUY[0]}", description=f"{cmd.BUY[1]}"),
-        # BotCommand(command=f"{cmd.INVITE[0]}", description=f"{cmd.INVITE[1]}"),
-        # BotCommand(command=f"{cmd.INSTRUCTION[0]}", description=f"{cmd.INSTRUCTION[1]}"),
-        # BotCommand(command=f"{cmd.HELP[0]}", description=f"{cmd.HELP[1]}"),
     ]
 
     await bot.set_my_commands(commands, BotCommandScopeDefault())

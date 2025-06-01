@@ -11,7 +11,7 @@ class AllowUser(BaseModel):
 class User(BaseModel):
     id: int
     tg_id: str
-    tg_username: str
+    tg_username: str | None = None
     username: str
     created_at: datetime.datetime
     role: str

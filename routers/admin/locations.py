@@ -195,7 +195,8 @@ async def add_location_confirm(callback: types.CallbackQuery, tg_id: int, state:
         return
 
     # записываем в БД
-    await AsyncOrm.create_location(dictionary_for_translator["en"], session)
+    key = await t.get_key_for_text(dictionary_for_translator["en"])
+    await AsyncOrm.create_location(key, session)
 
     # заканчиваем стейт
     await state.clear()
@@ -368,7 +369,8 @@ async def edit_location_confirmed(callback: types.CallbackQuery, tg_id: int, sta
         return
 
     # изменяем в БД
-    await AsyncOrm.edit_location(dictionary_for_translator["en"], data["location_id"], session)
+    key = await t.get_key_for_text(dictionary_for_translator["en"])
+    await AsyncOrm.edit_location(key, data["location_id"], session)
 
     # заканчиваем стейт
     await state.clear()

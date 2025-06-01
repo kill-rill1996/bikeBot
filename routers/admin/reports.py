@@ -89,7 +89,7 @@ async def mechanic_report(callback: types.CallbackQuery, tg_id: str, session: An
     # Список всех работ с деталями
     text += await t.t("work_list", lang) + "\n"
     for idx, operation in enumerate(operations, start=1):
-        row_text = f"<b>{idx})</b> {convert_date_time(operation.created_at, with_tz=settings.timezone)[0]} | {str(operation.duration)} {await t.t('minutes', lang)} | " \
+        row_text = f"<b>{idx})</b> {convert_date_time(operation.created_at, with_tz=True)[0]} | {str(operation.duration)} {await t.t('minutes', lang)} | " \
                    f"{await t.t(operation.transport_category, lang)} {operation.transport_subcategory}-{operation.transport_serial_number}\n"
 
         # jobs для каждой операции
@@ -212,7 +212,7 @@ async def vehicle_report_by_subcategory(callback: types.CallbackQuery, tg_id: st
     for idx, operation in enumerate(operations, start=1):
         mechanic = await AsyncOrm.get_user_by_tg_id(operation.tg_id, session)
         location = await AsyncOrm.get_location_by_id(operation.location_id, session)
-        row_text = f"<b>{idx})</b> {convert_date_time(operation.created_at, with_tz=settings.timezone)[0]} | " \
+        row_text = f"<b>{idx})</b> {convert_date_time(operation.created_at, with_tz=True)[0]} | " \
                    f"{operation.transport_subcategory}-{operation.transport_serial_number} | " \
                    f"{mechanic.username} | {await t.t(location.name, lang)}\n"
         # суммарное время обслуживания
@@ -271,7 +271,7 @@ async def vehicle_report_by_transport(callback: types.CallbackQuery, tg_id: str,
     for idx, operation in enumerate(operations, start=1):
         mechanic = await AsyncOrm.get_user_by_tg_id(operation.tg_id, session)
         location = await AsyncOrm.get_location_by_id(operation.location_id, session)
-        row_text = f"<b>{idx})</b> {convert_date_time(operation.created_at, with_tz=settings.timezone)[0]} | " \
+        row_text = f"<b>{idx})</b> {convert_date_time(operation.created_at, with_tz=True)[0]} | " \
                    f"{mechanic.username} | {await t.t(location.name, lang)}\n"
         # суммарное время обслуживания
         row_text += f"{await t.t('works_time', lang)} {operation.duration} {await t.t('minutes', lang)}\n"
@@ -474,7 +474,7 @@ async def inefficiency_report(callback: types.CallbackQuery, tg_id: str, session
     text += await t.t("no_comments", lang) + "\n"
     for o in operations:
         if not o.comment:
-            row_text = f"{convert_date_time(o.created_at, with_tz=settings.timezone)[0]} | ID {o.id} | " \
+            row_text = f"{convert_date_time(o.created_at, with_tz=True)[0]} | ID {o.id} | " \
                        f"{o.transport_subcategory}-{o.transport_serial_number}\n"
             text += row_text
 

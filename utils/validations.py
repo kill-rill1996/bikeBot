@@ -26,3 +26,17 @@ def is_valid_duration(duration: str) -> bool:
         return False
 
     return True
+
+
+def is_valid_tg_id(tg_id: str) -> bool:
+    """Проверка правильности tg id"""
+    try:
+        tg_id = int(tg_id)
+    except Exception:
+        return False
+
+    return True
+
+
+
+
