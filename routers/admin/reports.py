@@ -97,7 +97,8 @@ async def mechanic_report(callback: types.CallbackQuery, tg_id: str, session: An
             row_text += "\t\t• " + await t.t(job.title, lang) + "\n"
 
         # комментарий
-        row_text += f'{await t.t("comment", lang)} <i>"{operation.comment}"</i>\n'
+        comment = operation.comment if operation.comment else "-"
+        row_text += f'{await t.t("comment", lang)} <i>"{comment}"</i>\n'
 
         # среднее время на одну работу
         row_text += await t.t("avg_time", lang) + " " + f"{round(int(duration_sum) / jobs_count)} " + await t.t("minutes", lang)
@@ -223,7 +224,7 @@ async def vehicle_report_by_subcategory(callback: types.CallbackQuery, tg_id: st
         for job in operation.jobs:
             row_text += "\t\t• " + await t.t(job.title, lang) + "\n"
 
-        text += row_text
+        text += row_text + "\n"
 
     keyboard = await kb.vehicle_report_by_category_details_keyboard("by_subcategory", period, report_type, lang)
     await waiting_message.edit_text(text, reply_markup=keyboard.as_markup())
@@ -281,7 +282,7 @@ async def vehicle_report_by_transport(callback: types.CallbackQuery, tg_id: str,
         for job in operation.jobs:
             row_text += "\t\t• " + await t.t(job.title, lang) + "\n"
 
-        text += row_text
+        text += row_text + "\n"
 
     keyboard = await kb.vehicle_report_by_category_details_keyboard("by_transport", period, report_type, lang)
     await waiting_message.edit_text(text, reply_markup=keyboard.as_markup())
@@ -311,7 +312,7 @@ async def report_by_jobtypes_select_jobtypes(callback: types.CallbackQuery, tg_i
 
 
 @router.callback_query(F.data.split("|")[0] == "jobtypes_select", JobtypesReport.select)
-async def multiselect(callback: types.CallbackQuery, tg_id, state: FSMContext) -> None:
+async def multiselect(callback: types.CallbackQuery, tg_id: str, state: FSMContext) -> None:
     """Вспомогательная функция для мультиселекта"""
     lang = r.get(f"lang:{tg_id}").decode()
     report_type = callback.data.split("|")[2]
@@ -337,7 +338,7 @@ async def multiselect(callback: types.CallbackQuery, tg_id, state: FSMContext) -
 
 
 @router.callback_query(F.data.split("|")[0] == "jobtype_select_done", JobtypesReport.select)
-async def report_by_jobtypes(callback: types.CallbackQuery, tg_id, state: FSMContext, session: Any) -> None:
+async def report_by_jobtypes(callback: types.CallbackQuery, tg_id: str, state: FSMContext, session: Any) -> None:
     """Отчет по jobtypes"""
     lang = r.get(f"lang:{tg_id}").decode()
     report_type = callback.data.split("|")[1]
@@ -369,22 +370,123 @@ async def report_by_jobtypes(callback: types.CallbackQuery, tg_id, state: FSMCon
             continue
 
         jobs_count = {}
+        transport_count = {}
+        mechanic_count = {}
         for job in jobs:
             if jobs_count.get(job.job_title):
                 jobs_count[job.job_title] += 1
             else:
                 jobs_count[job.job_title] = 1
 
+            transport = f"{job.subcategory_title}-{job.serial_number}"
+            if transport_count.get(transport):
+                transport_count[transport] += 1
+            else:
+                transport_count[transport] = 1
+
+            if mechanic_count.get(job.mechanic_username):
+                mechanic_count[job.mechanic_username] += 1
+            else:
+                mechanic_count[job.mechanic_username] = 1
+
         # сортировка работ по количеству
         sorted_jobs = {k: v for k, v in sorted(jobs_count.items(), key=lambda item: item[1], reverse=True)}
+        sorted_transport = {k: v for k, v in sorted(transport_count.items(), key=lambda item: item[1], reverse=True)}
+        sorted_mechanics = {k: v for k, v in sorted(mechanic_count.items(), key=lambda item: item[1], reverse=True)}
 
         for k, v in sorted_jobs.items():
             row_text += f"{await t.t(k, lang)} {v}\n"
 
-        text += row_text + "\n"
+        # самые частый транспорт
+        row_text += await t.t('most_recent_transport', lang) + "\n"
+        counter = 0
+        for k, v in sorted_transport.items():
+            if counter == 3:
+                break
+            row_text += f"{k}: {v} "
+            counter += 1
+
+        row_text += "\n"
+
+        # самые частые механики в категории
+        row_text += await t.t('most_recent_mechanics', lang) + "\n"
+        counter = 0
+        for k, v in sorted_mechanics.items():
+            if counter == 3:
+                break
+            counter += 1
+            row_text += f"{k}: {v} "
+
+        text += row_text + "\n\n"
 
     keyboard = await kb.jobtypes_report_details_keyboard(report_type, period, lang)
     await waiting_message.edit_text(text, reply_markup=keyboard.as_markup())
+
+
+# 📆 Отчет по неэффективности
+@router.callback_query(and_f(F.data.split("|")[0] == "reports-period", F.data.split("|")[1] == "inefficiency_report"))
+async def inefficiency_report(callback: types.CallbackQuery, tg_id: str, session: Any) -> None:
+    """Отчет по неэффективности"""
+    lang = r.get(f"lang:{tg_id}").decode()
+    report_type = callback.data.split("|")[1]
+    period = callback.data.split("|")[2]
+
+    waiting_message = await callback.message.edit_text(await t.t("please_wait", lang))
+
+    start_date, end_date = get_dates_by_period(period)
+    operations = await AsyncOrm.get_operations_with_jobs_and_transport_by_period(start_date, end_date, session)
+
+    if not operations:
+        msg_text = await t.t("no_operations", lang)
+        keyboard = await kb.back_to_choose_period(report_type, lang)
+        await waiting_message.edit_text(msg_text, reply_markup=keyboard.as_markup())
+        return
+
+    text = f"📆 {await t.t('inefficiency_report', lang)}\n\n"
+
+    transport_jobs_count = {}
+    for o in operations:
+        for job in o.jobs:
+            key = f"{o.transport_subcategory}-{o.transport_serial_number} {await t.t(job.title, lang)}"
+
+            if transport_jobs_count.get(key):
+                transport_jobs_count[key] += 1
+            else:
+                transport_jobs_count[key] = 1
+
+    # сортируем по количеству
+    sorted_jobs = {k: v for k, v in sorted(transport_jobs_count.items(), key=lambda item: item[1], reverse=True)}
+
+    # учитываем работы повторяющиеся только больше двух раз
+    row_text = ""
+    for k, v in sorted_jobs.items():
+        if v >= 2:
+            row_text += "\t\t• " + k + f": {v}" + "\n"
+
+    # повторяющиеся работы за период
+    if row_text:
+        text += await t.t("repeatable_jobs", lang) + "\n"
+        text += row_text + "\n"
+    else:
+        text += await t.t('no_operations') + "\n"
+
+    # операции без комментариев
+    text += await t.t("no_comments", lang) + "\n"
+    for o in operations:
+        if not o.comment:
+            row_text = f"{convert_date_time(o.created_at, with_tz=settings.timezone)[0]} | ID {o.id} | " \
+                       f"{o.transport_subcategory}-{o.transport_serial_number}\n"
+            text += row_text
+
+    keyboard = await kb.efficient_report_details_keyboard(report_type, lang)
+    await waiting_message.edit_text(text, reply_markup=keyboard.as_markup())
+
+
+
+
+
+
+
 
 
 

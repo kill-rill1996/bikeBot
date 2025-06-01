@@ -135,7 +135,11 @@
     "miss_emoji": "Continue without emoji",
     "choose_transport": "Select transport",
     "choose_jobtypes": "Select subcategories of work",
-    "no_works": "There are no works in this category"
+    "no_works": "There are no works in this category",
+    "most_recent_transport": "The most common vehicles in this category:",
+    "most_recent_mechanics": "Mechanics most often performing work in this category:",
+    "repeatable_jobs": "Repeated work on one unit of transport per period:",
+    "no_comments": "Works where comments are not indicated:"
   },
   "ru": {
     "input_name": "Введите ваше имя (например Джон Доу)",
@@ -273,7 +277,11 @@
     "miss_emoji": "Продолжить без эмодзи",
     "choose_transport": "Выберите транспорт",
     "choose_jobtypes": "Выберите подкатегории работ",
-    "no_works": "Работ по данной категории нет"
+    "no_works": "Работ по данной категории нет",
+    "most_recent_transport": "Самые частые транспортные средства в этой категории:",
+    "most_recent_mechanics": "Механики, чаще всего выполняющие работы в этой категории:",
+    "repeatable_jobs": "Повторные работы по одной единице транспорта за период:",
+    "no_comments": "Работы, где не указаны комментарии:"
   },
   "es": {
     "name_error": "Nombre de usuario incorrecto ingresado, por favor inténtelo nuevamente",
@@ -411,6 +419,10 @@
     "miss_emoji": "Continuar sin emoji",
     "choose_transport": "Seleccionar transporte",
     "choose_jobtypes": "Seleccionar subcategorías de trabajo",
-    "no_works": "No existen operaciones en esta categoría"
+    "no_works": "No existen operaciones en esta categoría",
+    "most_recent_transport": "Los vehículos más comunes en esta categoría:",
+    "most_recent_mechanics": "Los mecánicos son los que con mayor frecuencia realizan trabajos en esta categoría:",
+    "repeatable_jobs": "Trabajo repetido en una unidad de transporte por período:",
+    "no_comments": "Obras en las que no se indican comentarios:"
   }
 }

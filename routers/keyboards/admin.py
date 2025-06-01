@@ -276,3 +276,35 @@ async def jobtypes_report_details_keyboard(report_type: str, period: str, lang: 
     keyboard.row(InlineKeyboardButton(text=main_menu_button[0], callback_data=main_menu_button[1]))
 
     return keyboard
+
+
+async def back_to_choose_period(report_type: str, lang: str) -> InlineKeyboardBuilder:
+    """Клавиатура возврата к выбору периода для отчета по неэффективности"""
+    keyboard = InlineKeyboardBuilder()
+
+    # назад
+    back_button: tuple = await btn.get_back_button(f"admin-reports|{report_type}", lang)
+    keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
+
+    return keyboard
+
+
+async def efficient_report_details_keyboard(report_type: str, lang: str) -> InlineKeyboardBuilder:
+    """Клавиатура отчета по неэффективности"""
+    keyboard = InlineKeyboardBuilder()
+
+    keyboard.row(
+        # TODO поправить
+        InlineKeyboardButton(text=f"{await t.t('excel_export', lang)}", callback_data=f"excel_export"),
+        InlineKeyboardButton(text=f"{await t.t('graphic', lang)}", callback_data=f"graphic")
+    )
+
+    # назад
+    back_button: tuple = await btn.get_back_button(f"admin-reports|{report_type}", lang)
+    keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
+
+    # главное меню
+    main_menu_button: tuple = await btn.get_main_menu_button(lang)
+    keyboard.row(InlineKeyboardButton(text=main_menu_button[0], callback_data=main_menu_button[1]))
+
+    return keyboard
