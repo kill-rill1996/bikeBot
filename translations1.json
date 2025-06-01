@@ -146,7 +146,20 @@
         "most_recent_transport": "The most common vehicles in this category:",
         "most_recent_mechanics": "Mechanics most often performing work in this category:",
         "repeatable_jobs": "Repeated work on one unit of transport per period:",
-        "no_comments": "Works where comments are not indicated:"
+        "no_comments": "Works where comments are not indicated:",
+        "add_location": "Add location",
+        "show_locations": "View locations",
+        "edit_location": "Edit location",
+        "set_name": "Enter new name:",
+        "confirm_location": "Are you sure you want to add the new location «{0}»",
+        "new_location": "New location added!",
+        "barcelona1": "Barcelona1",
+        "choose_location": "Select location:",
+        "confirm_location_edit": "Are you sure you want to change the location «{0}» to «{1}»?",
+        "edited_location": "Location name changed!",
+        "barcelona4": "Barcelona4",
+        "all_locations": "List of locations",
+        "no_locations": "There are no locations"
     },
     "ru": {
         "input_name": "Введите ваше имя (например Джон Доу)",
@@ -295,7 +308,20 @@
         "most_recent_transport": "Самые частые транспортные средства в этой категории:",
         "most_recent_mechanics": "Механики, чаще всего выполняющие работы в этой категории:",
         "repeatable_jobs": "Повторные работы по одной единице транспорта за период:",
-        "no_comments": "Работы, где не указаны комментарии:"
+        "no_comments": "Работы, где не указаны комментарии:",
+        "add_location": "Добавить местоположение",
+        "show_locations": "Посмотреть местоположение",
+        "edit_location": "Редактировать местоположение",
+        "set_name": "Введите новое имя:",
+        "confirm_location": "Вы уверены, что хотите добавить новое местоположение «{0}»?",
+        "new_location": "Новое местоположение добавлено!",
+        "barcelona1": "Барселона1",
+        "choose_location": "Выберите местоположение:",
+        "confirm_location_edit": "Вы уверены, что хотите изменить местоположение «{0}» на «{1}»?",
+        "edited_location": "Имя местоположения изменено!",
+        "barcelona4": "Барселона4",
+        "all_locations": "Список локаций",
+        "no_locations": "Локаций нет"
     },
     "es": {
         "name_error": "Nombre de usuario incorrecto ingresado, por favor inténtelo nuevamente",
@@ -444,6 +470,19 @@
         "most_recent_transport": "Los vehículos más comunes en esta categoría:",
         "most_recent_mechanics": "Los mecánicos son los que con mayor frecuencia realizan trabajos en esta categoría:",
         "repeatable_jobs": "Trabajo repetido en una unidad de transporte por período:",
-        "no_comments": "Obras en las que no se indican comentarios:"
+        "no_comments": "Obras en las que no se indican comentarios:",
+        "add_location": "Agregar ubicación",
+        "show_locations": "Ver ubicación",
+        "edit_location": "Editar ubicación",
+        "set_name": "Introduzca el nuevo nombre:",
+        "confirm_location": "¿Está seguro de que desea añadir la nueva ubicación «{0}»",
+        "new_location": "¡Nueva ubicación añadida!",
+        "barcelona1": "Barcelona1",
+        "choose_location": "Seleccione la ubicación:",
+        "confirm_location_edit": "¿Está seguro de que desea cambiar la ubicación de «{0}» a «{1}»",
+        "edited_location": "¡Nombre de ubicación cambiado!",
+        "barcelona4": "Barcelona4",
+        "all_locations": "Lista de ubicaciones",
+        "no_locations": "Sin ubicaciones"
     }
 }
