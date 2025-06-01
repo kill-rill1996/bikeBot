@@ -100,7 +100,7 @@ async def get_transport_emoji(message: types.Message | types.CallbackQuery, tg_i
     languages: list[str] = await neet_to_translate_on(lang)
 
     # формируем клавиатуру и сообщение для ответа
-    keyboard = await kb.cancel_keyboard(lang)
+    keyboard = await kb.cancel_keyboard(lang, "admin|vehicle_management")
     text = await t.t("add_translate", lang) + " " + await t.t(languages[0], lang)
 
     # сохраняем требуемые языки в data
@@ -150,7 +150,7 @@ async def get_first_translation(message: types.Message, state: FSMContext, tg_id
     except Exception:
         pass
 
-    keyboard = await kb.cancel_keyboard(lang)
+    keyboard = await kb.cancel_keyboard(lang, "admin|vehicle_management")
 
     # неверный формат
     if type(message) != types.Message:
@@ -193,7 +193,7 @@ async def get_second_translation(message: types.Message, state: FSMContext, tg_i
     except Exception:
         pass
 
-    keyboard = await kb.cancel_keyboard(lang)
+    keyboard = await kb.cancel_keyboard(lang, "admin|vehicle_management")
 
     # неверный формат
     if type(message) != types.Message:
@@ -243,27 +243,30 @@ async def save_category(callback: types.CallbackQuery, state: FSMContext, tg_id:
     lang = r.get(f"lang:{tg_id}").decode()
 
     data = await state.get_data()
-    await state.set_state()
+    # await state.set_state()
 
     keyboard = await kb.to_admin_menu(lang)
 
-    # добавляем в словарь новое слово
-    try:
-        await t.update_translation(
-            {
+    new_words_for_translator = {
                 lang: data['category_name'],
                 data['languages_1']: data['translation_1'],
                 data['languages_2']: data['translation_2']
             }
+    # добавляем в словарь новое слово
+    try:
+        await t.update_translation(
+            new_words_for_translator
         )
     except Exception as e:
         await callback.message.edit_text(f"Ошибка при сохранении перевода: {e}", reply_markup=keyboard.as_markup())
         return
 
+    # формируем ключ сохранения в БД
+    category_name_for_db = await t.get_key_for_text(new_words_for_translator['en'])
     # сохраняем категорию в ДБ
     category = TransportCategory(
-        emoji=data["category_emoji"],
-        title=data["category_name"]
+        emoji=data['category_emoji'],
+        title=category_name_for_db
     )
     try:
         await AsyncOrm.add_category(category, session)
@@ -309,6 +312,7 @@ async def get_category_to_edit(callback: types.CallbackQuery, tg_id: str, sessio
     await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
+# EDIT CATEGORY TITLE
 @router.callback_query(F.data.split("|")[0] == "change-category-title")
 async def get_category_to_edit(callback: types.CallbackQuery, tg_id: str, session: Any, state: FSMContext) -> None:
     lang = r.get(f"lang:{tg_id}").decode()
@@ -328,7 +332,7 @@ async def get_category_to_edit(callback: types.CallbackQuery, tg_id: str, sessio
 
 
 @router.message(EditCategoryFSM.input_title)
-async def get_title_from_message(message: types.Message, tg_id: str, session: Any, state: FSMContext) -> None:
+async def get_title_from_message(message: types.Message, tg_id: str, state: FSMContext) -> None:
     """Получаем новое название из текста"""
     lang = r.get(f"lang:{tg_id}").decode()
     data = await state.get_data()
@@ -347,10 +351,10 @@ async def get_title_from_message(message: types.Message, tg_id: str, session: An
         await state.update_data(prev_message=prev_message)
         return
 
-    new_title = message.text
+    category_name = message.text
 
     # пустой текст
-    if not new_title:
+    if not category_name:
         text = await t.t("wrong_text_data", lang)
         prev_message = await message.answer(text, reply_markup=keyboard.as_markup())
         await state.update_data(prev_message=prev_message)
@@ -358,5 +362,212 @@ async def get_title_from_message(message: types.Message, tg_id: str, session: An
 
     await state.set_state(EditCategoryFSM.translate_1)
 
+    # получаем языки на которые нужно перевести
+    neet_to_translate = await neet_to_translate_on(lang)
 
+    await state.update_data(languages_1=neet_to_translate[0])
+    await state.update_data(languages_2=neet_to_translate[1])
+    await state.update_data(category_name=category_name)
+
+    text = await t.t("add_translate", lang) + " " + await t.t(neet_to_translate[0], lang)
+    prev_message = await message.answer(text, reply_markup=keyboard.as_markup())
+
+    await state.update_data(prev_message=prev_message)
+
+
+@router.message(EditCategoryFSM.translate_1)
+async def get_translate_1(message: types.Message, tg_id: str, state: FSMContext) -> None:
+    """Получаем первый перевод"""
+    lang = r.get(f"lang:{tg_id}").decode()
+
+    data = await state.get_data()
+
+    try:
+        await data["prev_message"].delete()
+    except Exception:
+        pass
+
+    keyboard = await kb.cancel_keyboard(lang, f"edit_categories|{data['category_id']}")
+
+    # неверный формат
+    if type(message) != types.Message:
+        text = await t.t("wrong_text_data", lang)
+        prev_message = await message.answer(text, reply_markup=keyboard.as_markup())
+        await state.update_data(prev_message=prev_message)
+        return
+
+    translation_1 = message.text
+
+    # пустой текст
+    if not translation_1:
+        text = await t.t("wrong_text_data", lang)
+        prev_message = await message.answer(text, reply_markup=keyboard.as_markup())
+        await state.update_data(prev_message=prev_message)
+        return
+
+    await state.set_state(EditCategoryFSM.translate_2)
+
+    await state.update_data(translation_1=translation_1)
+
+    text = await t.t("add_translate", lang) + " " + await t.t(data['languages_2'], lang)
+    prev_message = await message.answer(text, reply_markup=keyboard.as_markup())
+
+    await state.update_data(prev_message=prev_message)
+
+
+@router.message(EditCategoryFSM.translate_2)
+async def get_translate_2(message: types.Message, tg_id: str, state: FSMContext) -> None:
+    """Получаем второй перевод, предлагаем сохранить"""
+    lang = r.get(f"lang:{tg_id}").decode()
+
+    data = await state.get_data()
+
+    try:
+        await data["prev_message"].delete()
+    except Exception:
+        pass
+
+    keyboard = await kb.cancel_keyboard(lang, f"edit_categories|{data['category_id']}")
+
+    # неверный формат
+    if type(message) != types.Message:
+        text = await t.t("wrong_text_data", lang)
+        prev_message = await message.answer(text, reply_markup=keyboard.as_markup())
+        await state.update_data(prev_message=prev_message)
+        return
+
+    translation_2 = message.text
+
+    # пустой текст
+    if not translation_2:
+        text = await t.t("wrong_text_data", lang)
+        prev_message = await message.answer(text, reply_markup=keyboard.as_markup())
+        await state.update_data(prev_message=prev_message)
+        return
+
+    await state.set_state(EditCategoryFSM.confirm)
+
+    await state.update_data(translation_2=translation_2)
+
+    text = f"{await t.t('save_changes', lang)}? \"{data['category_name']}\"\n"
+    # добавляем переводы
+    text += f"{await t.t(data['languages_1'], lang)}: \"{data['translation_1']}\"\n"
+    text += f"{await t.t(data['languages_2'], lang)}: \"{translation_2}\"\n"
+
+    confirm_keyboard = await kb.confirm_keyboard(lang)
+
+    await message.answer(text, reply_markup=confirm_keyboard.as_markup())
+
+
+@router.callback_query(EditCategoryFSM.confirm, F.data.split("|")[0] != "edit-category-confirm")
+async def confirm_changes(callback: types.CallbackQuery, tg_id: str, session: Any, state: FSMContext) -> None:
+    """Сохраняем изменения"""
+    lang = r.get(f"lang:{tg_id}").decode()
+
+    data = await state.get_data()
+    await state.clear()
+
+    keyboard = await kb.to_admin_menu(lang)
+
+    # добавляем в словарь новое слово
+    words_for_translator = {
+                lang: data['category_name'],
+                data['languages_1']: data['translation_1'],
+                data['languages_2']: data['translation_2']
+            }
+    print(words_for_translator)
+    try:
+        await t.update_translation(
+            words_for_translator
+        )
+    except Exception as e:
+        await callback.message.edit_text(f"Ошибка при сохранении перевода: {e}", reply_markup=keyboard.as_markup())
+        return
+
+    try:
+        # save to DB
+        await AsyncOrm.update_category_title(
+            category_id=int(data['category_id']),
+            title=await t.get_key_for_text(words_for_translator['en']),
+            session=session
+        )
+    except Exception as e:
+        await callback.message.edit_text(f"Ошибка при внесении изменений: {e}")
+        return
+
+    text = f"✅ Категория {data['category_name']} успешно изменена"
+    await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
+
+
+# CHANGE CATEGORY EMOJI
+@router.callback_query(F.data.split("|")[0] == "change-category-emoji")
+async def change_emoji_for_category(callback: types.CallbackQuery, tg_id: str, state: FSMContext) -> None:
+    """Изменение эмодзи у категории"""
+    lang = r.get(f"lang:{tg_id}").decode()
+    category_id = callback.data.split("|")[1]
+
+    await state.set_state(EditCategoryFSM.input_emoji)
+
+    await state.update_data(category_id=category_id)
+
+    text = await t.t("category_emoji", lang)
+    keyboard = await kb.back_keyboard(lang, f"edit_categories|{category_id}")
+
+    prev_message = await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
+    await state.update_data(prev_message=prev_message)
+
+
+@router.message(EditCategoryFSM.input_emoji)
+async def get_emoji_from_text(message: types.Message, tg_id: str, state: FSMContext, session: Any) -> None:
+    """Получаем эмодзи из текста"""
+    lang = r.get(f"lang:{tg_id}").decode()
+    data = await state.get_data()
+
+    try:
+        await data["prev_message"].delete()
+    except Exception:
+        pass
+
+    category_emoji = message.text
+
+    if not category_emoji:
+        keyboard = await kb.cancel_keyboard(lang, f"edit_categories|{data['category_id']}")
+        text = await t.t("category_emoji", lang)
+
+        prev_message = await message.answer(text, reply_markup=keyboard.as_markup())
+        await state.update_data(prev_message=prev_message)
+        return
+
+    await state.set_state(EditCategoryFSM.confirm)
+    await state.update_data(category_emoji=category_emoji)
+
+    category: Category = await AsyncOrm.get_category_by_id(int(data['category_id']), session)
+
+    text = await t.t("save_changes", lang) + "?\n"
+    text += f"{category.emoji + ' ' if category.emoji else ''}{await t.t(category.title, lang)} -> "
+    text += f"{category_emoji} {await t.t(category.title, lang)}"
+
+    keyboard = await kb.confirm_keyboard_edit(lang)
+
+    await message.answer(text, reply_markup=keyboard.as_markup())
+
+
+@router.callback_query(F.data.split("|")[0] == "edit-category-confirm", EditCategoryFSM.confirm)
+async def save_emoji_changing(callback: types.CallbackQuery, tg_id: str, state: FSMContext, session: Any) -> None:
+    """Сохранение измененного эмодзи"""
+    lang = r.get(f"lang:{tg_id}").decode()
+    data = await state.get_data()
+
+    await state.clear()
+    keyboard = await kb.to_admin_menu(lang)
+    category: Category = await AsyncOrm.get_category_by_id(int(data['category_id']), session)
+
+    try:
+        await AsyncOrm.update_category_emoji(int(data['category_id']), data['category_emoji'], session)
+    except Exception as e:
+        await callback.message.edit_text(f"Ошибка при внесении изменений: {e}", reply_markup=keyboard.as_markup())
+        return
+
+    text = f"✅ Категория \"{data['category_emoji']} {await t.t(category.title, lang)}\" успешно изменена"
+    await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
 

@@ -46,7 +46,7 @@ class Translator:
             self._load_translations()
 
         # добавляем новые переводы слов
-        new_key = '_'.join([word.lower() for word in data['en'].split(" ")])
+        new_key = await self.get_key_for_text(data["en"])
         print(new_key)
 
         for k, v in data.items():
@@ -59,6 +59,10 @@ class Translator:
         except Exception as e:
             logger.error(f"Ошибка при перезаписи файла переводов: {e}")
             raise
+
+    @staticmethod
+    async def get_key_for_text(text: str) -> str:
+        return '_'.join([word.lower() for word in text.split(" ")])
 
     async def t(self, key: str, dest_lang: str, text: str | None = None) -> str:
         """

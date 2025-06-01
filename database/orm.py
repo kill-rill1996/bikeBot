@@ -911,3 +911,33 @@ class AsyncOrm:
         except Exception as e:
             logger.error(f"Ошибка при создании категории {category}: {e}")
             raise
+
+    @staticmethod
+    async def update_category_title(category_id: int, title: str, session: Any) -> None:
+        """Обновление названия категории"""
+        try:
+            await session.execute(
+                """
+                UPDATE categories set title = $1 WHERE id = $2
+                """,
+                title, category_id
+            )
+
+        except Exception as e:
+            logger.error(f"Ошибка при обновлении title категории {category_id}: {e}")
+            raise
+
+    @staticmethod
+    async def update_category_emoji(category_id: int, emoji: str, session: Any) -> None:
+        """Обновление emoji категории"""
+        try:
+            await session.execute(
+                """
+                UPDATE categories set emoji = $1 WHERE id = $2
+                """,
+                emoji, category_id
+            )
+
+        except Exception as e:
+            logger.error(f"Ошибка при обновлении emoji категории {category_id}: {e}")
+            raise

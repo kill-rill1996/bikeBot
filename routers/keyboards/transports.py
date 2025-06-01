@@ -21,13 +21,13 @@ async def back_keyboard(lang: str, callback_data: str) -> InlineKeyboardBuilder:
     return keyboard
 
 
-async def cancel_keyboard(lang: str) -> InlineKeyboardBuilder:
+async def cancel_keyboard(lang: str, callback_data: str) -> InlineKeyboardBuilder:
     """Клавиатура отмена"""
     keyboard = InlineKeyboardBuilder()
 
     # назад
     keyboard.row(
-        InlineKeyboardButton(text=await t.t("cancel", lang), callback_data="admin|vehicle_management")
+        InlineKeyboardButton(text=await t.t("cancel", lang), callback_data=callback_data)
     )
 
     return keyboard
@@ -93,12 +93,20 @@ async def confirm_keyboard(lang: str) -> InlineKeyboardBuilder:
         InlineKeyboardButton(text=await t.t("no", lang), callback_data="admin|vehicle_management")
     )
 
-    # отмена
+    return keyboard
+
+
+async def confirm_keyboard_edit(lang: str) -> InlineKeyboardBuilder:
+    """Клавиатура подтверждения изменения"""
+    keyboard = InlineKeyboardBuilder()
+
     keyboard.row(
-        InlineKeyboardButton(text=await t.t("cancel", lang), callback_data="admin|vehicle_management")
+        InlineKeyboardButton(text=await t.t("yes", lang), callback_data="edit-category-confirm|yes"),
+        InlineKeyboardButton(text=await t.t("no", lang), callback_data="admin|vehicle_management")
     )
 
     return keyboard
+
 
 
 async def to_admin_menu(lang: str) -> InlineKeyboardBuilder:
@@ -130,7 +138,7 @@ async def edit_category(category: Category, lang: str) -> InlineKeyboardBuilder:
     keyboard = InlineKeyboardBuilder()
 
     keyboard.row(InlineKeyboardButton(text="Изменить название", callback_data=f"change-category-title|{category.id}"))
-    keyboard.row(InlineKeyboardButton(text="Изменить эмодзи", callback_data=f"change-category-уmoji|{category.id}"))
+    keyboard.row(InlineKeyboardButton(text="Изменить эмодзи", callback_data=f"change-category-emoji|{category.id}"))
 
     # назад
     back_button: tuple = await btn.get_back_button("transport-management|edit_categories", lang)
