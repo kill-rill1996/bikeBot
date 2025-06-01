@@ -428,6 +428,35 @@ class AsyncOrm:
             logger.error(f"Ошибка получения jobs по jobtype, участвовавших в операциях: {e}")
 
     @staticmethod
+    async def create_location(name: str, session: Any) -> None:
+        """Создание локации"""
+        try:
+            await session.execute(
+                """
+                INSERT INTO locations (name)
+                VALUES ($1)
+                """,
+                name
+            )
+        except Exception as e:
+            logger.error(f"Ошибка при создании локации: {e}")
+
+    @staticmethod
+    async def edit_location(name: str, location_id: int, session: Any) -> None:
+        """Изменение локации"""
+        try:
+            await session.execute(
+                """
+                UPDATE locations
+                SET name = $1
+                WHERE id = $2;
+                """,
+                name, location_id
+            )
+        except Exception as e:
+            logger.error(f"Ошибка при изменении имени локации id {location_id}: {e}")
+
+    @staticmethod
     async def get_locations(session: Any) -> List[Location]:
         """Получение всех локаций"""
         try:
