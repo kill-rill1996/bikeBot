@@ -32,3 +32,4 @@ class JobForJobtypes(BaseModel):
     job_title: str
     subcategory_title: str
     serial_number: int
+    mechanic_username: str

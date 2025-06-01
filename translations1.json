@@ -142,7 +142,11 @@
         "ru": "🇷🇺 russian",
         "select_category_to_edit": "Select category to edit",
         "category": "Category",
-        "enter_new_title": "Enter a new name for the category"
+        "enter_new_title": "Enter a new name for the category",
+        "most_recent_transport": "The most common vehicles in this category:",
+        "most_recent_mechanics": "Mechanics most often performing work in this category:",
+        "repeatable_jobs": "Repeated work on one unit of transport per period:",
+        "no_comments": "Works where comments are not indicated:"
     },
     "ru": {
         "input_name": "Введите ваше имя (например Джон Доу)",
@@ -287,7 +291,11 @@
         "es": "🇪🇸 испанский",
         "select_category_to_edit": "Выберите категорию для редактирования",
         "category": "Категория",
-        "enter_new_title": "Введите новое название для категории"
+        "enter_new_title": "Введите новое название для категории",
+        "most_recent_transport": "Самые частые транспортные средства в этой категории:",
+        "most_recent_mechanics": "Механики, чаще всего выполняющие работы в этой категории:",
+        "repeatable_jobs": "Повторные работы по одной единице транспорта за период:",
+        "no_comments": "Работы, где не указаны комментарии:"
     },
     "es": {
         "name_error": "Nombre de usuario incorrecto ingresado, por favor inténtelo nuevamente",
@@ -432,6 +440,10 @@
         "en": "🇺🇸 Inglés",
         "select_category_to_edit": "Seleccione la categoría",
         "category": "Categoría",
-        "enter_new_title": "Introduzca un nuevo nombre para la categoría"
+        "enter_new_title": "Introduzca un nuevo nombre para la categoría",
+        "most_recent_transport": "Los vehículos más comunes en esta categoría:",
+        "most_recent_mechanics": "Los mecánicos son los que con mayor frecuencia realizan trabajos en esta categoría:",
+        "repeatable_jobs": "Trabajo repetido en una unidad de transporte por período:",
+        "no_comments": "Obras en las que no se indican comentarios:"
     }
 }

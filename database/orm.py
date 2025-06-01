@@ -409,13 +409,14 @@ class AsyncOrm:
         try:
             rows = await session.fetch(
                 """
-                SELECT j.title AS job_title, sc.title AS subcategory_title, t.serial_number
+                SELECT j.title AS job_title, sc.title AS subcategory_title, t.serial_number, u.username AS mechanic_username
                 FROM operations AS o
                 JOIN transports AS t ON o.transport_id = t.id
                 JOIN subcategories AS sc ON t.subcategory_id = sc.id
                 JOIN operations_jobs AS oj ON o.id = oj.operation_id
                 JOIN jobs AS j ON oj.job_id = j.id
                 JOIN jobtypes AS jt ON j.jobtype_id = jt.id
+                JOIN users AS u ON o.tg_id = u.tg_id
                 WHERE jt.id = $1 AND o.created_at > $2 AND o.created_at < $3; 
                 """,
                 jobtype_id, start_date, end_date
@@ -713,6 +714,44 @@ class AsyncOrm:
         except Exception as e:
             logger.error(f"Ошибка при получении операций по транспорту {transport_id} с {start_date} "
                          f"до {end_date}: {e}")
+
+    @staticmethod
+    async def get_operations_with_jobs_and_transport_by_period(start: datetime.datetime, end: datetime.datetime, session: Any) -> List[OperationWithJobs]:
+        """Операции с работами и транспортом без комментариев для отчета по неэффективности"""
+        try:
+            # получение операций
+            rows = await session.fetch(
+                """
+                SELECT o.*, c.title AS transport_category, sc.title AS transport_subcategory, t.serial_number AS transport_serial_number
+                FROM operations AS o
+                JOIN transports AS t ON o.transport_id = t.id
+                JOIN categories AS c ON t.category_id = c.id
+                JOIN subcategories sc ON sc.id = t.category_id
+                WHERE o.created_at > $1 AND o.created_at < $2
+                """,
+                start, end
+            )
+            operations = [OperationWithJobs.model_validate(row) for row in rows]
+
+            # получение jobs с jobtype для операций
+            for i in range(len(operations)):
+                rows = await session.fetch(
+                    """
+                    SELECT j.id, j.title, jt.title AS jobtype_title
+                    FROM jobs AS j
+                    JOIN operations_jobs AS oj ON j.id = oj.job_id
+                    JOIN jobtypes AS jt ON j.jobtype_id = jt.id
+                    WHERE oj.operation_id = $1 
+                    """,
+                    operations[i].id
+                )
+                jobs_with_jobtype = [JobWithJobtypeTitle.model_validate(row) for row in rows]
+                operations[i].jobs = jobs_with_jobtype
+
+            return sorted(operations, key=lambda o: o.created_at, reverse=True)
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении операций пользователя с {start} до {end} для отчета по неэффективности: {e}")
 
     @staticmethod
     async def update_comment(operation_id: int, new_comment: str, session: Any) -> None:
