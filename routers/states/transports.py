@@ -17,4 +17,9 @@ class EditCategoryFSM(StatesGroup):
     confirm = State()
 
 
+class AddSubCategory(StatesGroup):
+    input_subcategory = State()
+    confirm = State()
+
+
 

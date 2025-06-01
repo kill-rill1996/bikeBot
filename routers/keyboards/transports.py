@@ -25,7 +25,7 @@ async def cancel_keyboard(lang: str, callback_data: str) -> InlineKeyboardBuilde
     """Клавиатура отмена"""
     keyboard = InlineKeyboardBuilder()
 
-    # назад
+    # отмена
     keyboard.row(
         InlineKeyboardButton(text=await t.t("cancel", lang), callback_data=callback_data)
     )
@@ -108,7 +108,6 @@ async def confirm_keyboard_edit(lang: str) -> InlineKeyboardBuilder:
     return keyboard
 
 
-
 async def to_admin_menu(lang: str) -> InlineKeyboardBuilder:
     keyboard = InlineKeyboardBuilder()
 
@@ -148,3 +147,31 @@ async def edit_category(category: Category, lang: str) -> InlineKeyboardBuilder:
 
     return keyboard
 
+
+async def select_category(categories: list[Category], lang: str) -> InlineKeyboardBuilder:
+    keyboard = InlineKeyboardBuilder()
+
+    for category in categories:
+        keyboard.row(InlineKeyboardButton(
+            text=f"{category.emoji + ' ' if category.emoji else ''}{await t.t(category.title, lang)}",
+            callback_data=f"add-subcategory|{category.id}"))
+
+    # назад
+    back_button: tuple = await btn.get_back_button("admin|vehicle_management", lang)
+    keyboard.row(
+        InlineKeyboardButton(text=back_button[0], callback_data=back_button[1])
+    )
+
+    return keyboard
+
+
+async def confirm_add_subcategory(lang: str) -> InlineKeyboardBuilder:
+    """Клавиатура подтверждения создания подкатегории"""
+    keyboard = InlineKeyboardBuilder()
+
+    keyboard.row(
+        InlineKeyboardButton(text=await t.t("yes", lang), callback_data="add-subcategory-confirm|yes"),
+        InlineKeyboardButton(text=await t.t("no", lang), callback_data="admin|vehicle_management")
+    )
+
+    return keyboard

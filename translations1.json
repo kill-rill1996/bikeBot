@@ -159,7 +159,11 @@
         "edited_location": "Location name changed!",
         "barcelona4": "Barcelona4",
         "all_locations": "List of locations",
-        "no_locations": "There are no locations"
+        "no_locations": "There are no locations",
+        "existing_subcategories": "Existing subcategories in category",
+        "enter_new_sub_category": "Enter subcategory code:\n(e.g. \"C\")",
+        "subcategory_already_exists": "This subcategory already exists, please enter another name",
+        "save_subcategory": "Save subcategory?"
     },
     "ru": {
         "input_name": "Введите ваше имя (например Джон Доу)",
@@ -321,7 +325,11 @@
         "edited_location": "Имя местоположения изменено!",
         "barcelona4": "Барселона4",
         "all_locations": "Список локаций",
-        "no_locations": "Локаций нет"
+        "no_locations": "Локаций нет",
+        "existing_subcategories": "Существующие подкатегории в категории",
+        "enter_new_sub_category": "Введите код подкатегории:\n(например, \"С\")",
+        "subcategory_already_exists": "Такая подкатегория уже существует, введите другое название",
+        "save_subcategory": "Сохранить подкатегорию?"
     },
     "es": {
         "name_error": "Nombre de usuario incorrecto ingresado, por favor inténtelo nuevamente",
@@ -483,6 +491,10 @@
         "edited_location": "¡Nombre de ubicación cambiado!",
         "barcelona4": "Barcelona4",
         "all_locations": "Lista de ubicaciones",
-        "no_locations": "Sin ubicaciones"
+        "no_locations": "Sin ubicaciones",
+        "existing_subcategories": "Subcategorías existentes en la categoría",
+        "enter_new_sub_category": "Ingrese el código de subcategoría:\n(p. ej., \"C\")",
+        "subcategory_already_exists": "Esta subcategoría ya existe, por favor, introduzca otro nombre",
+        "save_subcategory": "¿Guardar subcategoría?"
     }
 }

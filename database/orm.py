@@ -970,3 +970,19 @@ class AsyncOrm:
         except Exception as e:
             logger.error(f"Ошибка при обновлении emoji категории {category_id}: {e}")
             raise
+
+    @staticmethod
+    async def create_subcategory(category_id: int, subcategory_title: str, session: Any) -> None:
+        """Создание подкатегориями"""
+        try:
+            await session.execute(
+                """
+                INSERT INTO subcategories (title, category_id)
+                VALUES($1, $2)
+                """,
+                subcategory_title, category_id
+            )
+
+        except Exception as e:
+            logger.error(f"Ошибка при создании подкатегории {subcategory_title} для категории {category_id}: {e}")
+            raise

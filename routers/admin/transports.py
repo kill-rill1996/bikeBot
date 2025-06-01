@@ -5,13 +5,12 @@ from aiogram.fsm.context import FSMContext
 
 from cache import r
 from schemas.management import TransportCategory
-from schemas.categories_and_jobs import Category
+from schemas.categories_and_jobs import Category, Subcategory
 from utils.translator import translator as t, neet_to_translate_on
 from database.orm import AsyncOrm
 
 from routers.keyboards import transports as kb
-from routers.states.transports import AddTransportCategoryFSM, EditCategoryFSM
-
+from routers.states.transports import AddTransportCategoryFSM, EditCategoryFSM, AddSubCategory
 
 router = Router()
 
@@ -570,4 +569,137 @@ async def save_emoji_changing(callback: types.CallbackQuery, tg_id: str, state: 
 
     text = f"✅ Категория \"{data['category_emoji']} {await t.t(category.title, lang)}\" успешно изменена"
     await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
+
+
+# ADD SUBCATEGORY
+@router.callback_query(F.data == "transport-management|add_subcategory")
+async def add_subcategory(callback: types.CallbackQuery, tg_id: str, session: Any, state: FSMContext) -> None:
+    """Добавление подкатегории"""
+    lang = r.get(f"lang:{tg_id}").decode()
+
+    try:
+        await state.clear()
+    except Exception:
+        pass
+
+    categories: list[Category] = await AsyncOrm.get_all_categories(session)
+
+    text = await t.t("select_category", lang)
+    keyboard = await kb.select_category(categories, lang)
+    await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
+
+
+@router.callback_query(F.data.split("|")[0] == "add-subcategory")
+async def selected_category(callback: types.CallbackQuery, tg_id: str, session: Any, state: FSMContext) -> None:
+    """Добавление подкатегории"""
+    lang = r.get(f"lang:{tg_id}").decode()
+    category_id = int(callback.data.split("|")[1])
+
+    await state.set_state(AddSubCategory.input_subcategory)
+
+    # get from DB
+    category: Category = await AsyncOrm.get_category_by_id(category_id, session)
+    subcategories: list[Subcategory] = await AsyncOrm.get_subcategories_by_category(category_id, session)
+
+    # generate message
+    text = await t.t("existing_subcategories", lang) + " \n"
+    text += f"\"{category.emoji + ' ' if category.emoji else ''}{await t.t(category.title, lang)}\"\n"
+    for subcategory in subcategories:
+        text += f"\t\t• {subcategory.title}\n"
+    text += "\n"
+    text += await t.t("enter_new_sub_category", lang)
+
+    keyboard = await kb.back_keyboard(lang, "transport-management|add_subcategory")
+
+    prev_message = await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
+
+    # save data
+    await state.update_data(category_id=category_id)
+    await state.update_data(category_title=category.title)
+    await state.update_data(category_emoji=category.emoji)
+    await state.update_data(prev_message=prev_message)
+
+
+@router.message(AddSubCategory.input_subcategory)
+async def get_subcategory_from_text(message: types.Message, tg_id: str, state: FSMContext, session: Any) -> None:
+    """Получение подкатегории из текста"""
+    lang = r.get(f"lang:{tg_id}").decode()
+    data = await state.get_data()
+    prev_message = data["prev_message"]
+    category_id = int(data["category_id"])
+    category_title = data["category_title"]
+    category_emoji = data["category_emoji"]
+
+    try:
+        await prev_message.delete()
+    except Exception:
+        pass
+
+    keyboard = await kb.cancel_keyboard(lang, f"transport-management|add_subcategory")
+
+    # неверный формат
+    if type(message) != types.Message:
+        text = await t.t("wrong_text_data", lang)
+        prev_message = await message.answer(text, reply_markup=keyboard.as_markup())
+        await state.update_data(prev_message=prev_message)
+        return
+
+    new_subcategory = message.text
+
+    # пустой текст
+    if not new_subcategory:
+        text = await t.t("wrong_text_data", lang)
+        prev_message = await message.answer(text, reply_markup=keyboard.as_markup())
+        await state.update_data(prev_message=prev_message)
+        return
+
+    # проверяем существует ли уже такая подкатегория
+    subcategories: list[Subcategory] = await AsyncOrm.get_subcategories_by_category(category_id, session)
+    for subcategory in subcategories:
+        if subcategory.title == new_subcategory:
+            await message.answer(await t.t("subcategory_already_exists", lang), reply_markup=keyboard.as_markup())
+            return
+
+    await state.update_data(new_subcategory=new_subcategory)
+    await state.set_state(AddSubCategory.confirm)
+
+    text = await t.t("save_subcategory", lang) + "\n"
+    text += f"{category_emoji + ' ' if category_emoji else ''}{await t.t(category_title, lang)} -> {new_subcategory}"
+
+    keyboard = await kb.confirm_add_subcategory(lang)
+
+    await message.answer(text, reply_markup=keyboard.as_markup())
+
+
+@router.callback_query(F.data == "add-subcategory-confirm|yes", AddSubCategory.confirm)
+async def save_subcategory(callback: types.CallbackQuery, tg_id: str, session: Any, state: FSMContext) -> None:
+    lang = r.get(f"lang:{tg_id}").decode()
+    data = await state.get_data()
+    category_id = int(data["category_id"])
+    subcategory_title = data["new_subcategory"]
+    category_title = data["category_title"]
+
+    await state.clear()
+
+    keyboard = await kb.to_admin_menu(lang)
+
+    # save to DB
+    try:
+        await AsyncOrm.create_subcategory(category_id, subcategory_title, session)
+    except Exception as e:
+        await callback.message.edit_text(f"Ошибка при сохранении подкатегории: {e}", reply_markup=keyboard.as_markup())
+        return
+
+    text = f"✅ Подкатегория \"{subcategory_title}\" для категории {await t.t(category_title, lang)} успешно создана"
+    await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
+
+
+
+
+
+
+
+
+
+
 
