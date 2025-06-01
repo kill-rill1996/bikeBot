@@ -180,13 +180,14 @@ async def add_location_confirm(callback: types.CallbackQuery, tg_id: int, state:
     data = await state.get_data()
 
     # добавляем в словарь новое слово
-    try:
-        await t.update_translation(
-            {
+    dictionary_for_translator = {
                 lang: data['location_name'],
                 data['languages_1']: data['translation_1'],
                 data['languages_2']: data['translation_2']
             }
+    try:
+        await t.update_translation(
+            dictionary_for_translator
         )
     except Exception as e:
         keyboard = await kb.cancel_keyboard(lang)
@@ -194,7 +195,7 @@ async def add_location_confirm(callback: types.CallbackQuery, tg_id: int, state:
         return
 
     # записываем в БД
-    await AsyncOrm.create_location(data["location_name"], session)
+    await AsyncOrm.create_location(dictionary_for_translator["en"], session)
 
     # заканчиваем стейт
     await state.clear()
@@ -352,13 +353,14 @@ async def edit_location_confirmed(callback: types.CallbackQuery, tg_id: int, sta
     data = await state.get_data()
 
     # добавляем в словарь новое слово
-    try:
-        await t.update_translation(
-            {
+    dictionary_for_translator = {
                 lang: data['location_name'],
                 data['languages_1']: data['translation_1'],
                 data['languages_2']: data['translation_2']
             }
+    try:
+        await t.update_translation(
+            dictionary_for_translator
         )
     except Exception as e:
         keyboard = await kb.cancel_keyboard(lang)
@@ -366,7 +368,7 @@ async def edit_location_confirmed(callback: types.CallbackQuery, tg_id: int, sta
         return
 
     # изменяем в БД
-    await AsyncOrm.edit_location(data["location_name"], data["location_id"], session)
+    await AsyncOrm.edit_location(dictionary_for_translator["en"], data["location_id"], session)
 
     # заканчиваем стейт
     await state.clear()

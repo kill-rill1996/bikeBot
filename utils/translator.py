@@ -47,7 +47,6 @@ class Translator:
 
         # добавляем новые переводы слов
         new_key = await self.get_key_for_text(data["en"])
-        print(new_key)
 
         for k, v in data.items():
             self.translation[k][new_key] = v
