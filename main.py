@@ -63,19 +63,6 @@ async def start_bot() -> None:
     storage = MemoryStorage()
     dp = io.Dispatcher(storage=storage)
 
-    # SCHEDULER
-    # scheduler = AsyncIOScheduler(timezone="Europe/Moscow")
-
-    # перевод закончившихся подписок в неактивные, удаление пробных, оплата реф. ссылок
-    # scheduler.add_job(scheduler_funcs.run_every_hour, trigger="cron", year='*', month='*', day="*", hour="*", minute=0,
-    #                   second=0, start_date=datetime.now(), kwargs={"bot": bot})
-
-    # обновление трафика ключей каждые settings.paid_period
-    # scheduler.add_job(scheduler_funcs.run_every_day, trigger="cron", year='*', month='*', day="*", hour=1, minute=10,
-    #                   second=0, start_date=datetime.now(), kwargs={"bot": bot})
-
-    # scheduler.start()
-
     # ROUTERS
     dp.include_router(main_router)
 

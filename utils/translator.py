@@ -36,6 +36,30 @@ class Translator:
                 logger.error(f"Unexpected error loading translations: {e}. Using empty cache.")
                 self.translation = {}
 
+    async def update_translation(self, data: dict) -> None:
+        """
+        Записывает в переводчик новые слова
+        data = {'ru': word, 'en': word, 'es': word}
+        """
+        # проверяем загружен ли перевод в память, если нет то загружаем
+        if not self.translation:
+            self._load_translations()
+
+        # добавляем новые переводы слов
+        new_key = '_'.join([word.lower() for word in data['en'].split(" ")])
+        print(new_key)
+
+        for k, v in data.items():
+            self.translation[k][new_key] = v
+
+        # перезаписываем файл
+        try:
+            with open(settings.translation_file, "w", encoding="utf-8") as f:
+                json.dump(self.translation, f, ensure_ascii=False, indent=4)
+        except Exception as e:
+            logger.error(f"Ошибка при перезаписи файла переводов: {e}")
+            raise
+
     async def t(self, key: str, dest_lang: str, text: str | None = None) -> str:
         """
         Перевод строки в необходимый язык
@@ -56,6 +80,16 @@ class Translator:
                 return translated.text
 
         return translated_phrase
+
+
+async def neet_to_translate_on(lang: str) -> list[str]:
+    """Возвращает лист языков на которые нужно перевести"""
+    need_to_translate = []
+    for key in settings.languages.keys():
+        if key != lang:
+            need_to_translate.append(key)
+
+    return need_to_translate
 
 
 translator = Translator()

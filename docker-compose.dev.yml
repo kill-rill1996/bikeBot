@@ -8,6 +8,7 @@ services:
       - ./.env.dev
     volumes:
       - ./logs:/app/logs/
+      - ./translations1.json:/app/translations1.json
     depends_on:
       postgresdb:
         condition: service_healthy

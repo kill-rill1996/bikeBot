@@ -2,6 +2,7 @@ from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from routers.buttons import buttons as btn
+from schemas.categories_and_jobs import Category
 from schemas.search import TransportNumber, OperationJobsUserLocation
 from utils.translator import translator as t
 from utils.date_time_service import convert_date_time
@@ -15,6 +16,18 @@ async def back_keyboard(lang: str, callback_data: str) -> InlineKeyboardBuilder:
     back_button: tuple = await btn.get_back_button(callback_data, lang)
     keyboard.row(
         InlineKeyboardButton(text=back_button[0], callback_data=back_button[1])
+    )
+
+    return keyboard
+
+
+async def cancel_keyboard(lang: str) -> InlineKeyboardBuilder:
+    """Клавиатура отмена"""
+    keyboard = InlineKeyboardBuilder()
+
+    # назад
+    keyboard.row(
+        InlineKeyboardButton(text=await t.t("cancel", lang), callback_data="admin|vehicle_management")
     )
 
     return keyboard
@@ -91,7 +104,39 @@ async def confirm_keyboard(lang: str) -> InlineKeyboardBuilder:
 async def to_admin_menu(lang: str) -> InlineKeyboardBuilder:
     keyboard = InlineKeyboardBuilder()
 
-    # отмена
+    # переход в меню менеджмента транспорта
     keyboard.row(InlineKeyboardButton(text=f"🚗 {await t.t('vehicle_management', lang)}", callback_data="admin|vehicle_management"))
 
     return keyboard
+
+
+async def all_categories_keyboard(categories: list[Category], lang: str) -> InlineKeyboardBuilder:
+    keyboard = InlineKeyboardBuilder()
+
+    for category in categories:
+        keyboard.row(InlineKeyboardButton(text=f"{category.emoji + ' ' if category.emoji else ''}{await t.t(category.title, lang)}",
+                                          callback_data=f"edit_categories|{category.id}"))
+
+    # назад
+    back_button: tuple = await btn.get_back_button("admin|vehicle_management", lang)
+    keyboard.row(
+        InlineKeyboardButton(text=back_button[0], callback_data=back_button[1])
+    )
+
+    return keyboard
+
+
+async def edit_category(category: Category, lang: str) -> InlineKeyboardBuilder:
+    keyboard = InlineKeyboardBuilder()
+
+    keyboard.row(InlineKeyboardButton(text="Изменить название", callback_data=f"change-category-title|{category.id}"))
+    keyboard.row(InlineKeyboardButton(text="Изменить эмодзи", callback_data=f"change-category-уmoji|{category.id}"))
+
+    # назад
+    back_button: tuple = await btn.get_back_button("transport-management|edit_categories", lang)
+    keyboard.row(
+        InlineKeyboardButton(text=back_button[0], callback_data=back_button[1])
+    )
+
+    return keyboard
+
