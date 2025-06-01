@@ -37,4 +37,9 @@ def get_dates_by_period(period: str) -> (datetime.datetime, datetime.datetime):
         end_period = datetime.datetime.now()
         start_period = end_period - datetime.timedelta(days=30)  # ставим для месяца 30 дней
 
+    elif period == "custom_period":
+        # TODO пока заглушка на месяц
+        end_period = datetime.datetime.now()
+        start_period = end_period - datetime.timedelta(days=30)  # ставим для месяца 30 дней
+
     return (start_period, end_period)

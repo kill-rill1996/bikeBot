@@ -11,7 +11,7 @@ from schemas.operations import Operation, OperationAdd, OperationJobs, Operation
     OperationJobTransport
 from schemas.reports import OperationWithJobs, JobWithJobtypeTitle, JobForJobtypes
 from schemas.search import TransportNumber, OperationJobUserLocation, OperationJobsUserLocation, ListOperations
-from schemas.transport import Transport
+from schemas.transport import Transport, TransportSubcategory
 
 from schemas.users import User
 
@@ -973,7 +973,7 @@ class AsyncOrm:
 
     @staticmethod
     async def create_subcategory(category_id: int, subcategory_title: str, session: Any) -> None:
-        """Создание подкатегориями"""
+        """Создание подкатегории"""
         try:
             await session.execute(
                 """
@@ -986,3 +986,37 @@ class AsyncOrm:
         except Exception as e:
             logger.error(f"Ошибка при создании подкатегории {subcategory_title} для категории {category_id}: {e}")
             raise
+
+    @staticmethod
+    async def update_subcategory(subcategory_id: int, subcategory_title: str, session: Any) -> None:
+        """Изменение подкатегории"""
+        try:
+            await session.execute(
+                """
+                UPDATE subcategories set title=$1
+                WHERE id=$2
+                """,
+                subcategory_title, subcategory_id
+            )
+        except Exception as e:
+            logger.error(f"Ошибка при изменении подкатегории {subcategory_title} для категории {subcategory_id}: {e}")
+            raise
+
+    @staticmethod
+    async def get_transports_for_subcategory(subcategory_id: int, session: Any) -> list[TransportSubcategory]:
+        """Получение всего транспорта в подкатегории"""
+        try:
+            rows = await session.fetch(
+                """
+                SELECT t.*, sc.title  AS subcategory_title
+                FROM transports AS t
+                JOIN subcategories AS sc ON t.subcategory_id = sc.id
+                WHERE sc.id=$1
+                """,
+                subcategory_id
+            )
+            transports = [TransportSubcategory.model_validate(row) for row in rows]
+            return transports
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении транспорта подкатегории {subcategory_id}: {e}")

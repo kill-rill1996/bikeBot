@@ -2,7 +2,7 @@ from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from routers.buttons import buttons as btn
-from schemas.categories_and_jobs import Category
+from schemas.categories_and_jobs import Category, Subcategory
 from schemas.search import TransportNumber, OperationJobsUserLocation
 from utils.translator import translator as t
 from utils.date_time_service import convert_date_time
@@ -172,6 +172,100 @@ async def confirm_add_subcategory(lang: str) -> InlineKeyboardBuilder:
     keyboard.row(
         InlineKeyboardButton(text=await t.t("yes", lang), callback_data="add-subcategory-confirm|yes"),
         InlineKeyboardButton(text=await t.t("no", lang), callback_data="admin|vehicle_management")
+    )
+
+    return keyboard
+
+
+async def select_category_edit_subcategory(categories: list[Category], lang: str) -> InlineKeyboardBuilder:
+    keyboard = InlineKeyboardBuilder()
+
+    for category in categories:
+        keyboard.row(InlineKeyboardButton(
+            text=f"{category.emoji + ' ' if category.emoji else ''}{await t.t(category.title, lang)}",
+            callback_data=f"edit-subcategory|{category.id}"))
+
+    # назад
+    back_button: tuple = await btn.get_back_button("admin|vehicle_management", lang)
+    keyboard.row(
+        InlineKeyboardButton(text=back_button[0], callback_data=back_button[1])
+    )
+
+    return keyboard
+
+
+async def subcategories_for_category(subcategories: list[Subcategory], lang: str) -> InlineKeyboardBuilder:
+    keyboard = InlineKeyboardBuilder()
+
+    for sc in subcategories:
+        keyboard.row(InlineKeyboardButton(
+            text=f"{sc.title}",
+            callback_data=f"subcategory-to-edit|{sc.id}")
+        )
+    keyboard.adjust(4)
+
+    # назад
+    back_button: tuple = await btn.get_back_button("transport-management|edit_subcategories", lang)
+    keyboard.row(
+        InlineKeyboardButton(text=back_button[0], callback_data=back_button[1])
+    )
+
+    return keyboard
+
+
+async def confirm_edit_subcategory(lang: str) -> InlineKeyboardBuilder:
+    keyboard = InlineKeyboardBuilder()
+
+    keyboard.row(
+        InlineKeyboardButton(text=await t.t("yes", lang), callback_data="edit-subcategory-confirm|yes"),
+        InlineKeyboardButton(text=await t.t("no", lang), callback_data="admin|vehicle_management")
+    )
+
+    return keyboard
+
+
+async def there_are_not_yet(callback: str, lang: str) -> InlineKeyboardBuilder:
+    """Для заглушек пока нет"""
+    keyboard = InlineKeyboardBuilder()
+
+    keyboard.row(
+        InlineKeyboardButton(text=f"🚗 {await t.t('vehicle_management', lang)}", callback_data=callback)
+    )
+
+    return keyboard
+
+
+async def select_category_add_transport(categories: list[Category], lang: str) -> InlineKeyboardBuilder:
+    keyboard = InlineKeyboardBuilder()
+
+    for category in categories:
+        keyboard.row(InlineKeyboardButton(
+            text=f"{category.emoji + ' ' if category.emoji else ''}{await t.t(category.title, lang)}",
+            callback_data=f"admin-add-transport|{category.id}"))
+
+    # назад
+    back_button: tuple = await btn.get_back_button("admin|vehicle_management", lang)
+    keyboard.row(
+        InlineKeyboardButton(text=back_button[0], callback_data=back_button[1])
+    )
+
+    return keyboard
+
+
+async def subcategories_for_add_vehicle(subcategories: list[Subcategory], lang: str) -> InlineKeyboardBuilder:
+    keyboard = InlineKeyboardBuilder()
+
+    for sc in subcategories:
+        keyboard.row(InlineKeyboardButton(
+            text=f"{sc.title}",
+            callback_data=f"subcategory-to-add-vehicle|{sc.id}")
+        )
+    keyboard.adjust(4)
+
+    # назад
+    back_button: tuple = await btn.get_back_button("transport-management|add_vehicle", lang)
+    keyboard.row(
+        InlineKeyboardButton(text=back_button[0], callback_data=back_button[1])
     )
 
     return keyboard

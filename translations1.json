@@ -163,7 +163,10 @@
         "existing_subcategories": "Existing subcategories in category",
         "enter_new_sub_category": "Enter subcategory code:\n(e.g. \"C\")",
         "subcategory_already_exists": "This subcategory already exists, please enter another name",
-        "save_subcategory": "Save subcategory?"
+        "save_subcategory": "Save subcategory?",
+        "select_subcategory_to_edit": "Select a subcategory to edit",
+        "enter_new_subcategory_name": "Enter a new subcategory name",
+        "input_transport_number": "Enter the number for the vehicle:\n(for example, \"21\")\n"
     },
     "ru": {
         "input_name": "Введите ваше имя (например Джон Доу)",
@@ -329,7 +332,10 @@
         "existing_subcategories": "Существующие подкатегории в категории",
         "enter_new_sub_category": "Введите код подкатегории:\n(например, \"С\")",
         "subcategory_already_exists": "Такая подкатегория уже существует, введите другое название",
-        "save_subcategory": "Сохранить подкатегорию?"
+        "save_subcategory": "Сохранить подкатегорию?",
+        "select_subcategory_to_edit": "Выберите подкатегорию для изменения",
+        "enter_new_subcategory_name": "Введите новое название подкатегории",
+        "input_transport_number": "Введите номер для транспорта:\n(например, \"21\")\n"
     },
     "es": {
         "name_error": "Nombre de usuario incorrecto ingresado, por favor inténtelo nuevamente",
@@ -495,6 +501,9 @@
         "existing_subcategories": "Subcategorías existentes en la categoría",
         "enter_new_sub_category": "Ingrese el código de subcategoría:\n(p. ej., \"C\")",
         "subcategory_already_exists": "Esta subcategoría ya existe, por favor, introduzca otro nombre",
-        "save_subcategory": "¿Guardar subcategoría?"
+        "save_subcategory": "¿Guardar subcategoría?",
+        "select_subcategory_to_edit": "Seleccione una subcategoría para editar",
+        "enter_new_subcategory_name": "Ingrese un nuevo nombre de subcategoría",
+        "input_transport_number": "Ingrese el número del transporte:\n(por ejemplo, \"21\")\n"
     }
 }

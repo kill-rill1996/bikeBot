@@ -22,4 +22,19 @@ class AddSubCategory(StatesGroup):
     confirm = State()
 
 
+class EditSubcategory(StatesGroup):
+    input_category = State()
+    input_subcategory = State()
+    confirm = State()
+
+
+class AddVehicle(StatesGroup):
+    input_category = State()
+    input_subcategory = State()
+    input_vehicle = State()
+    confirm = State()
+
+
+
+
 
