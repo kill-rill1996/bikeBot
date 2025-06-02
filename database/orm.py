@@ -1088,3 +1088,52 @@ class AsyncOrm:
 
         except Exception as e:
             logger.error(f"Ошибка при получении транспорта подкатегории {subcategory_id}: {e}")
+
+    @staticmethod
+    async def create_transport(serial_number: int, subcategory_id: int, category_id: int, session: Any) -> None:
+        """Добавление транспорта"""
+        try:
+            await session.execute(
+                """
+                INSERT INTO transports(category_id, subcategory_id, serial_number)
+                VALUES ($1, $2, $3)
+                """,
+                category_id, subcategory_id, serial_number
+            )
+
+        except Exception as e:
+            logger.error(f"Ошибка при создании транспорта s.n {serial_number} подкатегории {subcategory_id}: {e}")
+
+    @staticmethod
+    async def get_transport_by_number_and_subcategory(serial_number: int, subcategory_id: int, session: Any) -> Transport:
+        """Получаем транспорт по серийному номеру и подкатегории"""
+        try:
+            row = await session.fetchrow(
+                """
+                SELECT * FROM transports
+                WHERE subcategory_id = $1 AND serial_number = $2
+                """,
+                subcategory_id, serial_number
+            )
+            transport = Transport.model_validate(row)
+            return transport
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении транспорта s.n {serial_number} подкатегории {subcategory_id}: {e}")
+
+    @staticmethod
+    async def edit_transport(new_serial_number: int, old_serial_number: int, subcategory_id: int, session: Any):
+        """Изменение транспорта"""
+        try:
+            await session.execute(
+                """
+                UPDATE transports
+                SET serial_number = $1
+                WHERE subcategory_id = $2 AND serial_number = $3
+                """,
+                new_serial_number, old_serial_number, subcategory_id
+            )
+
+        except Exception as e:
+            logger.error(f"Ошибка при изменении транспорта s.n {old_serial_number} подкатегории {subcategory_id} "
+                         f"на s.n {new_serial_number}: {e}")

@@ -269,3 +269,15 @@ async def subcategories_for_add_vehicle(subcategories: list[Subcategory], lang: 
     )
 
     return keyboard
+
+
+async def confirm_transport_create_keyboard(lang: str) -> InlineKeyboardBuilder:
+    """Клавиатура подтверждения"""
+    keyboard = InlineKeyboardBuilder()
+
+    keyboard.row(
+        InlineKeyboardButton(text=await t.t("yes", lang), callback_data="add-transport-confirm|yes"),
+        InlineKeyboardButton(text=await t.t("no", lang), callback_data="admin|vehicle_management")
+    )
+
+    return keyboard

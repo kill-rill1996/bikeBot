@@ -35,6 +35,13 @@ class AddVehicle(StatesGroup):
     confirm = State()
 
 
+class EditVehicle(StatesGroup):
+    input_category = State()
+    input_subcategory = State()
+    input_vehicle = State()
+    input_new_vehicle = State()
+    confirm = State()
+
 
 
 
