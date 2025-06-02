@@ -617,8 +617,12 @@ async def selected_category(callback: types.CallbackQuery, tg_id: str, session: 
     # generate message
     text = await t.t("existing_subcategories", lang) + " \n"
     text += f"\"{category.emoji + ' ' if category.emoji else ''}{await t.t(category.title, lang)}\"\n"
-    for subcategory in subcategories:
-        text += f"\t\t• {subcategory.title}\n"
+    # если уже есть категории
+    if subcategories:
+        for subcategory in subcategories:
+            text += f"\t\t• {subcategory.title}\n"
+    else:
+        text += f"В этой категории пока еще нет подкатегорий\n"
     text += "\n"
     text += await t.t("enter_new_sub_category", lang)
 
