@@ -13,7 +13,8 @@ from database.orm import AsyncOrm
 
 from routers.keyboards import transports as kb
 from routers.states.transports import AddTransportCategoryFSM, EditCategoryFSM, AddSubCategory, EditSubcategory, \
-    AddVehicle, EditVehicle
+    AddVehicle, EditVehicle, MassiveAddVehicle
+from utils.validations import parse_input_transport_numbers
 
 router = Router()
 
@@ -858,8 +859,13 @@ async def save_edited_subcategory(callback: types.CallbackQuery, tg_id: str, sta
     await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
-# ADD VEHICLE / EDIT VEHICLE
-@router.callback_query(or_f(F.data == "transport-management|add_vehicle", F.data == "transport-management|edit_vehicle"))
+# ADD VEHICLE / EDIT VEHICLE / MASSIVE ADDING
+@router.callback_query(or_f(
+    F.data == "transport-management|add_vehicle",
+    F.data == "transport-management|edit_vehicle",
+    F.data == "transport-management|bulk_vehicle_addition"
+    )
+)
 async def add_vehicle(callback: types.CallbackQuery, tg_id: str, state: FSMContext, session: Any) -> None:
     """Добавление транспорта"""
     lang = r.get(f"lang:{tg_id}").decode()
@@ -869,8 +875,12 @@ async def add_vehicle(callback: types.CallbackQuery, tg_id: str, state: FSMConte
     # for add
     if callback.data == "transport-management|add_vehicle":
         await state.set_state(AddVehicle.input_category)
-    else:
+    # for update
+    elif callback.data == "edit_vehicle":
         await state.set_state(EditVehicle.input_category)
+    # for mass adding
+    elif callback.data == "transport-management|bulk_vehicle_addition":
+        await state.set_state(MassiveAddVehicle.input_category)
 
     # если пока нет категорий
     if not categories:
@@ -884,7 +894,7 @@ async def add_vehicle(callback: types.CallbackQuery, tg_id: str, state: FSMConte
     await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
-@router.callback_query(or_f(AddVehicle.input_category, EditVehicle.input_category))
+@router.callback_query(or_f(AddVehicle.input_category, EditVehicle.input_category, MassiveAddVehicle.input_category, F.data.split("|")[0] == "admin-add-transport"))
 async def select_category_for_add_vehicle(callback: types.CallbackQuery, tg_id: str, state: FSMContext, session: Any) -> None:
     """Выбор категории для добавления транспорта"""
     lang = r.get(f"lang:{tg_id}").decode()
@@ -892,10 +902,12 @@ async def select_category_for_add_vehicle(callback: types.CallbackQuery, tg_id: 
     current_state = await state.get_state()
 
     # change state
-    if current_state == AddVehicle.input_category:
+    if current_state in (AddVehicle.input_category, AddVehicle.input_vehicle):
         await state.set_state(AddVehicle.input_subcategory)
-    else:
+    elif current_state in (EditVehicle.input_category, EditVehicle.input_vehicle):
         await state.set_state(EditVehicle.input_subcategory)
+    elif current_state in (MassiveAddVehicle.input_category, MassiveAddVehicle.input_vehicle):
+        await state.set_state(MassiveAddVehicle.input_subcategory)
 
     # from DB
     category: Category = await AsyncOrm.get_category_by_id(category_id, session)
@@ -919,7 +931,7 @@ async def select_category_for_add_vehicle(callback: types.CallbackQuery, tg_id: 
     await state.update_data(category_emoji=category.emoji)
 
 
-@router.callback_query(or_f(AddVehicle.input_subcategory, EditVehicle.input_subcategory))
+@router.callback_query(or_f(AddVehicle.input_subcategory, EditVehicle.input_subcategory, MassiveAddVehicle.input_subcategory))
 async def select_subcategory_to_add_vehicle(callback: types.CallbackQuery, tg_id: str, state: FSMContext, session: Any) -> None:
     """Отлавливаем подкатегорию"""
     lang = r.get(f"lang:{tg_id}").decode()
@@ -937,8 +949,10 @@ async def select_subcategory_to_add_vehicle(callback: types.CallbackQuery, tg_id
     # change state
     if current_state == AddVehicle.input_subcategory:
         await state.set_state(AddVehicle.input_vehicle)
-    else:
+    elif current_state == EditVehicle.input_subcategory:
         await state.set_state(EditVehicle.input_vehicle)
+    elif current_state == MassiveAddVehicle.input_subcategory:
+        await state.set_state(MassiveAddVehicle.input_vehicle)
 
     text = f"{category_emoji + ' ' if category_emoji else ''}{await t.t(category_title, lang)} -> {subcategory.title}\n"
     text += await t.t("input_transport_number", lang)
@@ -952,7 +966,7 @@ async def select_subcategory_to_add_vehicle(callback: types.CallbackQuery, tg_id
     await state.update_data(prev_message=prev_message)
 
 
-@router.message(or_f(AddVehicle.input_vehicle, EditVehicle.input_vehicle))
+@router.message(or_f(AddVehicle.input_vehicle, EditVehicle.input_vehicle, MassiveAddVehicle.input_vehicle))
 async def input_transport_number(message: types.Message, tg_id: str, state: FSMContext, session: Any) -> None:
     """Получаем номер транспорта из текста"""
     lang = r.get(f"lang:{tg_id}").decode()
@@ -980,39 +994,50 @@ async def input_transport_number(message: types.Message, tg_id: str, state: FSMC
         await state.update_data(prev_message=prev_message)
         return
 
-    serial_number = message.text
+    input_text = message.text
 
+    # FOR ADD / FOR EDIT
+    if current_state == AddVehicle.input_vehicle or current_state == EditVehicle.input_vehicle:
     # пустой текст или не цифра
-    if not serial_number or not serial_number.isdigit():
-        text = await t.t("wrong_text_data", lang)
-        prev_message = await message.answer(text, reply_markup=keyboard.as_markup())
-        await state.update_data(prev_message=prev_message)
-        return
+        if not input_text or not input_text.isdigit():
+            text = await t.t("wrong_text_data", lang)
+            prev_message = await message.answer(text, reply_markup=keyboard.as_markup())
+            await state.update_data(prev_message=prev_message)
+            return
 
     # FOR ADD
     if current_state == AddVehicle.input_vehicle:
+
         # проверяем что такого транспорта еще нет
         transports: list[TransportSubcategory] = await AsyncOrm.get_transports_for_subcategory(subcategory_id, session)
-        if int(serial_number) in [transport.serial_number for transport in transports]:
+        if int(input_text) in [transport.serial_number for transport in transports]:
             text = f"В категории {category_emoji + ' ' if category_emoji else ''}{await t.t(category_title, lang)} -> " \
-                   f"{subcategory_title} уже существует транспорт с серийным номером {serial_number}\n" \
+                   f"{subcategory_title} уже существует транспорт с серийным номером {input_text}\n" \
                    f"Введите другое число"
             prev_message = await message.answer(text, reply_markup=keyboard.as_markup())
             await state.update_data(prev_message=prev_message)
             return
 
+        # Если все нормально и такого номера транспорта еще нет
+        await state.set_state(AddVehicle.confirm)
+
+        text = f"Добавить транспорт?\n{category_emoji + ' ' if category_emoji else ''}{category_title} -> {subcategory_title}-{input_text}"
+        keyboard = await kb.confirm_transport_create_keyboard(lang)
+        await message.answer(text, reply_markup=keyboard.as_markup())
+
     # FOR UPDATE
-    else:
+    elif current_state == EditVehicle.input_vehicle:
         try:
-            transport = await AsyncOrm.get_transport_by_number_and_subcategory(int(serial_number), subcategory_id, session)
+            transport = await AsyncOrm.get_transport_by_number_and_subcategory(int(input_text), subcategory_id, session)
             # если такой транспорт не найден
             if not transport:
                 text = f"В категории {category_emoji + ' ' if category_emoji else ''}{await t.t(category_title, lang)} -> " \
-                       f"{subcategory_title} не существует транспорта с серийным номером {serial_number}\n" \
+                       f"{subcategory_title} не существует транспорта с серийным номером {input_text}\n" \
                        f"Введите другое число"
                 prev_message = await message.answer(text, reply_markup=keyboard.as_markup())
                 await state.update_data(prev_message=prev_message)
                 return
+
         # Ошибка в DB
         except Exception as e:
             text = f"Ошибка при получении транспорта {e}"
@@ -1020,27 +1045,56 @@ async def input_transport_number(message: types.Message, tg_id: str, state: FSMC
             await state.update_data(prev_message=prev_message)
             return
 
-    # Если все нормально и такого номера транспорта еще нет
-    # ADD VEHICLE
-    if current_state == AddVehicle.input_vehicle:
-        await state.set_state(AddVehicle.confirm)
-
-        # TODO make translation
-        # text = await t.t("")
-        text = f"Добавить транспорт?\n{category_emoji + ' ' if category_emoji else ''}{category_title} -> {subcategory_title}-{serial_number}"
-        keyboard = await kb.confirm_transport_create_keyboard(lang)
-        await message.answer(text, reply_markup=keyboard.as_markup())
-
-    # EDIT VEHICLE
-    else:
+        # EDIT VEHICLE
         await state.set_state(EditVehicle.input_new_vehicle)
 
         text = f"Введите новый номер транспорта:\n(например, \"22\")"
         prev_message = await message.answer(text, reply_markup=keyboard.as_markup())
         await state.update_data(prev_message=prev_message)
 
+    # FOR MASSIVE ADDING
+    elif current_state == MassiveAddVehicle.input_vehicle:
+        try:
+            numbers_list = parse_input_transport_numbers(input_text)
+
+            # проверяем существует ли уже такой транспорт
+            already_exists = []
+            transports: [TransportSubcategory] = await AsyncOrm.get_transports_for_subcategory(subcategory_id, session)
+            serial_numbers_list = [transport.serial_number for transport in transports]
+
+            for num in numbers_list:
+                if num in serial_numbers_list:
+                    already_exists.append(num)
+
+            # если все норм и такого транспорта еще нет
+            if not already_exists:
+                await state.update_data(numbers_list=numbers_list)
+                await state.update_data(numbers_string=input_text)
+                await state.set_state(MassiveAddVehicle.confirm)
+
+                text = f"Добавить {len(numbers_list)} единиц транспорта \"{input_text}\" в категорию {category_emoji + ' ' if category_emoji else ''}{await t.t(category_title, lang)} подкатегорию {subcategory_title}?"
+                keyboard = await kb.confirm_transport_create_keyboard(lang)
+                await message.answer(text, reply_markup=keyboard.as_markup())
+
+            # если уже существует транспорт
+            else:
+                text = f"Транспорт с номерами "
+                for num in already_exists:
+                    text += f"{num}, "
+
+                text = text[:-2] + f" в категории {category_emoji + ' ' if category_emoji else ''}{await t.t(category_title, lang)} уже существует\nВведите другие значения"
+                prev_message = await message.answer(text, reply_markup=keyboard.as_markup())
+                await state.update_data(prev_message=prev_message)
+                return
+
+        except Exception:
+            text = await t.t("wrong_text_data", lang)
+            prev_message = await message.answer(text, reply_markup=keyboard.as_markup())
+            await state.update_data(prev_message=prev_message)
+            return
+
     # save to state
-    await state.update_data(transport_number=serial_number)
+    await state.update_data(transport_number=input_text)
 
 
 @router.message(EditVehicle.input_new_vehicle)
@@ -1103,7 +1157,7 @@ async def get_new_serial_number_from_text(message: types.Message, tg_id: str, st
     await state.update_data(new_transport_number=new_transport_number)
 
 
-@router.callback_query(or_f(AddVehicle.confirm, EditVehicle.confirm))
+@router.callback_query(or_f(AddVehicle.confirm, EditVehicle.confirm, MassiveAddVehicle.confirm))
 async def confirm_transport_add(callback: types.CallbackQuery, tg_id: str, state: FSMContext, session: Any) -> None:
     """Подтверждение создания транспорта"""
     lang = r.get(f"lang:{tg_id}").decode()
@@ -1115,7 +1169,6 @@ async def confirm_transport_add(callback: types.CallbackQuery, tg_id: str, state
     category_title = data["category_title"]
     category_id = int(data["category_id"])
     subcategory_title = data["subcategory_title"]
-    serial_number = int(data["transport_number"])
 
     await state.clear()
     keyboard = await kb.to_admin_menu(lang)
@@ -1123,29 +1176,40 @@ async def confirm_transport_add(callback: types.CallbackQuery, tg_id: str, state
     # save to DB
     # FOR ADD
     if current_state == AddVehicle.confirm:
+        serial_number = int(data["transport_number"])
         try:
             await AsyncOrm.create_transport(serial_number, subcategory_id, category_id, session)
             text = f"✅ Транспорт {category_emoji + ' ' if category_emoji else ''}{category_title} -> {subcategory_title}-{serial_number} успешно создан"
         except Exception as e:
-            await callback.message.edit_text(f"Ошибка при сохранении подкатегории: {e}", reply_markup=keyboard.as_markup())
+            await callback.message.edit_text(f"Ошибка при создании транспорта: {e}", reply_markup=keyboard.as_markup())
             return
     # FOR EDIT
-    else:
+    elif current_state == EditVehicle.confirm:
+        serial_number = int(data["transport_number"])
         try:
             new_transport_number = int(data["new_transport_number"])
             await AsyncOrm.edit_transport(new_transport_number, serial_number, subcategory_id, session)
             text = f"✅ Транспорт {category_emoji + ' ' if category_emoji else ''}{category_title} -> {subcategory_title}-{new_transport_number} успешно изменен"
         except Exception as e:
-            await callback.message.edit_text(f"Ошибка при изменении подкатегории: {e}", reply_markup=keyboard.as_markup())
+            await callback.message.edit_text(f"Ошибка при изменении транспорта: {e}", reply_markup=keyboard.as_markup())
+            return
+
+    # FOR MASSIVE ADDING
+    elif current_state == MassiveAddVehicle.confirm:
+        numbers_list = data["numbers_list"]
+        numbers_string = data["numbers_string"]
+
+        try:
+            for transport_number in numbers_list:
+                await AsyncOrm.create_transport(int(transport_number), subcategory_id, category_id, session)
+
+            text = f"✅ Транспорт {category_emoji + ' ' if category_emoji else ''}{category_title} -> {subcategory_title} {numbers_string} успешно создан"
+
+        except Exception as e:
+            await callback.message.edit_text(f"Ошибка при создании транспорта: {e}", reply_markup=keyboard.as_markup())
             return
 
     await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
-
-
-
-
-
-
 
 
 

@@ -43,5 +43,10 @@ class EditVehicle(StatesGroup):
     confirm = State()
 
 
+class MassiveAddVehicle(StatesGroup):
+    input_category = State()
+    input_subcategory = State()
+    input_vehicle = State()
+    confirm = State()
 
 
