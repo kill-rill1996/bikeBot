@@ -12,6 +12,7 @@ from routers.admin.reports import router as admin_reports_router
 from routers.admin.transports import router as admin_transports_router
 from routers.admin.locations import router as admin_location_router
 from routers.admin.users import router as admin_users_router
+from routers.admin.jobs import router as admin_jobs_router
 
 
 main_router = Router()
@@ -29,4 +30,5 @@ main_router.include_routers(
     statistic_router,
     search_router,
     admin_users_router,
+    admin_jobs_router
 )

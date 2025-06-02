@@ -181,7 +181,14 @@
         "choose_user": "Select user",
         "edit_user": "Edit user",
         "delete_user_confirm": "Delete {0} «{1}»?",
-        "user_deleted": "User deleted"
+        "user_deleted": "User deleted",
+        "add_jobtype": "Add component group",
+        "edit_jobtype": "Edit component groups",
+        "add_job": "Add operation",
+        "edit_job": "Edit operations",
+        "input_jobtype": "Enter group name:\n(e.g. \"Electrical Equipment\")\nAdd emoji (optional):\n(e.g., \"⚡\")",
+        "for_which_transport": "For which vehicle categories is it available:",
+        "samokat": "samokat"
     },
     "ru": {
         "input_name": "Введите ваше имя (например Джон Доу)",
@@ -365,7 +372,14 @@
         "choose_user": "Выберите пользователя",
         "edit_user": "Редактировать пользователя",
         "delete_user_confirm": "Удалить {0} «{1}»?",
-        "user_deleted": "Пользователь удален"
+        "user_deleted": "Пользователь удален",
+        "add_jobtype": "Добавить группу узлов",
+        "edit_jobtype": "Редактировать группы узлов",
+        "add_job": "Добавить операцию",
+        "edit_job": "Редактировать операции",
+        "input_jobtype": "Введите название группы:\n(например, \"Электрооборудование\")\nДобавьте эмодзи (опционально):\n(например, \"⚡\")\n",
+        "for_which_transport": "Для каких категорий транспорта доступна:",
+        "samokat": "Самокат"
     },
     "es": {
         "name_error": "Nombre de usuario incorrecto ingresado, por favor inténtelo nuevamente",
@@ -549,6 +563,13 @@
         "choose_user": "Seleccionar usuario",
         "edit_user": "Editar usuario",
         "delete_user_confirm": "¿Borrar el {0} «{1}»?",
-        "user_deleted": "Usuario eliminado"
+        "user_deleted": "Usuario eliminado",
+        "add_jobtype": "Añadir grupo de componentes",
+        "edit_jobtype": "Editar grupos de componentes",
+        "add_job": "Añadir operación",
+        "edit_job": "Editar operaciones",
+        "input_jobtype": "Ingresar nombre del grupo:\n(p. ej., \"Equipo eléctrico\")\nAñada emoji (opcional):\n(por ejemplo, \"⚡\")",
+        "for_which_transport": "Para qué categorías de vehículos está disponible:",
+        "samokat": "samikat"
     }
 }

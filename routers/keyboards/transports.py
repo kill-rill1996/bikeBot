@@ -3,9 +3,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from routers.buttons import buttons as btn
 from schemas.categories_and_jobs import Category, Subcategory
-from schemas.search import TransportNumber, OperationJobsUserLocation
 from utils.translator import translator as t
-from utils.date_time_service import convert_date_time
 
 
 async def back_keyboard(lang: str, callback_data: str) -> InlineKeyboardBuilder:
@@ -64,6 +62,10 @@ async def transport_management_menu_keyboard(lang: str) -> InlineKeyboardBuilder
     keyboard.row(
         InlineKeyboardButton(text=back_button[0], callback_data=back_button[1])
     )
+
+    # главное меню
+    main_menu_button: tuple = await btn.get_main_menu_button(lang)
+    keyboard.row(InlineKeyboardButton(text=main_menu_button[0], callback_data=main_menu_button[1]))
 
     return keyboard
 
