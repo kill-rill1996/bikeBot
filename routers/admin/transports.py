@@ -880,7 +880,6 @@ async def add_vehicle(callback: types.CallbackQuery, tg_id: str, state: FSMConte
     await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
-# @router.callback_query(F.data.split("|")[0] == "admin-add-transport")
 @router.callback_query(or_f(AddVehicle.input_category, EditVehicle.input_category))
 async def select_category_for_add_vehicle(callback: types.CallbackQuery, tg_id: str, state: FSMContext, session: Any) -> None:
     """Выбор категории для добавления транспорта"""
@@ -916,7 +915,6 @@ async def select_category_for_add_vehicle(callback: types.CallbackQuery, tg_id: 
     await state.update_data(category_emoji=category.emoji)
 
 
-# @router.callback_query(F.data.split("|")[0] == "subcategory-to-add-vehicle")
 @router.callback_query(or_f(AddVehicle.input_subcategory, EditVehicle.input_subcategory))
 async def select_subcategory_to_add_vehicle(callback: types.CallbackQuery, tg_id: str, state: FSMContext, session: Any) -> None:
     """Отлавливаем подкатегорию"""
