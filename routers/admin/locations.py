@@ -46,7 +46,7 @@ async def location_menu(callback: types.CallbackQuery, tg_id: str, session: Any)
     # если локации есть
     text = f'<b>{await t.t("all_locations", lang)}</b>\n\n'
     for idx, location in enumerate(locations, start=1):
-        text += f"<b>{idx})</b> {location.name}\n"
+        text += f"<b>{idx})</b> {await t.t(location.name, lang)}\n"
 
     keyboard = await kb.back_and_main_menu(lang)
     await callback.message.edit_text(text, reply_markup=keyboard.as_markup())

@@ -147,3 +147,81 @@ async def delete_confirm_keyboard(user_id: int, lang: str) -> InlineKeyboardBuil
     keyboard.row(InlineKeyboardButton(text=main_menu_button[0], callback_data=main_menu_button[1]))
 
     return keyboard
+
+
+async def choose_param_edit_user(user_id: int, lang: str) -> InlineKeyboardBuilder:
+    """Клавиатура выбора редактируемого параметра пользователя"""
+    keyboard = InlineKeyboardBuilder()
+
+    keyboard.row(
+        InlineKeyboardButton(text=f'{await t.t("username", lang)}', callback_data=f"edit_username|{user_id}"),
+        InlineKeyboardButton(text=f'{await t.t("role", lang)}', callback_data=f"edit_role|{user_id}")
+    )
+
+    # назад
+    back_button: tuple = await btn.get_back_button(f"show_user_choose|{user_id}", lang)
+    keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
+
+    # главное меню
+    main_menu_button: tuple = await btn.get_main_menu_button(lang)
+    keyboard.row(InlineKeyboardButton(text=main_menu_button[0], callback_data=main_menu_button[1]))
+
+    return keyboard
+
+
+async def cancel_edit_keyboard(user_id: int, lang: str) -> InlineKeyboardBuilder:
+    """Клавиатура отмены редактирования параметра пользователя"""
+    keyboard = InlineKeyboardBuilder()
+
+    # назад
+    back_button: tuple = await btn.get_back_button(f"edit_user|{user_id}", lang)
+    keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
+
+    return keyboard
+
+
+async def edit_user_param_confirm(user_id: int, lang: str) -> InlineKeyboardBuilder:
+    """Клавиатура подтверждения редактирования параметра пользователя"""
+    keyboard = InlineKeyboardBuilder()
+
+    keyboard.row(
+        InlineKeyboardButton(text=f'✅ {await t.t("yes", lang)}', callback_data=f"edit_user_confirmed|{user_id}"),
+        InlineKeyboardButton(text=f'❌ {await t.t("no", lang)}', callback_data=f"edit_user|{user_id}")
+    )
+
+    return keyboard
+
+
+async def user_edited(user_id: int, lang: str) -> InlineKeyboardBuilder:
+    """Клавиатура после редактирования параметра пользователя"""
+    keyboard = InlineKeyboardBuilder()
+
+    # назад
+    back_button: tuple = await btn.get_back_button(f"show_user_choose|{user_id}", lang)
+    keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
+
+    # главное меню
+    main_menu_button: tuple = await btn.get_main_menu_button(lang)
+    keyboard.row(InlineKeyboardButton(text=main_menu_button[0], callback_data=main_menu_button[1]))
+
+    return keyboard
+
+
+async def choose_user_role_for_edit(user_id: int, lang: str) -> InlineKeyboardBuilder:
+    """Клавиатура выбора роли при изменении"""
+    keyboard = InlineKeyboardBuilder()
+
+    keyboard.row(
+        InlineKeyboardButton(text=await t.t("mechanic", lang), callback_data=f"new_role|{user_id}|mechanic"),
+        InlineKeyboardButton(text=await t.t("admin", lang), callback_data=f"new_role|{user_id}|admin")
+    )
+
+    # назад
+    back_button: tuple = await btn.get_back_button(f"edit_user|{user_id}", lang)
+    keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
+
+    # главное меню
+    main_menu_button: tuple = await btn.get_main_menu_button(lang)
+    keyboard.row(InlineKeyboardButton(text=main_menu_button[0], callback_data=main_menu_button[1]))
+
+    return keyboard
