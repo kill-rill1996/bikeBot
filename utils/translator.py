@@ -36,22 +36,46 @@ class Translator:
                 logger.error(f"Unexpected error loading translations: {e}. Using empty cache.")
                 self.translation = {}
 
-    async def update_translation(self, data: dict) -> None:
+    async def update_translation(self, new_data: dict) -> None:
         """
         Записывает в переводчик новые слова
-        data = {'ru': word, 'en': word, 'es': word}
+        data: dict = {'ru': word, 'en': word, 'es': word}
         """
         # проверяем загружен ли перевод в память, если нет то загружаем
         if not self.translation:
             self._load_translations()
 
         # добавляем новые переводы слов
-        new_key = await self.get_key_for_text(data["en"])
+        new_key = await self.get_key_for_text(new_data["en"])
 
-        for k, v in data.items():
+        for k, v in new_data.items():
             self.translation[k][new_key] = v
 
         # перезаписываем файл
+        self._rewrite_dictionary_file()
+
+    async def delete_key_word(self, keyword: str) -> None:
+        """
+        Удаляет значения и сам ключ
+        :param keyword: str; ключ для поиска переводов
+        :return: None
+        """
+        # проверяем загружен ли перевод в память, если нет то загружаем
+        if not self.translation:
+            self._load_translations()
+
+        for lang in self.translation.keys():
+            try:
+                del self.translation[lang][keyword]
+            except Exception as e:
+                logger.error(f"Ошибка при удалении ключа {keyword}: {e}")
+                raise
+
+        # перезаписываем файл
+        self._rewrite_dictionary_file()
+
+    def _rewrite_dictionary_file(self):
+        """Перезаписывает файл с текущим значением словаря в self.translation"""
         try:
             with open(settings.translation_file, "w", encoding="utf-8") as f:
                 json.dump(self.translation, f, ensure_ascii=False, indent=4)

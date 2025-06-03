@@ -258,7 +258,11 @@ async def get_translate_2(message: types.Message, tg_id: str, state: FSMContext,
     # FOR EDIT
     else:
         await state.set_state(EditJobetype.confirm)
+
         jobtype: Jobtype = await AsyncOrm.get_jobtype_by_id(data["jobtype_id"], session)
+        # записываем старое значение для того, чтобы удалить потом в словаре
+        await state.update_data(old_jobtype=jobtype)
+
         text = await t.t("confirm_jobtype_update", lang) + "\n" \
                + f"\"{jobtype.emoji + ' ' if jobtype.emoji else ''}{await t.t(jobtype.title, lang)}\" -> "
 
@@ -326,7 +330,18 @@ async def confirm_create_jobtype(callback: types.CallbackQuery, tg_id: str, stat
         except Exception as e:
             await callback.message.edit_text(f"Ошибка при обновлении категории узлов {e}", reply_markup=keyboard.as_markup())
 
-    # save to translator
+    # ONLY for EDIT
+    if current_state == EditJobetype.confirm:
+        # удаляем старое ключевое слово
+        try:
+            old_jobtype: Jobtype = data["old_jobtype"]
+            keyword = await t.get_key_for_text(old_jobtype.title)
+            await t.delete_key_word(keyword)
+        except Exception as e:
+            await callback.message.edit_text(f"Ошибка при сохранении измененного перевода: {e}", reply_markup=keyboard.as_markup())
+            return
+
+    # добавляем новое ключевое слово
     try:
         await t.update_translation(
             words_for_translator

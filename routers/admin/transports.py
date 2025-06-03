@@ -329,6 +329,9 @@ async def get_category_to_edit(callback: types.CallbackQuery, tg_id: str, sessio
 
     category: Category = await AsyncOrm.get_category_by_id(category_id, session)
 
+    # для удаления ключевого слова в дальнейшем
+    await state.update_data(old_category=category)
+
     text = await t.t("enter_new_title", lang)
     keyboard = await kb.back_keyboard(lang, f"edit_categories|{category.id}")
 
@@ -475,6 +478,17 @@ async def confirm_changes(callback: types.CallbackQuery, tg_id: str, session: An
     await state.clear()
 
     keyboard = await kb.to_admin_menu(lang)
+
+    # удаляем старое ключевое слово
+    try:
+        old_category: Category = data["old_category"]
+        keyword = await t.get_key_for_text(old_category.title)
+
+        await t.delete_key_word(keyword)
+    except Exception as e:
+        await callback.message.edit_text(f"Ошибка при сохранении измененного перевода: {e}",
+                                         reply_markup=keyboard.as_markup())
+        return
 
     # добавляем в словарь новое слово
     words_for_translator = {
