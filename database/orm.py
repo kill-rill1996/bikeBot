@@ -36,6 +36,22 @@ class AsyncOrm:
             logger.error(f"Ошибка при проверке регистрации пользователя {tg_id}: {e}")
 
     @staticmethod
+    async def get_allowed_users_tg_ids(session: Any) -> List[str]:
+        """Получение tg_id пользователей из allowed_user"""
+        try:
+            rows = await session.fetch(
+                """
+                SELECT tg_id
+                FROM allowed_users;
+                """
+            )
+            users_tg_ids = [row["tg_id"] for row in rows]
+            return users_tg_ids
+
+        except Exception as e:
+            logger.error(F"Ошибка получения всех tg_id из allowed_users: {e}")
+
+    @staticmethod
     async def create_user(session: Any, tg_id: str, tg_username: str | None, username: str,
                           role: str, lang: str, is_active: bool = True):
         """Создает пользователя"""
@@ -51,6 +67,41 @@ class AsyncOrm:
             logger.info(f"Успешно создан пользователь tg_id: {tg_id}")
         except Exception as e:
             logger.error(f"Ошибка при создании пользователя tg_id {tg_id}: {e}")
+
+    @staticmethod
+    async def edit_username(user_id: int, username: str, session: Any) -> None:
+        """Изменение имени пользователя"""
+        try:
+            await session.execute(
+                """
+                UPDATE users
+                SET username = $1
+                WHERE id = $2
+                """,
+                username, user_id
+            )
+            logger.info(f"Имя пользователя {user_id} изменено на {username}")
+
+        except Exception as e:
+            logger.error(f"Ошибка при изменении имени пользователя {user_id} на {username}: {e}")
+
+    @staticmethod
+    async def edit_role(user_id: int, role: str, session: Any) -> None:
+        """Изменение роли пользователя"""
+        try:
+            await session.execute(
+                """
+                UPDATE users
+                SET role = $1
+                WHERE id = $2;
+                """,
+                role, user_id
+            )
+            logger.info(f"Роль пользователя {user_id} изменена на {role}")
+
+        except Exception as e:
+            logger.error(f"Ошибка при изменении роли пользователя {user_id} на {role}: {e}")
+
 
     @staticmethod
     async def get_all_users(session: Any, only_active: bool = False) -> List[User]:
