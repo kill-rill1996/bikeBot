@@ -6,7 +6,7 @@ from aiogram.fsm.context import FSMContext
 
 from cache import r
 from routers.states.reports import JobtypesReport
-from settings import settings
+from utils.excel_reports import generate_excel_report
 from utils.translator import translator as t
 from utils.date_time_service import get_dates_by_period
 from database.orm import AsyncOrm

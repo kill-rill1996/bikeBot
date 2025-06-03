@@ -343,4 +343,5 @@ redisdata/
 *.txt
 
 *.sqlite3
+*.xlsx
 # End of https://www.toptal.com/developers/gitignore/api/python,pycharm,macos,venv

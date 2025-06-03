@@ -397,7 +397,13 @@
         "confirm_jobtype_create": "Добавить группу узлов?",
         "input_new_jobtype": "Введите новое название группы:\n(например, \"Электрооборудование\")\nДобавьте эмодзи (опционально):\n(например, \"⚡\")\n",
         "select_jobtype": "Выберите группу узлов",
-        "confirm_jobtype_update": "Обовить группу узлов?"
+        "confirm_jobtype_update": "Обовить группу узлов?",
+        "excel_date": "Дата",
+        "excel_time": "Время",
+        "excel_transport": "Транспорт",
+        "excel_jobs": "Работы",
+        "excel_comment": "Комментарий",
+        "excel_avg_time": "Среднее время на работу"
     },
     "es": {
         "name_error": "Nombre de usuario incorrecto ingresado, por favor inténtelo nuevamente",
