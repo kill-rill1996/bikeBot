@@ -278,7 +278,7 @@ async def save_category(callback: types.CallbackQuery, state: FSMContext, tg_id:
         await callback.message.edit_text(f"Error {e}")
         return
 
-    text = f"✅ Категория \"{category.emoji + ' ' if category.emoji else ''}{category.title}\" успешно создана"
+    text = f"✅ Категория \"{category.emoji + ' ' if category.emoji else ''}{await t.t(category.title, lang)}\" успешно создана"
 
     await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
 
