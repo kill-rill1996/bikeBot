@@ -333,8 +333,8 @@ pip-selfcheck.json
 
 .env.prod
 .env.dev
-translations1.json
-translations.json
+#translations1.json
+#translations.json
 
 *.jpg
 *.png
