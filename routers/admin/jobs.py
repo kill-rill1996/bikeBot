@@ -161,6 +161,7 @@ async def multiselect_categories(callback: types.CallbackQuery, tg_id: str, stat
 @router.callback_query(F.data == "select_categories_done", AddJobtype.select_categories)
 @router.callback_query(F.data == "select_categories_done", EditJobetype.select_categories)
 @router.callback_query(F.data == "back-from-translate_2", AddJobtype.translate_2)
+@router.callback_query(F.data == "back-from-translate_2", EditJobetype.translate_2)
 async def get_translate_1(callback: types.CallbackQuery, tg_id: str, state: FSMContext) -> None:
     lang = r.get(f"lang:{tg_id}").decode()
     data = await state.get_data()
@@ -188,8 +189,8 @@ async def get_translate_1(callback: types.CallbackQuery, tg_id: str, state: FSMC
     keyboard = await kb.back_keyboard(lang, "back-from-translate_1")
     text = await t.t("add_translate", lang) + " " + await t.t(languages[0], lang)
 
-    prev_mess = await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
-    await state.update_data(prev_mess=prev_mess)
+    prev_message = await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
+    await state.update_data(prev_mess=prev_message)
 
 
 @router.message(or_f(AddJobtype.translate_1, EditJobetype.translate_1))

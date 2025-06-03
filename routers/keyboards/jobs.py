@@ -83,7 +83,7 @@ async def confirm_keyboard(lang: str) -> InlineKeyboardBuilder:
 
     keyboard.row(
         InlineKeyboardButton(text=await t.t("yes", lang), callback_data="add-jobtype-confirm|yes"),
-        InlineKeyboardButton(text=await t.t("no", lang), callback_data="admin|vehicle_management")
+        InlineKeyboardButton(text=await t.t("no", lang), callback_data="admin|admin|operation_management")
     )
 
     # назад
