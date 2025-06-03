@@ -95,7 +95,7 @@ async def add_user_confirmed(callback: types.CallbackQuery, tg_id: str, state: F
     await AsyncOrm.create_allow_user(data["user_tg_id"], session)
 
     # добавляем в кэш
-    r.set(f"allowed_users:{data['user_tg_id']}")
+    r.set(f"allowed_users:{data['user_tg_id']}", "allowed")
 
     text = await t.t("user_added", lang)
     keyboard = await kb.back_and_main_menu(lang)
