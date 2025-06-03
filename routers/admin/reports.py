@@ -501,6 +501,13 @@ async def send_excel_file(callback: types.CallbackQuery, tg_id: str, session: An
         user = await AsyncOrm.get_user_by_id(user_id, session)
         operations = await AsyncOrm.get_operations_for_user_by_period(user.tg_id, start_date, end_date, session)
 
+        # если нет операций
+        if not operations:
+            msg_text = await t.t("no_operations", lang)
+            keyboard = await kb.back_to_mechanic(period, report_type, lang)
+            await waiting_message.edit_text(msg_text, reply_markup=keyboard.as_markup())
+            return
+
         # путь до отчета
         file_path = await individual_mechanic_excel_report(operations, user.username, start_date, end_date, report_type, lang)
         document = FSInputFile(file_path)
