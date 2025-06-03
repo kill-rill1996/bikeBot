@@ -482,7 +482,6 @@ async def confirm_changes(callback: types.CallbackQuery, tg_id: str, session: An
                 data['languages_1']: data['translation_1'],
                 data['languages_2']: data['translation_2']
             }
-    print(words_for_translator)
     try:
         await t.update_translation(
             words_for_translator

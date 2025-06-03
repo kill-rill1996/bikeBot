@@ -9,6 +9,10 @@ class Category(BaseModel):
     emoji: str | None = None
 
 
+class CategoryId(BaseModel):
+    id: int
+
+
 class Subcategory(BaseModel):
     id: int
     title: str

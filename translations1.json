@@ -187,7 +187,11 @@
         "add_job": "Add operation",
         "edit_job": "Edit operations",
         "input_jobtype": "Enter group name:\n(e.g. \"Electrical Equipment\")\nAdd emoji (optional):\n(e.g., \"⚡\")",
-        "for_which_transport": "For which vehicle categories is it available:"
+        "for_which_transport": "For which vehicle categories is it available:",
+        "confirm_jobtype_create": "Add node group?",
+        "input_new_jobtype": "Enter a new group name:\n(e.g. \"Electrical Equipment\")\nAdd an emoji (optional):\n(e.g. \"⚡\")\n",
+        "select_jobtype": "Select a group of nodes",
+        "confirm_jobtype_update": "Update nodegroup?"
     },
     "ru": {
         "input_name": "Введите ваше имя (например Джон Доу)",
@@ -377,7 +381,11 @@
         "add_job": "Добавить операцию",
         "edit_job": "Редактировать операции",
         "input_jobtype": "Введите название группы:\n(например, \"Электрооборудование\")\nДобавьте эмодзи (опционально):\n(например, \"⚡\")\n",
-        "for_which_transport": "Для каких категорий транспорта доступна:"
+        "for_which_transport": "Для каких категорий транспорта доступна:",
+        "confirm_jobtype_create": "Добавить группу узлов?",
+        "input_new_jobtype": "Введите новое название группы:\n(например, \"Электрооборудование\")\nДобавьте эмодзи (опционально):\n(например, \"⚡\")\n",
+        "select_jobtype": "Выберите группу узлов",
+        "confirm_jobtype_update": "Обовить группу узлов?"
     },
     "es": {
         "name_error": "Nombre de usuario incorrecto ingresado, por favor inténtelo nuevamente",
@@ -567,6 +575,10 @@
         "add_job": "Añadir operación",
         "edit_job": "Editar operaciones",
         "input_jobtype": "Ingresar nombre del grupo:\n(p. ej., \"Equipo eléctrico\")\nAñada emoji (opcional):\n(por ejemplo, \"⚡\")",
-        "for_which_transport": "Para qué categorías de vehículos está disponible:"
+        "for_which_transport": "Para qué categorías de vehículos está disponible:",
+        "confirm_jobtype_create": "¿Agregar grupo de nodos?",
+        "input_new_jobtype": "Ingrese un nuevo nombre de grupo:\n(p. ej., \"Equipo eléctrico\")\nAgregue un emoji (opcional):\n(p. ej., \"⚡\")\n",
+        "select_jobtype": "Seleccionar un grupo de nodos",
+        "confirm_jobtype_update": "¿Actualizar grupo de nodos?"
     }
 }
