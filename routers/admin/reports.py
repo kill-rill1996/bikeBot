@@ -1,12 +1,15 @@
+import os
 from typing import Any
 
 from aiogram import Router, F, types
 from aiogram.filters import and_f
 from aiogram.fsm.context import FSMContext
+from aiogram.types import FSInputFile
 
 from cache import r
+from logger import logger
 from routers.states.reports import JobtypesReport
-from utils.excel_reports import generate_excel_report
+from utils.excel_reports import individual_mechanic_excel_report
 from utils.translator import translator as t
 from utils.date_time_service import get_dates_by_period
 from database.orm import AsyncOrm
@@ -40,7 +43,7 @@ async def choose_period(callback: types.CallbackQuery, tg_id: str) -> None:
 
 
 # 📆 Индивидуальный отчет по механику
-@router.callback_query(F.data.split("|")[0] == "reports-period" and F.data.split("|")[1] == "individual_mechanic_report")
+@router.callback_query(and_f(F.data.split("|")[0] == "reports-period", F.data.split("|")[1] == "individual_mechanic_report"))
 async def choose_mechanic(callback: types.CallbackQuery, tg_id: str, session: Any) -> None:
     """Выбор механика для отчета"""
     lang = r.get(f"lang:{tg_id}").decode()
@@ -101,11 +104,11 @@ async def mechanic_report(callback: types.CallbackQuery, tg_id: str, session: An
         row_text += f'{await t.t("comment", lang)} <i>"{comment}"</i>\n'
 
         # среднее время на одну работу
-        row_text += await t.t("avg_time", lang) + " " + f"{round(int(duration_sum) / jobs_count)} " + await t.t("minutes", lang)
+        row_text += await t.t("avg_time", lang) + " " + f"{round(operation.duration / len(operation.jobs))} " + await t.t("minutes", lang)
 
         text += row_text + "\n\n"
 
-    keyboard = await kb.report_details_keyboard(period, "individual_mechanic_report",  lang)
+    keyboard = await kb.report_details_keyboard(period, "individual_mechanic_report", user_id, lang)
     await waiting_message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
@@ -482,9 +485,35 @@ async def inefficiency_report(callback: types.CallbackQuery, tg_id: str, session
     await waiting_message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
+@router.callback_query(F.data.split("|")[0] == "excel_export")
+async def send_excel_file(callback: types.CallbackQuery, tg_id: str, session: Any) -> None:
+    """Отправка эксель файла для типа отчета"""
+    lang = r.get(f"lang:{tg_id}").decode()
+    report_type = callback.data.split("|")[1]
+    period = callback.data.split("|")[2]
 
+    waiting_message = await callback.message.edit_text(await t.t("please_wait", lang))
+    start_date, end_date = get_dates_by_period(period)
 
+    if report_type == "individual_mechanic_report":
+        # получаем данные для отчета
+        user_id = int(callback.data.split("|")[3])
+        user = await AsyncOrm.get_user_by_id(user_id, session)
+        operations = await AsyncOrm.get_operations_for_user_by_period(user.tg_id, start_date, end_date, session)
 
+        # путь до отчета
+        file_path = await individual_mechanic_excel_report(operations, user.username, start_date, end_date, report_type, lang)
+        document = FSInputFile(file_path)
+
+        # отправляем отчет
+        await waiting_message.delete()
+        await callback.message.answer_document(document)
+
+        # удаляем отчет
+        try:
+            os.remove(file_path)
+        except Exception:
+            logger.error(f"Не удалось удалить файл с отчетом {file_path}: {e}")
 
 
 

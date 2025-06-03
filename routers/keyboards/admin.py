@@ -93,13 +93,12 @@ async def back_to_mechanic(period: str, report_type: str, lang: str) -> InlineKe
     return keyboard
 
 
-async def report_details_keyboard(period: str, report_type: str, lang: str) -> InlineKeyboardBuilder:
+async def report_details_keyboard(period: str, report_type: str, user_id: int, lang: str) -> InlineKeyboardBuilder:
     """Клавиатура возврата к выбору механика"""
     keyboard = InlineKeyboardBuilder()
 
     keyboard.row(
-        # TODO поправить
-        InlineKeyboardButton(text=f"{await t.t('excel_export', lang)}", callback_data=f"excel_export"),
+        InlineKeyboardButton(text=f"{await t.t('excel_export', lang)}", callback_data=f"excel_export|{report_type}|{period}|{user_id}"),
         InlineKeyboardButton(text=f"{await t.t('graphic', lang)}", callback_data=f"graphic")
     )
 
