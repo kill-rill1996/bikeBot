@@ -193,7 +193,11 @@
         "role": "Role",
         "user_edited": "User data updated!",
         "edit_username_confirm": "Change username «{0}» to «{1}»?",
-        "edit_role_confirm": "Change user role «{0}» from «{1}» to «{2}»?"
+        "edit_role_confirm": "Change user role «{0}» from «{1}» to «{2}»?",
+        "confirm_jobtype_create": "Add node group?",
+        "input_new_jobtype": "Enter a new group name:\n(e.g. \"Electrical Equipment\")\nAdd an emoji (optional):\n(e.g. \"⚡\")\n",
+        "select_jobtype": "Select a group of nodes",
+        "confirm_jobtype_update": "Update nodegroup?"
     },
     "ru": {
         "input_name": "Введите ваше имя (например Джон Доу)",
@@ -389,7 +393,11 @@
         "role": "Роль",
         "user_edited": "Данные пользователя изменены!",
         "edit_username_confirm": "Изменить имя пользователя «{0}» на «{1}»?",
-        "edit_role_confirm": "Изменить роль пользователя «{0}» с «{1}» на «{2}»?"
+        "edit_role_confirm": "Изменить роль пользователя «{0}» с «{1}» на «{2}»?",
+        "confirm_jobtype_create": "Добавить группу узлов?",
+        "input_new_jobtype": "Введите новое название группы:\n(например, \"Электрооборудование\")\nДобавьте эмодзи (опционально):\n(например, \"⚡\")\n",
+        "select_jobtype": "Выберите группу узлов",
+        "confirm_jobtype_update": "Обовить группу узлов?"
     },
     "es": {
         "name_error": "Nombre de usuario incorrecto ingresado, por favor inténtelo nuevamente",
@@ -585,6 +593,10 @@
         "role": "Role",
         "user_edited": "¡Los datos del usuario han sido cambiados!",
         "edit_username_confirm": "¿Cambiar el nombre de usuario «{0}» a «{1}»?",
-        "edit_role_confirm": "¿Cambiar el rol del usuario «{0}» de «{1}» a «{2}»?"
+        "edit_role_confirm": "¿Cambiar el rol del usuario «{0}» de «{1}» a «{2}»?",
+        "confirm_jobtype_create": "¿Agregar grupo de nodos?",
+        "input_new_jobtype": "Ingrese un nuevo nombre de grupo:\n(p. ej., \"Equipo eléctrico\")\nAgregue un emoji (opcional):\n(p. ej., \"⚡\")\n",
+        "select_jobtype": "Seleccionar un grupo de nodos",
+        "confirm_jobtype_update": "¿Actualizar grupo de nodos?"
     }
 }

@@ -4,7 +4,7 @@ from collections.abc import Mapping
 from typing import Any, List
 
 from logger import logger
-from schemas.categories_and_jobs import Category, Subcategory, Jobtype, Job
+from schemas.categories_and_jobs import Category, Subcategory, Jobtype, Job, CategoryId
 from schemas.location import Location
 from schemas import management as m
 from schemas.operations import Operation, OperationAdd, OperationJobs, OperationDetailJobs, OperationJob, \
@@ -1188,3 +1188,79 @@ class AsyncOrm:
         except Exception as e:
             logger.error(f"Ошибка при изменении транспорта s.n {old_serial_number} подкатегории {subcategory_id} "
                          f"на s.n {new_serial_number}: {e}")
+
+    @staticmethod
+    async def create_jobtype(jobtype_title: str, selected_categories: list[int],  session: Any, emoji: str = None):
+        """Добавление категории узла"""
+        try:
+            jobtype_id = await session.fetchval(
+                """
+                INSERT INTO jobtypes(title, emoji)
+                VALUES($1, $2)
+                RETURNING id
+                """,
+                jobtype_title, emoji
+            )
+
+            for category_id in selected_categories:
+                await session.execute(
+                    """
+                    INSERT INTO categories_jobtypes(category_id, jobtype_id)
+                    VALUES($1, $2)
+                    """,
+                    category_id, jobtype_id
+                )
+
+        except Exception as e:
+            logger.error(f"Ошибка при добавлении группы узла {jobtype_title} для категорий {[selected_categories]}: {e}")
+            raise
+
+    @staticmethod
+    async def get_categories_ids_by_jobtype_id(jobtype_id: int, session) -> list[int]:
+        """Выбирает id категорий транспорта по jobetype_id"""
+        try:
+            ids = await session.fetch(
+                """
+                SELECT category_id AS id FROM categories_jobtypes
+                WHERE jobtype_id = $1
+                """,
+                jobtype_id
+            )
+            return [CategoryId.model_validate(category_id).id for category_id in ids]
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении id категорий для jobtype {jobtype_id}: {e}")
+
+    @staticmethod
+    async def update_jobtype(jobtype_id: int, jobtype_title: str, selected_categories: list[int], session: Any) -> None:
+        """Обновление jobtype.title"""
+        try:
+            # обновляем название группы узла
+            await session.execute(
+                """
+                UPDATE jobtypes SET title = $1
+                WHERE id = $2 
+                """,
+                jobtype_title, jobtype_id
+            )
+            # удаляем старые связи с категориями
+            await session.execute(
+                """
+                DELETE FROM categories_jobtypes 
+                WHERE jobtype_id = $1
+                """,
+                jobtype_id
+            )
+            # записываем новые связи
+            for category_id in selected_categories:
+                await session.execute(
+                    """
+                    INSERT INTO categories_jobtypes(category_id, jobtype_id)
+                    VALUES($1, $2)
+                    """,
+                    category_id, jobtype_id
+                )
+
+        except Exception as e:
+            logger.error(f"Ошибка при обновлении jobtype.title для jobtype {jobtype_id}: {e}")
+

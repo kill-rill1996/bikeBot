@@ -5,8 +5,8 @@ from aiogram.filters import or_f
 from aiogram.fsm.context import FSMContext
 
 from cache import r
-from routers.states.jobs import AddJobtype
-from schemas.categories_and_jobs import Category
+from routers.states.jobs import AddJobtype, EditJobetype
+from schemas.categories_and_jobs import Category, Jobtype
 from utils.translator import translator as t, neet_to_translate_on
 from database.orm import AsyncOrm
 from routers.keyboards import jobs as kb
@@ -32,25 +32,53 @@ async def jobs_menu(callback: types.CallbackQuery, tg_id: str, state: FSMContext
 
 
 # ADD / EDIT JOB_TYPE
-@router.callback_query(F.data == "jobs-management|add_jobtype")
-async def add_jobtype(callback: types.CallbackQuery, tg_id: str, state: FSMContext) -> None:
+@router.callback_query(or_f(F.data == "jobs-management|add_jobtype", F.data == "jobs-management|edit_jobtype"))
+async def add_jobtype(callback: types.CallbackQuery, tg_id: str, state: FSMContext, session: Any) -> None:
     """Запрос типа операции"""
     lang = r.get(f"lang:{tg_id}").decode()
 
-    await state.set_state(AddJobtype.input_jobtype)
+    # FOR ADD
+    if callback.data == "jobs-management|add_jobtype":
+        await state.set_state(AddJobtype.input_jobtype)
+        text = await t.t("input_jobtype", lang)
+        keyboard = await kb.back_keyboard(lang, "admin|operation_management")
 
-    text = await t.t("input_jobtype", lang)
-    keyboard = await kb.back_keyboard(lang, "admin|operation_management")
+        prev_message = await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
+        await state.update_data(prev_message=prev_message)
 
-    prev_message = await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
-    await state.update_data(prev_message=prev_message)
+    # FOR EDIT
+    else:
+        await state.set_state(EditJobetype.input_jobtype)
+        all_jobtypes: list[Jobtype] = await AsyncOrm.get_all_jobtypes(session)
+        text = await t.t("select_jobtype", lang)
+        keyboard = await kb.jobetypes_keyboard(all_jobtypes, lang)
+        await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
-@router.message(or_f(AddJobtype.input_jobtype))
-async def get_jobtype(message: types.Message, tg_id, state: FSMContext, session: Any) -> None:
+@router.callback_query(EditJobetype.input_jobtype)
+async def get_jobtype(callback: types.CallbackQuery, tg_id, state: FSMContext, session: Any) -> None:
+    lang = r.get(f"lang:{tg_id}").decode()
+    jobtype_id = int(callback.data.split("|")[1])
+
+    await state.set_state(EditJobetype.input_new_jobtype_title)
+
+    jobtype: Jobtype = await AsyncOrm.get_jobtype_by_id(jobtype_id, session)
+    await state.update_data(jobtype_id=jobtype.id)
+
+    text = f"\"{jobtype.emoji + ' ' if jobtype.emoji else ''} {await t.t(jobtype.title, lang)}\"\n"
+    text += await t.t("input_new_jobtype", lang)
+    keyboard = await kb.back_keyboard(lang, "jobs-management|edit_jobtype")
+
+    await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
+
+
+@router.message(or_f(AddJobtype.input_jobtype, EditJobetype.input_new_jobtype_title))
+@router.callback_query(F.data == "back-from-translate_1")
+async def get_jobtype(message: types.Message | types.CallbackQuery, tg_id, state: FSMContext, session: Any) -> None:
     """Получение типа"""
     lang = r.get(f"lang:{tg_id}").decode()
     data = await state.get_data()
+    current_state = await state.get_state()
 
     try:
         await data["prev_message"].delete()
@@ -59,32 +87,51 @@ async def get_jobtype(message: types.Message, tg_id, state: FSMContext, session:
 
     keyboard = await kb.back_keyboard(lang, "jobs-management|add_jobtype")
 
+    # for Message:
     # неверный формат
-    if type(message) != types.Message:
-        text = await t.t("wrong_text_data", lang)
-        prev_message = await message.answer(text, reply_markup=keyboard.as_markup())
-        await state.update_data(prev_message=prev_message)
-        return
+    if type(message) == types.Message:
+        if type(message) != types.Message:
+            text = await t.t("wrong_text_data", lang)
+            prev_message = await message.answer(text, reply_markup=keyboard.as_markup())
+            await state.update_data(prev_message=prev_message)
+            return
 
-    text_from_message = message.text
+        text_from_message = message.text
 
     # from DB
     categories: [Category] = await AsyncOrm.get_all_categories(session)
 
-    await state.set_state(AddJobtype.select_categories)
+    # FOR ADD
+    if current_state == AddJobtype.input_jobtype:
+        await state.set_state(AddJobtype.select_categories)
+        # for multiselect
+        selected_categories = []
+        await state.update_data(selected_categories=selected_categories)
+    # FOR EDIT
+    else:
+        await state.set_state(EditJobetype.select_categories)
+        # выбираем уже выбранные категории
+        jobtype_id: int = data["jobtype_id"]
+        selected_categories = await AsyncOrm.get_categories_ids_by_jobtype_id(jobtype_id, session)
+        await state.update_data(selected_categories=selected_categories)
 
-    await state.update_data(text_from_message=text_from_message)
+    if type(message) == types.Message:
+        await state.update_data(jobtype_title=text_from_message)
+
     # for multiselect
-    await state.update_data(selected_categories=[])
     await state.update_data(categories_for_select=categories)
 
     text = await t.t("for_which_transport", lang)
-    keyboard = await kb.categories_keyboard(categories, [], lang)
+    keyboard = await kb.categories_keyboard(categories, selected_categories, lang)
 
-    await message.answer(text, reply_markup=keyboard.as_markup())
+    if type(message) == types.Message:
+        await message.answer(text, reply_markup=keyboard.as_markup())
+    else:
+        await message.message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
 @router.callback_query(F.data.split("|")[0] == "add-jobtype-select", AddJobtype.select_categories)
+@router.callback_query(F.data.split("|")[0] == "add-jobtype-select", EditJobetype.select_categories)
 async def multiselect_categories(callback: types.CallbackQuery, tg_id: str, state: FSMContext) -> None:
     """Мультиселект категорий"""
     lang = r.get(f"lang:{tg_id}").decode()
@@ -107,14 +154,29 @@ async def multiselect_categories(callback: types.CallbackQuery, tg_id: str, stat
     text = await t.t("for_which_transport", lang)
     keyboard = await kb.categories_keyboard(categories_for_select, selected_categories, lang)
 
-    await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
+    prev_message = await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
+    await state.update_data(prev_message=prev_message)
 
 
 @router.callback_query(F.data == "select_categories_done", AddJobtype.select_categories)
+@router.callback_query(F.data == "select_categories_done", EditJobetype.select_categories)
+@router.callback_query(F.data == "back-from-translate_2", AddJobtype.translate_2)
 async def get_translate_1(callback: types.CallbackQuery, tg_id: str, state: FSMContext) -> None:
     lang = r.get(f"lang:{tg_id}").decode()
+    data = await state.get_data()
+    current_state = await state.get_state()
 
-    await state.set_state(AddJobtype.translate_1)
+    if callback.data == "back-from-translate_2":
+        try:
+            await data["prev_message"].delete()
+        except:
+            pass
+    # FOR ADD
+    if current_state == AddJobtype.select_categories:
+        await state.set_state(AddJobtype.translate_1)
+    # FOR EDIT
+    else:
+        await state.set_state(EditJobetype.translate_1)
 
     # получаем языки на которые нужно перевести
     languages: list[str] = await neet_to_translate_on(lang)
@@ -126,7 +188,163 @@ async def get_translate_1(callback: types.CallbackQuery, tg_id: str, state: FSMC
     keyboard = await kb.back_keyboard(lang, "back-from-translate_1")
     text = await t.t("add_translate", lang) + " " + await t.t(languages[0], lang)
 
+    prev_mess = await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
+    await state.update_data(prev_mess=prev_mess)
+
+
+@router.message(or_f(AddJobtype.translate_1, EditJobetype.translate_1))
+@router.callback_query(F.data == "back-from-confirm", AddJobtype.confirm)
+@router.callback_query(F.data == "back-from-confirm", EditJobetype.confirm)
+async def get_translate_1(message: types.Message | types.CallbackQuery, tg_id: str, state: FSMContext) -> None:
+    """Получение первого перевода"""
+    lang = r.get(f"lang:{tg_id}").decode()
+    data = await state.get_data()
+    current_state = await state.get_state()
+
+    try:
+        await data["prev_message"].delete()
+    except:
+        pass
+
+    languages_2 = data["languages_2"]
+
+    if type(message) == types.Message:
+        text_from_message = message.text
+        await state.update_data(translation_1=text_from_message)
+
+    # FOR ADD
+    if current_state == AddJobtype.translate_1:
+        await state.set_state(AddJobtype.translate_2)
+    # FOR EDIT
+    else:
+        await state.set_state(EditJobetype.translate_2)
+
+    keyboard = await kb.back_keyboard(lang, "back-from-translate_2")
+    text = await t.t("add_translate", lang) + " " + await t.t(languages_2, lang)
+
+    if type(message) == types.Message:
+        prev_message = await message.answer(text, reply_markup=keyboard.as_markup())
+    else:
+        prev_message = await message.message.answer(text, reply_markup=keyboard.as_markup())
+
+    await state.update_data(prev_message=prev_message)
+
+
+@router.message(or_f(AddJobtype.translate_2, EditJobetype.translate_2))
+async def get_translate_2(message: types.Message, tg_id: str, state: FSMContext, session: Any) -> None:
+    """Получение второго перевода"""
+    lang = r.get(f"lang:{tg_id}").decode()
+    data = await state.get_data()
+    current_state = await state.get_state()
+
+    jobtype_title = data["jobtype_title"]
+    selected_categories = data["selected_categories"]
+
+    try:
+        await data["prev_message"].delete()
+    except:
+        pass
+
+    text_from_message = message.text
+    await state.update_data(translation_2=text_from_message)
+
+    # refresh data
+    data = await state.get_data()
+
+    # FOR ADD
+    if current_state == AddJobtype.translate_2:
+        await state.set_state(AddJobtype.confirm)
+        text = await t.t("confirm_jobtype_create", lang) + "\n"
+    # FOR EDIT
+    else:
+        await state.set_state(EditJobetype.confirm)
+        jobtype: Jobtype = await AsyncOrm.get_jobtype_by_id(data["jobtype_id"], session)
+        text = await t.t("confirm_jobtype_update", lang) + "\n" \
+               + f"\"{jobtype.emoji + ' ' if jobtype.emoji else ''}{await t.t(jobtype.title, lang)}\" -> "
+
+    categories_show = []
+    # get all categories from DB
+    categories = await AsyncOrm.get_all_categories(session)
+    # выбираем только нужные
+    for category in categories:
+        if category.id in selected_categories:
+            categories_show.append(category)
+
+    text += f"\"{jobtype_title}\"" + "\nдля категорий: "
+    for category in categories_show:
+        text += f"{category.emoji + ' ' if category.emoji else ''}{await t.t(category.title, lang)}, "
+    # убираем последнюю ", "
+    text = text[:-2]
+    text += "\n\n"
+
+    # добавляем переводы
+    text += f"{await t.t(data['languages_1'], lang)}: \"{data['translation_1']}\"\n"
+    text += f"{await t.t(data['languages_2'], lang)}: \"{data['translation_2']}\"\n"
+
+    keyboard = await kb.confirm_keyboard(lang)
+
+    prev_message = await message.answer(text, reply_markup=keyboard.as_markup())
+    await state.update_data(prev_message=prev_message)
+
+
+@router.callback_query(or_f(AddJobtype.confirm, EditJobetype.confirm))
+async def confirm_create_jobtype(callback: types.CallbackQuery, tg_id: str, state: FSMContext, session: Any) -> None:
+    """Подтверждение создания группы узла"""
+    lang = r.get(f"lang:{tg_id}").decode()
+    data = await state.get_data()
+    current_state = await state.get_state()
+
+    jobtype_title = data["jobtype_title"]
+    selected_categories = data["selected_categories"]
+
+    await state.clear()
+
+    keyboard = await kb.to_admin_jobs_menu(lang)
+
+    words_for_translator = {
+        lang: jobtype_title,
+        data['languages_1']: data['translation_1'],
+        data['languages_2']: data['translation_2']
+    }
+
+    # save to DB
+    if current_state == AddJobtype.confirm:
+        # FOR ADD
+        try:
+            await AsyncOrm.create_jobtype(await t.get_key_for_text(words_for_translator['en']), selected_categories, session=session)
+        except Exception as e:
+            await callback.message.edit_text(f"Ошибка при создании категории узлов {e}", reply_markup=keyboard.as_markup())
+    else:
+        # FOR EDIT
+        try:
+            await AsyncOrm.update_jobtype(
+                data["jobtype_id"],
+                await t.get_key_for_text(words_for_translator['en']),
+                selected_categories,
+                session
+            )
+        except Exception as e:
+            await callback.message.edit_text(f"Ошибка при обновлении категории узлов {e}", reply_markup=keyboard.as_markup())
+
+    # save to translator
+    try:
+        await t.update_translation(
+            words_for_translator
+        )
+    except Exception as e:
+        await callback.message.edit_text(f"Ошибка при сохранении перевода: {e}", reply_markup=keyboard.as_markup())
+        return
+
+    # FOR ADD
+    if current_state == AddJobtype.confirm:
+        text = f"✅ Группа узлов \"{jobtype_title}\" успешно создана"
+    # FOR EDIT
+    else:
+        text = f"✅ Группа узлов \"{jobtype_title}\" успешно обновлена"
+
     await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
+
+
 
 
 
