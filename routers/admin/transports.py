@@ -968,7 +968,10 @@ async def select_subcategory(callback: types.CallbackQuery, tg_id: str, state: F
         await state.set_state(MassiveAddVehicle.input_vehicle)
 
     text = f"{category_emoji + ' ' if category_emoji else ''}{await t.t(category_title, lang)} -> {subcategory.title}\n"
-    text += await t.t("input_transport_number", lang)
+    if current_state == MassiveAddVehicle.input_subcategory:
+        text += await t.t("input_transport_number_massive", lang)
+    else:
+        text += await t.t("input_transport_number", lang)
 
     keyboard = await kb.back_keyboard(lang, f"admin-add-transport|{category_id}")
 
