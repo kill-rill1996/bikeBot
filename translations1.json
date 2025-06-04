@@ -196,7 +196,13 @@
         "confirm_jobtype_create": "Add node group?",
         "input_new_jobtype": "Enter a new group name:\n(e.g. \"Electrical Equipment\")\nAdd an emoji (optional):\n(e.g. \"⚡\")\n",
         "select_jobtype": "Select a group of nodes",
-        "confirm_jobtype_update": "Update nodegroup?"
+        "confirm_jobtype_update": "Update nodegroup?",
+        "input_job_title": "Input new operations title",
+        "confirm_job_add": "Add operation «{0}»?",
+        "new_job": "A new operation has been created!",
+        "select_job": "Select operation",
+        "confirm_job_edit": "Change operation name «{0}» to «{1}»?",
+        "updated_job": "Operation name changed"
     },
     "ru": {
         "input_name": "Введите ваше имя (например Джон Доу)",
@@ -401,7 +407,13 @@
         "excel_transport": "Транспорт",
         "excel_jobs": "Работы",
         "excel_comment": "Комментарий",
-        "excel_avg_time": "Среднее время на работу"
+        "excel_avg_time": "Среднее время на работу",
+        "input_job_title": "Введи название операции:\n(например, 'Замена проводки')",
+        "confirm_job_add": "Добавить операцию «{0}»?",
+        "new_job": "Новая операция создана",
+        "select_job": "Выберите операцию",
+        "confirm_job_edit": "Изменить название операции «{0}» на «{1}»?",
+        "updated_job": "Название операции изменено"
     },
     "es": {
         "name_error": "Nombre de usuario incorrecto ingresado, por favor inténtelo nuevamente",
@@ -600,6 +612,12 @@
         "confirm_jobtype_create": "¿Agregar grupo de nodos?",
         "input_new_jobtype": "Ingrese un nuevo nombre de grupo:\n(p. ej., \"Equipo eléctrico\")\nAgregue un emoji (opcional):\n(p. ej., \"⚡\")\n",
         "select_jobtype": "Seleccionar un grupo de nodos",
-        "confirm_jobtype_update": "¿Actualizar grupo de nodos?"
+        "confirm_jobtype_update": "¿Actualizar grupo de nodos?",
+        "input_job_title": "Introduzca el nombre del grupo:\n(por ejemplo, 'Equipo eléctrico')",
+        "confirm_job_add": "¿Añadir operación «{0}»?",
+        "new_job": "¡Operación creada!",
+        "select_job": "Seleccionar operación",
+        "confirm_job_edit": "¿Cambiar el nombre de la operación «{0}» a «{1}»?",
+        "updated_job": "Se cambió el nombre de la operación"
     }
 }

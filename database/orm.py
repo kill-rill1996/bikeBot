@@ -504,6 +504,23 @@ class AsyncOrm:
             logger.error(f"Ошибка при получении jobs для jobtype_id {jobtype_id}: {e}")
 
     @staticmethod
+    async def get_job_by_id(job_id: int, session: Any) -> Job:
+        """Получение Job по id"""
+        try:
+            row = await session.fetchrow(
+                """
+                SELECT *
+                FROM jobs
+                WHERE id = $1;
+                """,
+                job_id
+            )
+            return Job.model_validate(row)
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении job по id {job_id}: {e}")
+
+    @staticmethod
     async def get_jobs_by_ids(jobs_ids: List[int], session: Any) -> List[Job]:
         """Получение Job по списку id"""
         jobs_ids_list = f"({', '.join([str(job_id) for job_id in jobs_ids])})"
@@ -1266,3 +1283,35 @@ class AsyncOrm:
         except Exception as e:
             logger.error(f"Ошибка при обновлении jobtype.title для jobtype {jobtype_id}: {e}")
 
+    @staticmethod
+    async def create_job(jobtype_id: int, title: str, session: Any) -> None:
+        """Создание job"""
+        try:
+            await session.execute(
+                """
+                INSERT INTO jobs (title, jobtype_id)
+                VALUES ($1, $2)
+                """,
+                title, jobtype_id
+            )
+            logger.info(f"Создана job с названием {title}")
+
+        except Exception as e:
+            logger.error(f"Ошибка при создании job с названием {title}: {e}")
+
+    @staticmethod
+    async def update_job(job_id: int, title: str, session: Any) -> None:
+        """Изменение job по id"""
+        try:
+            await session.execute(
+                """
+                UPDATE jobs 
+                SET title = $1
+                WHERE id = $2; 
+                """,
+                title, job_id
+            )
+            logger.info(f"Изменено название job с id {job_id}")
+
+        except Exception as e:
+            logger.error(f"Ошибка при изменении job с id {job_id}: {e}")

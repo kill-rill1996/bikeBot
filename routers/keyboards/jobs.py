@@ -1,7 +1,7 @@
 from aiogram.types import InlineKeyboardButton
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
-from schemas.categories_and_jobs import Category, Jobtype
+from schemas.categories_and_jobs import Category, Jobtype, Job
 from utils.translator import translator as t
 
 from routers.buttons import buttons as btn
@@ -127,6 +127,93 @@ async def jobetypes_keyboard(job_types: list[Jobtype], lang) -> InlineKeyboardBu
         InlineKeyboardButton(text=back_button[0], callback_data=back_button[1])
     )
 
+    return keyboard
+
+
+async def select_jobtype_keyboard_for_add(jobtypes: list[Jobtype], lang) -> InlineKeyboardBuilder:
+    """Клавиатура выбора jobtype для добавления job"""
+    keyboard = InlineKeyboardBuilder()
+
+    for jt in jobtypes:
+        keyboard.row(
+            InlineKeyboardButton(
+            text=f"{jt.emoji + ' ' if jt.emoji else ''} {await t.t(jt.title, lang)}",
+            callback_data=f"add-job-select-jobtype|{jt.id}"
+            )
+        )
+
+    # назад
+    back_button: tuple = await btn.get_back_button("admin|operation_management", lang)
+    keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
 
     return keyboard
 
+
+async def select_jobtype_keyboard_for_edit(jobtypes: list[Jobtype], lang) -> InlineKeyboardBuilder:
+    """Клавиатура выбора jobtype для изменения job"""
+    keyboard = InlineKeyboardBuilder()
+
+    for jt in jobtypes:
+        keyboard.row(
+            InlineKeyboardButton(
+            text=f"{jt.emoji + ' ' if jt.emoji else ''} {await t.t(jt.title, lang)}",
+            callback_data=f"edit-job-select-jobtype|{jt.id}"
+            )
+        )
+
+    # назад
+    back_button: tuple = await btn.get_back_button("admin|operation_management", lang)
+    keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
+
+    return keyboard
+
+
+async def cancel_add_job_keybaord(lang) -> InlineKeyboardBuilder:
+    """Клавиатура отмены"""
+    keyboard = InlineKeyboardBuilder()
+
+    keyboard.row(InlineKeyboardButton(text=await t.t("cancel", lang), callback_data="admin|operation_management"))
+
+    return keyboard
+
+
+async def add_job_confirm_keyboard(lang: str) -> InlineKeyboardBuilder:
+    """Клавиатура подтверждения добавления job"""
+    keyboard = InlineKeyboardBuilder()
+
+    keyboard.row(
+        InlineKeyboardButton(text=f'✅ {await t.t("yes", lang)}', callback_data="add_job_confirmed"),
+        InlineKeyboardButton(text=f'❌ {await t.t("no", lang)}', callback_data="admin|operation_management")
+    )
+
+    return keyboard
+
+
+async def edit_job_confirm_keyboard(lang: str) -> InlineKeyboardBuilder:
+    """Клавиатура подтверждения изменения job"""
+    keyboard = InlineKeyboardBuilder()
+
+    keyboard.row(
+        InlineKeyboardButton(text=f'✅ {await t.t("yes", lang)}', callback_data="edit_job_confirmed"),
+        InlineKeyboardButton(text=f'❌ {await t.t("no", lang)}', callback_data="admin|operation_management")
+    )
+
+    return keyboard
+
+async def select_job_keyboard(jobs: list[Job], lang: str) -> InlineKeyboardBuilder:
+    """Клавиатура выбора jobtype для изменения job"""
+    keyboard = InlineKeyboardBuilder()
+
+    for j in jobs:
+        keyboard.row(
+            InlineKeyboardButton(
+            text=f"{await t.t(j.title, lang)}",
+            callback_data=f"edit-job-select-job|{j.id}"
+            )
+        )
+
+    # назад
+    back_button: tuple = await btn.get_back_button("jobs-management|edit_job", lang)
+    keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
+
+    return keyboard

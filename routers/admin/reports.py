@@ -519,7 +519,7 @@ async def send_excel_file(callback: types.CallbackQuery, tg_id: str, session: An
         # удаляем отчет
         try:
             os.remove(file_path)
-        except Exception:
+        except Exception as e:
             logger.error(f"Не удалось удалить файл с отчетом {file_path}: {e}")
 
 

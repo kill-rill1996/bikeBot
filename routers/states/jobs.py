@@ -18,3 +18,19 @@ class EditJobetype(StatesGroup):
     confirm = State()
 
 
+class AddJob(StatesGroup):
+    select_jobtype = State()
+    input_job_title = State()
+    translate_1 = State()
+    translate_2 = State()
+    confirm = State()
+
+
+class EditJob(StatesGroup):
+    select_jobtype = State()
+    select_job = State()
+    input_job_title = State()
+    translate_1 = State()
+    translate_2 = State()
+    confirm = State()
+
