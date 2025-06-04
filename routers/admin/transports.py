@@ -1209,7 +1209,7 @@ async def confirm_transport_add(callback: types.CallbackQuery, tg_id: str, state
         serial_number = int(data["transport_number"])
         try:
             await AsyncOrm.create_transport(serial_number, subcategory_id, category_id, session)
-            text = f"✅ {await t.t('vehicle', lang)} {category_emoji + ' ' if category_emoji else ''}{category_title} -> {subcategory_title}-{serial_number} {await t.t('success', lang)} {await t.t('created', lang)}"
+            text = f"✅ {await t.t('vehicle', lang)} {category_emoji + ' ' if category_emoji else ''}{await t.t(category_title, lang)} -> {subcategory_title}-{serial_number} {await t.t('success', lang)} {await t.t('created', lang)}"
         except Exception as e:
             await callback.message.edit_text(f"Ошибка при создании транспорта: {e}", reply_markup=keyboard.as_markup())
             return
