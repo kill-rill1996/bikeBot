@@ -84,6 +84,10 @@ async def start_bot() -> None:
     for tg_id in allow_user_ids:
         r.set(f"allowed_users:{tg_id}", "allowed")
 
+    admins = await AsyncOrm.get_admins(session=db_session)
+    admins_ids_str = "|".join(admins)
+    r.set("admins", admins_ids_str)
+
     await dp.start_polling(bot)
 
 

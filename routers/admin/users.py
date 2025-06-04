@@ -234,6 +234,12 @@ async def edit_user_param_end(callback: types.CallbackQuery, tg_id: int, state: 
     else:
         await AsyncOrm.edit_role(user_id, data["role"], session)
 
+        # заменяем кэш с админами
+        db_admins = await AsyncOrm.get_admins(session)
+        db_admins_str = "|".join(db_admins)
+        r.delete("admins")
+        r.set("admins", db_admins_str)
+
     # очищаем стейт
     await state.clear()
 
