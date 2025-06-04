@@ -165,6 +165,7 @@
         "select_subcategory_to_edit": "Select a subcategory to edit",
         "enter_new_subcategory_name": "Enter a new subcategory name",
         "input_transport_number": "Enter the number for the vehicle:\n(for example, \"21\")\n",
+        "input_transport_number_new": "Enter new number for transport:\n(for example, \"21\")\n",
         "input_transport_number_massive": "Enter the number for the vehicle:\n(for example, \"21-30\" or \"21, 33, 54\")\n",
         "barcelona2": "Barcelona2",
         "add_user": "Add user",
@@ -202,7 +203,13 @@
         "new_job": "A new operation has been created!",
         "select_job": "Select operation",
         "confirm_job_edit": "Change operation name «{0}» to «{1}»?",
-        "updated_job": "Operation name changed"
+        "updated_job": "Operation name changed",
+        "empty_subcategories": "You don't have any subcategories in this category yet",
+        "empty_categories": "You don't have any categories yet",
+        "success": "success",
+        "changed": "changed",
+        "created": "created",
+        "add_transport": "Add transport"
     },
     "ru": {
         "input_name": "Введите ваше имя (например Джон Доу)",
@@ -370,6 +377,7 @@
         "select_subcategory_to_edit": "Выберите подкатегорию для изменения",
         "enter_new_subcategory_name": "Введите новое название подкатегории",
         "input_transport_number": "Введите номер для транспорта:\n(например, \"21\")\n",
+        "input_transport_number_new": "Введите новый номер для транспорта:\n(например, \"21\")\n",
         "input_transport_number_massive": "Введите номера для транспорта:\n(например, \"21-30\" или \"21, 33, 54\")\n",
         "barcelona2": "Барселона2",
         "add_user": "Добавить пользователя",
@@ -413,7 +421,13 @@
         "new_job": "Новая операция создана",
         "select_job": "Выберите операцию",
         "confirm_job_edit": "Изменить название операции «{0}» на «{1}»?",
-        "updated_job": "Название операции изменено"
+        "updated_job": "Название операции изменено",
+        "empty_subcategories": "У вас пока нет подкатегорий в этой категории",
+        "empty_categories": "У вас пока нет категорий",
+        "success": "успешно",
+        "changed": "изменена",
+        "created": "создана",
+        "add_transport": "Добавить транспорт"
     },
     "es": {
         "name_error": "Nombre de usuario incorrecto ingresado, por favor inténtelo nuevamente",
@@ -581,6 +595,7 @@
         "select_subcategory_to_edit": "Seleccione una subcategoría para editar",
         "enter_new_subcategory_name": "Ingrese un nuevo nombre de subcategoría",
         "input_transport_number": "Ingrese el número del transporte:\n(por ejemplo, \"21\")\n",
+        "input_transport_number_new": "Ingrese un nuevo número para el transporte:\n(por ejemplo, \"21\")\n",
         "input_transport_number_massive": "Ingrese el número del transporte:\n(por ejemplo, \"21-30\" o \"21, 33, 54\")\n",
         "barcelona2": "Barcelona2",
         "add_user": "Añadir usuario",
@@ -618,6 +633,12 @@
         "new_job": "¡Operación creada!",
         "select_job": "Seleccionar operación",
         "confirm_job_edit": "¿Cambiar el nombre de la operación «{0}» a «{1}»?",
-        "updated_job": "Se cambió el nombre de la operación"
+        "updated_job": "Se cambió el nombre de la operación",
+        "empty_subcategories": "Aún no tienes subcategorías en esta categoría",
+        "empty_categories": "Aún no tienes categorías",
+        "success": "con éxito",
+        "changed": "cambiado",
+        "created": "creado",
+        "add_transport": "Añadir transporte"
     }
 }

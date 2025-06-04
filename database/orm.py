@@ -20,6 +20,21 @@ Mapping.register(asyncpg.Record)
 
 
 class AsyncOrm:
+    @staticmethod
+    async def get_admins(session: Any) -> list[str]:
+        """Получение tg_ids админов"""
+        try:
+            rows = await session.fetch(
+                """
+                SELECT tg_id
+                FROM users
+                WHERE role = 'admin';
+                """
+            )
+            return [row['tg_id'] for row in rows]
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении tg_ids админов")
 
     @staticmethod
     async def check_user_already_exists(tg_id: str, session: Any) -> bool:
