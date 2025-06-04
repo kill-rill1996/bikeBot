@@ -1156,18 +1156,20 @@ class AsyncOrm:
             logger.error(f"Ошибка при создании транспорта s.n {serial_number} подкатегории {subcategory_id}: {e}")
 
     @staticmethod
-    async def get_transport_by_number_and_subcategory(serial_number: int, subcategory_id: int, session: Any) -> Transport:
+    async def get_transport_by_number_and_subcategory(serial_number: int, subcategory_id: int, session: Any) -> Transport | None:
         """Получаем транспорт по серийному номеру и подкатегории"""
         try:
             row = await session.fetchrow(
                 """
-                SELECT * FROM transports
+                SELECT * 
+                FROM transports
                 WHERE subcategory_id = $1 AND serial_number = $2
                 """,
                 subcategory_id, serial_number
             )
-            transport = Transport.model_validate(row)
-            return transport
+            if row:
+                transport = Transport.model_validate(row)
+                return transport
 
         except Exception as e:
             logger.error(f"Ошибка при получении транспорта s.n {serial_number} подкатегории {subcategory_id}: {e}")

@@ -880,7 +880,7 @@ async def save_edited_subcategory(callback: types.CallbackQuery, tg_id: str, sta
     )
 )
 async def add_vehicle(callback: types.CallbackQuery, tg_id: str, state: FSMContext, session: Any) -> None:
-    """Добавление транспорта"""
+    """Выбор операции с транспортом"""
     lang = r.get(f"lang:{tg_id}").decode()
 
     categories: list[Category] = await AsyncOrm.get_all_categories(session)
@@ -889,7 +889,7 @@ async def add_vehicle(callback: types.CallbackQuery, tg_id: str, state: FSMConte
     if callback.data == "transport-management|add_vehicle":
         await state.set_state(AddVehicle.input_category)
     # for update
-    elif callback.data == "edit_vehicle":
+    elif callback.data == "transport-management|edit_vehicle":
         await state.set_state(EditVehicle.input_category)
     # for mass adding
     elif callback.data == "transport-management|bulk_vehicle_addition":
@@ -909,7 +909,7 @@ async def add_vehicle(callback: types.CallbackQuery, tg_id: str, state: FSMConte
 
 @router.callback_query(or_f(AddVehicle.input_category, EditVehicle.input_category, MassiveAddVehicle.input_category, F.data.split("|")[0] == "admin-add-transport"))
 async def select_category_for_add_vehicle(callback: types.CallbackQuery, tg_id: str, state: FSMContext, session: Any) -> None:
-    """Выбор категории для добавления транспорта"""
+    """Выбор категории транспорта"""
     lang = r.get(f"lang:{tg_id}").decode()
     category_id = int(callback.data.split("|")[1])
     current_state = await state.get_state()
@@ -945,7 +945,7 @@ async def select_category_for_add_vehicle(callback: types.CallbackQuery, tg_id: 
 
 
 @router.callback_query(or_f(AddVehicle.input_subcategory, EditVehicle.input_subcategory, MassiveAddVehicle.input_subcategory))
-async def select_subcategory_to_add_vehicle(callback: types.CallbackQuery, tg_id: str, state: FSMContext, session: Any) -> None:
+async def select_subcategory(callback: types.CallbackQuery, tg_id: str, state: FSMContext, session: Any) -> None:
     """Отлавливаем подкатегорию"""
     lang = r.get(f"lang:{tg_id}").decode()
     subcategory_id = int(callback.data.split("|")[1])
