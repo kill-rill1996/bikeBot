@@ -18,7 +18,8 @@ async def add_works_menu_keyboard(categories: List[Category], lang: str) -> Inli
         text = f"{c.emoji + ' ' if c.emoji else ''}" + await t.t(c.title, lang)
         keyboard.row(InlineKeyboardButton(text=text, callback_data=f"vehicle_category|{c.id}"))
 
-    keyboard.row(InlineKeyboardButton(text=f"{await t.t('recent_works', lang)}", callback_data="recent_works"))
+    # # последние обслуженные
+    # keyboard.row(InlineKeyboardButton(text=f"{await t.t('recent_works', lang)}", callback_data="recent_works"))
 
     back_button: tuple = await btn.get_back_button("menu|works-records", lang)
     keyboard.row(
