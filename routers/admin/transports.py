@@ -291,8 +291,9 @@ async def edit_category(callback: types.CallbackQuery, tg_id: str, session: Any)
 
     categories: list[Category] = await AsyncOrm.get_all_categories(session)
     if not categories:
+        text = await t.t("empty_categories", lang)
         keyboard = await kb.there_are_not_yet("admin|vehicle_management", lang)
-        await callback.message.edit_text("у вас пока нет категорий", reply_markup=keyboard.as_markup())
+        await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
         return
 
     text = await t.t("select_category_to_edit", lang)
@@ -515,7 +516,7 @@ async def confirm_changes(callback: types.CallbackQuery, tg_id: str, session: An
         await callback.message.edit_text(f"Ошибка при внесении изменений: {e}")
         return
 
-    text = f"✅ Категория {data['category_name']} успешно изменена"
+    text = f"✅ {await t.t('category', lang)} {data['category_name']} {await t.t('success', lang)} {await t.t('changed', lang)}"
     await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
@@ -588,7 +589,7 @@ async def save_emoji_changing(callback: types.CallbackQuery, tg_id: str, state: 
         await callback.message.edit_text(f"Ошибка при внесении изменений: {e}", reply_markup=keyboard.as_markup())
         return
 
-    text = f"✅ Категория \"{data['category_emoji']} {await t.t(category.title, lang)}\" успешно изменена"
+    text = f"✅ {await t.t('category', lang)} {data['category_emoji']} \"{data['category_emoji']} {await t.t(category.title, lang)}\" {await t.t('success', lang)} {await t.t('changed', lang)}"
     await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
@@ -608,7 +609,8 @@ async def add_subcategory(callback: types.CallbackQuery, tg_id: str, session: An
     # если пока нет категорий
     if not categories:
         keyboard = await kb.there_are_not_yet("admin|vehicle_management", lang)
-        await callback.message.edit_text("у вас пока нет категорий", reply_markup=keyboard.as_markup())
+        text = await t.t("empty_categories", lang)
+        await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
         return
 
     text = await t.t("select_category", lang)
@@ -636,7 +638,7 @@ async def selected_category(callback: types.CallbackQuery, tg_id: str, session: 
         for subcategory in subcategories:
             text += f"\t\t• {subcategory.title}\n"
     else:
-        text += f"В этой категории пока еще нет подкатегорий\n"
+        text += await t.t('empty_categories', lang) + "\n"
     text += "\n"
     text += await t.t("enter_new_sub_category", lang)
 
@@ -720,8 +722,7 @@ async def save_subcategory(callback: types.CallbackQuery, tg_id: str, session: A
     except Exception as e:
         await callback.message.edit_text(f"Ошибка при сохранении подкатегории: {e}", reply_markup=keyboard.as_markup())
         return
-
-    text = f"✅ Подкатегория \"{subcategory_title}\" для категории {await t.t(category_title, lang)} успешно создана"
+    text = f"✅ {await t.t('subcategory', lang)} {await t.t(category_title, lang)} -> \"{subcategory_title}\" {await t.t('success', lang)} {await t.t('created', lang)}"
     await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
@@ -740,8 +741,9 @@ async def edit_subcategory(callback: types.CallbackQuery, tg_id: str, session: A
 
     # если пока нет категорий
     if not categories:
+        text = await t.t("empty_categories", lang)
         keyboard = await kb.there_are_not_yet("admin|vehicle_management", lang)
-        await callback.message.edit_text("у вас пока нет категорий", reply_markup=keyboard.as_markup())
+        await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
         return
 
     text = await t.t("select_category", lang)
@@ -761,11 +763,17 @@ async def selected_category_to_edit(callback: types.CallbackQuery, tg_id: str, s
     category: Category = await AsyncOrm.get_category_by_id(category_id, session)
     subcategories: list[Subcategory] = await AsyncOrm.get_subcategories_by_category(category_id, session)
 
+    keyboard = await kb.subcategories_for_category(subcategories, lang)
+
+    # если пока нет подкатегорий
+    if not subcategories:
+        text = await t.t("empty_subcategories", lang)
+        await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
+        return
+
     # generate message
     text = f"{category.emoji + ' ' if category.emoji else ''}{await t.t(category.title, lang)}\n"
     text += await t.t("select_subcategory_to_edit", lang)
-
-    keyboard = await kb.subcategories_for_category(subcategories, lang)
 
     await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
 
@@ -831,6 +839,7 @@ async def get_subcategory_title_from_text(message: types.Message, tg_id: str, se
     # проверяем что такой подкатегории еще нет
     subcategories: list[Subcategory] = await AsyncOrm.get_subcategories_by_category(category_id, session)
     if subcategory_title in [subcategory.title for subcategory in subcategories]:
+        # TODO translate
         text = f"В категории {category_emoji + ' ' if category_emoji else ''}{await t.t(category_title, lang)} " \
                f"уже существует подкатегория {subcategory_title}\n" \
                f"Введите другое название"
@@ -898,7 +907,8 @@ async def add_vehicle(callback: types.CallbackQuery, tg_id: str, state: FSMConte
     # если пока нет категорий
     if not categories:
         keyboard = await kb.there_are_not_yet("admin|vehicle_management", lang)
-        await callback.message.edit_text("у вас пока нет категорий", reply_markup=keyboard.as_markup())
+        text = await t.t('empty_categories', lang)
+        await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
         return
 
     text = await t.t("select_category", lang)
@@ -929,7 +939,8 @@ async def select_category_for_add_vehicle(callback: types.CallbackQuery, tg_id: 
     # если пока нет подкатегорий
     if not subcategories:
         keyboard = await kb.there_are_not_yet("admin|vehicle_management", lang)
-        await callback.message.edit_text("у вас пока нет подкатегорий", reply_markup=keyboard.as_markup())
+        text = await t.t('empty_categories', lang)
+        await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
         return
 
     text = f"{category.emoji + ' ' if category.emoji else ''}{await t.t(category.title, lang)}\n"
@@ -1027,6 +1038,7 @@ async def input_transport_number(message: types.Message, tg_id: str, state: FSMC
         # проверяем что такого транспорта еще нет
         transports: list[TransportSubcategory] = await AsyncOrm.get_transports_for_subcategory(subcategory_id, session)
         if int(input_text) in [transport.serial_number for transport in transports]:
+            # TODO translate
             text = f"В категории {category_emoji + ' ' if category_emoji else ''}{await t.t(category_title, lang)} -> " \
                    f"{subcategory_title} уже существует транспорт с серийным номером {input_text}\n" \
                    f"Введите другое число"
@@ -1037,7 +1049,7 @@ async def input_transport_number(message: types.Message, tg_id: str, state: FSMC
         # Если все нормально и такого номера транспорта еще нет
         await state.set_state(AddVehicle.confirm)
 
-        text = f"Добавить транспорт?\n{category_emoji + ' ' if category_emoji else ''}{category_title} -> {subcategory_title}-{input_text}"
+        text = f"{await t.t('add_transport', lang)}?\n{category_emoji + ' ' if category_emoji else ''}{category_title} -> {subcategory_title}-{input_text}"
         keyboard = await kb.confirm_transport_create_keyboard(lang)
         await message.answer(text, reply_markup=keyboard.as_markup())
 
@@ -1047,6 +1059,7 @@ async def input_transport_number(message: types.Message, tg_id: str, state: FSMC
             transport = await AsyncOrm.get_transport_by_number_and_subcategory(int(input_text), subcategory_id, session)
             # если такой транспорт не найден
             if not transport:
+                # TODO translate
                 text = f"В категории {category_emoji + ' ' if category_emoji else ''}{await t.t(category_title, lang)} -> " \
                        f"{subcategory_title} не существует транспорта с серийным номером {input_text}\n" \
                        f"Введите другое число"
@@ -1064,7 +1077,7 @@ async def input_transport_number(message: types.Message, tg_id: str, state: FSMC
         # EDIT VEHICLE
         await state.set_state(EditVehicle.input_new_vehicle)
 
-        text = f"Введите новый номер транспорта:\n(например, \"22\")"
+        text = await t.t('input_transport_number_new', lang)
         prev_message = await message.answer(text, reply_markup=keyboard.as_markup())
         await state.update_data(prev_message=prev_message)
 
@@ -1088,12 +1101,14 @@ async def input_transport_number(message: types.Message, tg_id: str, state: FSMC
                 await state.update_data(numbers_string=input_text)
                 await state.set_state(MassiveAddVehicle.confirm)
 
+                # TODO translate
                 text = f"Добавить {len(numbers_list)} единиц транспорта \"{input_text}\" в категорию {category_emoji + ' ' if category_emoji else ''}{await t.t(category_title, lang)} подкатегорию {subcategory_title}?"
                 keyboard = await kb.confirm_transport_create_keyboard(lang)
                 await message.answer(text, reply_markup=keyboard.as_markup())
 
             # если уже существует транспорт
             else:
+                # TODO translate
                 text = f"Транспорт с номерами "
                 for num in already_exists:
                     text += f"{num}, "
@@ -1153,6 +1168,7 @@ async def get_new_serial_number_from_text(message: types.Message, tg_id: str, st
     # проверяем что такого транспорта еще нет
     transports: list[TransportSubcategory] = await AsyncOrm.get_transports_for_subcategory(subcategory_id, session)
     if int(new_transport_number) in [transport.serial_number for transport in transports]:
+        # TODO translate
         text = f"В категории {category_emoji + ' ' if category_emoji else ''}{await t.t(category_title, lang)} -> " \
                f"{subcategory_title} уже существует транспорт с серийным номером {new_transport_number}\n" \
                f"Введите другое число"
@@ -1163,8 +1179,6 @@ async def get_new_serial_number_from_text(message: types.Message, tg_id: str, st
     await state.set_state(EditVehicle.confirm)
 
     # TODO make translation
-    # text = await t.t("")
-
     text = f"Сохранить изменения транспорта?\n{subcategory_title}-{old_transport_number} -> {subcategory_title}-{new_transport_number}"
     keyboard = await kb.confirm_transport_create_keyboard(lang)
     await message.answer(text, reply_markup=keyboard.as_markup())
@@ -1195,7 +1209,7 @@ async def confirm_transport_add(callback: types.CallbackQuery, tg_id: str, state
         serial_number = int(data["transport_number"])
         try:
             await AsyncOrm.create_transport(serial_number, subcategory_id, category_id, session)
-            text = f"✅ Транспорт {category_emoji + ' ' if category_emoji else ''}{category_title} -> {subcategory_title}-{serial_number} успешно создан"
+            text = f"✅ {await t.t('vehicle', lang)} {category_emoji + ' ' if category_emoji else ''}{category_title} -> {subcategory_title}-{serial_number} {await t.t('success', lang)} {await t.t('created', lang)}"
         except Exception as e:
             await callback.message.edit_text(f"Ошибка при создании транспорта: {e}", reply_markup=keyboard.as_markup())
             return
@@ -1205,7 +1219,7 @@ async def confirm_transport_add(callback: types.CallbackQuery, tg_id: str, state
         try:
             new_transport_number = int(data["new_transport_number"])
             await AsyncOrm.edit_transport(new_transport_number, serial_number, subcategory_id, session)
-            text = f"✅ Транспорт {category_emoji + ' ' if category_emoji else ''}{category_title} -> {subcategory_title}-{new_transport_number} успешно изменен"
+            text = f"✅ {await t.t('vehicle', lang)} {category_emoji + ' ' if category_emoji else ''}{category_title} -> {subcategory_title}-{new_transport_number} {await t.t('success', lang)} {await t.t('changed', lang)}"
         except Exception as e:
             await callback.message.edit_text(f"Ошибка при изменении транспорта: {e}", reply_markup=keyboard.as_markup())
             return
@@ -1218,8 +1232,7 @@ async def confirm_transport_add(callback: types.CallbackQuery, tg_id: str, state
         try:
             for transport_number in numbers_list:
                 await AsyncOrm.create_transport(int(transport_number), subcategory_id, category_id, session)
-
-            text = f"✅ Транспорт {category_emoji + ' ' if category_emoji else ''}{category_title} -> {subcategory_title} {numbers_string} успешно создан"
+            text = f"✅ {await t.t('vehicle', lang)} {category_emoji + ' ' if category_emoji else ''}{category_title} -> {subcategory_title} {numbers_string} {await t.t('success', lang)} {await t.t('created', lang)}"
 
         except Exception as e:
             await callback.message.edit_text(f"Ошибка при создании транспорта: {e}", reply_markup=keyboard.as_markup())
