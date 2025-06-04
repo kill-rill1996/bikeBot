@@ -31,7 +31,9 @@ class AsyncOrm:
                 WHERE role = 'admin';
                 """
             )
-            return [row['tg_id'] for row in rows]
+            if rows:
+                return [row['tg_id'] for row in rows]
+            return []
 
         except Exception as e:
             logger.error(f"Ошибка при получении tg_ids админов")
