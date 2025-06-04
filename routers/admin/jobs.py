@@ -14,6 +14,7 @@ from routers.keyboards import jobs as kb
 router = Router()
 
 
+# JOBS management menu
 @router.callback_query(F.data == "admin|operation_management")
 async def jobs_menu(callback: types.CallbackQuery, tg_id: str, state: FSMContext) -> None:
     """Меню управления операциями"""
@@ -34,7 +35,7 @@ async def jobs_menu(callback: types.CallbackQuery, tg_id: str, state: FSMContext
 # ADD / EDIT JOB_TYPE
 @router.callback_query(or_f(F.data == "jobs-management|add_jobtype", F.data == "jobs-management|edit_jobtype"))
 async def add_jobtype(callback: types.CallbackQuery, tg_id: str, state: FSMContext, session: Any) -> None:
-    """Запрос типа операции"""
+    """Получаем тип операции"""
     lang = r.get(f"lang:{tg_id}").decode()
 
     # FOR ADD
@@ -55,8 +56,11 @@ async def add_jobtype(callback: types.CallbackQuery, tg_id: str, state: FSMConte
         await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
+# FOR EDIT
 @router.callback_query(EditJobetype.input_jobtype)
+@router.callback_query(F.data.split("|")[0] == "back-to-select-type-from-multi", EditJobetype.select_categories)
 async def get_jobtype(callback: types.CallbackQuery, tg_id, state: FSMContext, session: Any) -> None:
+    """Для изменения получаем тип который мы будем менять"""
     lang = r.get(f"lang:{tg_id}").decode()
     jobtype_id = int(callback.data.split("|")[1])
 
@@ -65,11 +69,12 @@ async def get_jobtype(callback: types.CallbackQuery, tg_id, state: FSMContext, s
     jobtype: Jobtype = await AsyncOrm.get_jobtype_by_id(jobtype_id, session)
     await state.update_data(jobtype_id=jobtype.id)
 
-    text = f"\"{jobtype.emoji + ' ' if jobtype.emoji else ''} {await t.t(jobtype.title, lang)}\"\n"
+    text = f"\"{jobtype.emoji + ' ' if jobtype.emoji else ''} {await t.t(jobtype.title, lang)}\"\n\n"
     text += await t.t("input_new_jobtype", lang)
     keyboard = await kb.back_keyboard(lang, "jobs-management|edit_jobtype")
 
-    await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
+    prev_message = await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
+    await state.update_data(prev_message=prev_message)
 
 
 @router.message(or_f(AddJobtype.input_jobtype, EditJobetype.input_new_jobtype_title))
@@ -80,19 +85,17 @@ async def get_jobtype(message: types.Message | types.CallbackQuery, tg_id, state
     data = await state.get_data()
     current_state = await state.get_state()
 
-    try:
-        await data["prev_message"].delete()
-    except:
-        pass
-
-    keyboard = await kb.back_keyboard(lang, "jobs-management|add_jobtype")
-
     # for Message:
-    # неверный формат
     if type(message) == types.Message:
+        try:
+            await data["prev_message"].delete()
+        except:
+            pass
+        # неверный формат
         if type(message) != types.Message:
             text = await t.t("wrong_text_data", lang)
-            prev_message = await message.answer(text, reply_markup=keyboard.as_markup())
+            error_keyboard = await kb.back_keyboard(lang, "jobs-management|add_jobtype")
+            prev_message = await message.answer(text, reply_markup=error_keyboard.as_markup())
             await state.update_data(prev_message=prev_message)
             return
 
@@ -102,18 +105,23 @@ async def get_jobtype(message: types.Message | types.CallbackQuery, tg_id, state
     categories: [Category] = await AsyncOrm.get_all_categories(session)
 
     # FOR ADD
-    if current_state == AddJobtype.input_jobtype:
+    if current_state in (AddJobtype.input_jobtype, AddJobtype.translate_1):
         await state.set_state(AddJobtype.select_categories)
         # for multiselect
         selected_categories = []
         await state.update_data(selected_categories=selected_categories)
+        error_keyboard = await kb.categories_keyboard(categories, selected_categories, lang,
+                                                callback="jobs-management|add_jobtype")
+
     # FOR EDIT
-    else:
+    elif current_state in (EditJobetype.input_new_jobtype_title, EditJobetype.translate_1):
         await state.set_state(EditJobetype.select_categories)
         # выбираем уже выбранные категории
         jobtype_id: int = data["jobtype_id"]
         selected_categories = await AsyncOrm.get_categories_ids_by_jobtype_id(jobtype_id, session)
         await state.update_data(selected_categories=selected_categories)
+        error_keyboard = await kb.categories_keyboard(categories, selected_categories, lang,
+                                                callback=f"back-to-select-type-from-multi|{jobtype_id}")
 
     if type(message) == types.Message:
         await state.update_data(jobtype_title=text_from_message)
@@ -122,12 +130,11 @@ async def get_jobtype(message: types.Message | types.CallbackQuery, tg_id, state
     await state.update_data(categories_for_select=categories)
 
     text = await t.t("for_which_transport", lang)
-    keyboard = await kb.categories_keyboard(categories, selected_categories, lang)
 
     if type(message) == types.Message:
-        await message.answer(text, reply_markup=keyboard.as_markup())
+        await message.answer(text, reply_markup=error_keyboard.as_markup())
     else:
-        await message.message.edit_text(text, reply_markup=keyboard.as_markup())
+        await message.message.edit_text(text, reply_markup=error_keyboard.as_markup())
 
 
 @router.callback_query(F.data.split("|")[0] == "add-jobtype-select", AddJobtype.select_categories)
@@ -136,6 +143,7 @@ async def multiselect_categories(callback: types.CallbackQuery, tg_id: str, stat
     """Мультиселект категорий"""
     lang = r.get(f"lang:{tg_id}").decode()
     category_id = int(callback.data.split("|")[1])
+    current_state = await state.get_state()
 
     # добавляем или удаляем категорию из списка
     data = await state.get_data()
@@ -152,7 +160,12 @@ async def multiselect_categories(callback: types.CallbackQuery, tg_id: str, stat
     await state.update_data(selected_categories=selected_categories)
 
     text = await t.t("for_which_transport", lang)
-    keyboard = await kb.categories_keyboard(categories_for_select, selected_categories, lang)
+
+    if current_state == AddJobtype.select_categories:
+        keyboard = await kb.categories_keyboard(categories_for_select, selected_categories, lang, callback="jobs-management|add_jobtype")
+    else:
+        jobtype_id = data["jobtype_id"]
+        keyboard = await kb.categories_keyboard(categories_for_select, selected_categories, lang, callback=f"back-to-select-type-from-multi|{jobtype_id}")
 
     prev_message = await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
     await state.update_data(prev_message=prev_message)
@@ -167,16 +180,11 @@ async def get_translate_1(callback: types.CallbackQuery, tg_id: str, state: FSMC
     data = await state.get_data()
     current_state = await state.get_state()
 
-    if callback.data == "back-from-translate_2":
-        try:
-            await data["prev_message"].delete()
-        except:
-            pass
     # FOR ADD
-    if current_state == AddJobtype.select_categories:
+    if current_state in (AddJobtype.select_categories, AddJobtype.translate_2):
         await state.set_state(AddJobtype.translate_1)
     # FOR EDIT
-    else:
+    elif current_state in (EditJobetype.select_categories, EditJobetype.translate_2):
         await state.set_state(EditJobetype.translate_1)
 
     # получаем языки на которые нужно перевести
@@ -190,7 +198,7 @@ async def get_translate_1(callback: types.CallbackQuery, tg_id: str, state: FSMC
     text = await t.t("add_translate", lang) + " " + await t.t(languages[0], lang)
 
     prev_message = await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
-    await state.update_data(prev_mess=prev_message)
+    await state.update_data(prev_message=prev_message)
 
 
 @router.message(or_f(AddJobtype.translate_1, EditJobetype.translate_1))
@@ -202,19 +210,20 @@ async def get_translate_1(message: types.Message | types.CallbackQuery, tg_id: s
     data = await state.get_data()
     current_state = await state.get_state()
 
-    try:
-        await data["prev_message"].delete()
-    except:
-        pass
-
     languages_2 = data["languages_2"]
 
+    # MESSAGE
     if type(message) == types.Message:
+        try:
+            await data["prev_message"].delete()
+        except:
+            pass
+
         text_from_message = message.text
         await state.update_data(translation_1=text_from_message)
 
     # FOR ADD
-    if current_state == AddJobtype.translate_1:
+    if current_state in (AddJobtype.translate_1, AddJobtype.translate_2, AddJobtype.confirm):
         await state.set_state(AddJobtype.translate_2)
     # FOR EDIT
     else:
@@ -226,7 +235,7 @@ async def get_translate_1(message: types.Message | types.CallbackQuery, tg_id: s
     if type(message) == types.Message:
         prev_message = await message.answer(text, reply_markup=keyboard.as_markup())
     else:
-        prev_message = await message.message.answer(text, reply_markup=keyboard.as_markup())
+        prev_message = await message.message.edit_text(text, reply_markup=keyboard.as_markup())
 
     await state.update_data(prev_message=prev_message)
 
@@ -253,7 +262,7 @@ async def get_translate_2(message: types.Message, tg_id: str, state: FSMContext,
     data = await state.get_data()
 
     # FOR ADD
-    if current_state == AddJobtype.translate_2:
+    if current_state in (AddJobtype.translate_2, AddJobtype.confirm):
         await state.set_state(AddJobtype.confirm)
         text = await t.t("confirm_jobtype_create", lang) + "\n"
     # FOR EDIT

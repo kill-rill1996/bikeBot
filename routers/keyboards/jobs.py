@@ -50,7 +50,11 @@ async def back_keyboard(lang: str, callback_data: str) -> InlineKeyboardBuilder:
     return keyboard
 
 
-async def categories_keyboard(categories: [Category], selected_categories: list[int], lang) -> InlineKeyboardBuilder:
+async def categories_keyboard(
+        categories: [Category],
+        selected_categories: list[int],
+        lang,
+        callback: str) -> InlineKeyboardBuilder:
     keyboard = InlineKeyboardBuilder()
 
     for category in categories:
@@ -69,7 +73,7 @@ async def categories_keyboard(categories: [Category], selected_categories: list[
         keyboard.row(InlineKeyboardButton(text=f"✅ {await t.t('done', lang)}", callback_data="select_categories_done"))
 
     # назад
-    back_button: tuple = await btn.get_back_button("jobs-management|add_jobtype", lang)
+    back_button: tuple = await btn.get_back_button(callback, lang)
     keyboard.row(
         InlineKeyboardButton(text=back_button[0], callback_data=back_button[1])
     )
