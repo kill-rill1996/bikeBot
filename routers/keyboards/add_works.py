@@ -71,10 +71,6 @@ async def select_work_category(jobtypes: List[Jobtype], category_id: int, lang: 
         text = f"{jobtype.emoji + ' ' if jobtype.emoji else ''}" + await t.t(jobtype.title, lang)
         keyboard.row(InlineKeyboardButton(text=text, callback_data=f"work_jobtype|{jobtype.id}"))
 
-    # прочие
-    # TODO сделать прочие (ТО и тд.)
-    keyboard.row(InlineKeyboardButton(text=f"{await t.t('other', lang)}", callback_data="other"))
-
     # назад
     back_button: tuple = await btn.get_back_button(f"back_to_choose_subcategory|{category_id}", lang)
     keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
@@ -82,7 +78,7 @@ async def select_work_category(jobtypes: List[Jobtype], category_id: int, lang: 
     return keyboard
 
 
-async def select_jobs_keyboard(jobs: List[Job], page: int, category_id: int, lang: str, selected_jobs: list[int] = []) -> InlineKeyboardBuilder:
+async def select_jobs_keyboard(jobs: List[Job], page: int, category_id: int, lang: str, selected_jobs: list[int]) -> InlineKeyboardBuilder:
     """Клавиатура для выбора jobs после выбора группы узлов с пагинацией"""
     keyboard = InlineKeyboardBuilder()
 
@@ -160,12 +156,12 @@ async def back_from_comment_keyboard(duration: int, lang: str) -> InlineKeyboard
     """"Клавиатура для возврата назад из комментария"""
     keyboard = InlineKeyboardBuilder()
 
+    # продолжить
+    keyboard.row(InlineKeyboardButton(text=f"{await t.t('continue', lang)}", callback_data="continue"))
+
     # назад
     back_button: tuple = await btn.get_back_button(f"back_to_work_location|{duration}", lang)
     keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
-
-    # продолжить
-    keyboard.row(InlineKeyboardButton(text=f"{await t.t('continue', lang)}", callback_data="continue"))
 
     return keyboard
 

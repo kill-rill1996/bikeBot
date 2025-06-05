@@ -679,13 +679,14 @@ async def edit_job_start(callback: types.CallbackQuery, tg_id: int, state: FSMCo
 
 
 @router.callback_query(F.data.split("|")[0] == "edit-job-select-category", EditJob.select_category)
-@router.callback_query(F.data.split("|")[0] == "back_from_get_jobtype", EditJob.select_category)
+@router.callback_query(F.data.split("|")[0] == "back_from_get_jobtype")
 async def edit_job_get_category(callback: types.CallbackQuery, tg_id: int, state: FSMContext, session: Any) -> None:
     """Запись category job. Выбор jobtype"""
     lang = r.get(f"lang:{tg_id}").decode()
     category_id = int(callback.data.split("|")[1])
 
     await state.set_state(EditJob.select_jobtype)
+    await state.update_data(category_id=category_id)
 
     jobtypes = await AsyncOrm.get_job_types_by_category(category_id, session)
 

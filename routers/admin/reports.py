@@ -200,7 +200,7 @@ async def vehicle_report_by_category(callback: types.CallbackQuery, tg_id: str, 
     waiting_message = await callback.message.edit_text(await t.t("please_wait", lang))
 
     start_date, end_date = get_dates_by_period(period)
-    operations = await AsyncOrm.get_operations_by_subcategory_and_period(category_id, start_date, end_date, session)
+    operations = await AsyncOrm.get_operations_by_category_and_period(category_id, start_date, end_date, session)
 
     # если нет операций
     if not operations:
@@ -573,8 +573,8 @@ async def inefficiency_report(callback: types.CallbackQuery, tg_id: str, session
     if row_text:
         text += await t.t("repeatable_jobs", lang) + "\n"
         text += row_text + "\n"
-    else:
-        text += await t.t('no_operations') + "\n"
+    # else:
+    #     text += await t.t('no_operations', lang) + "\n"
 
     # операции без комментариев
     text += await t.t("no_comments", lang) + "\n"

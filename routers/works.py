@@ -100,7 +100,6 @@ async def work_detail(callback: types.CallbackQuery, tg_id: str, session: Any) -
 
     operation_id = int(callback.data.split("|")[1])
 
-    # TODO add cache
     operation: OperationDetailJobs = await AsyncOrm.select_operation(operation_id, session)
 
     message = await ms.work_detail_message(lang, operation)

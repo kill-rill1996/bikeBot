@@ -45,7 +45,7 @@ class OperationJobs(BaseModel):
 class OperationDetailJobs(BaseModel):
     id: int
     created_at: datetime.datetime
-    comment: str
+    comment: str | None = None
     duration: int
     serial_number: int
     transport_category: str

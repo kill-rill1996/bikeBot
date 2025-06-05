@@ -158,7 +158,8 @@ async def select_category_for_jobtypes_report(categories: List[Category], report
     keyboard = InlineKeyboardBuilder()
 
     for c in categories:
-        keyboard.row(InlineKeyboardButton(text=await t.t(c.title, lang), callback_data=f"jobtypes_report_category|{report_type}|{period}|{c.id}"))
+        emoji = c.emoji + " " if c.emoji else ""
+        keyboard.row(InlineKeyboardButton(text=emoji + await t.t(c.title, lang), callback_data=f"jobtypes_report_category|{report_type}|{period}|{c.id}"))
 
     # назад
     back_button: tuple = await btn.get_back_button(f"admin-reports|{report_type}", lang)

@@ -468,6 +468,7 @@ class AsyncOrm:
                 FROM jobtypes j
                 JOIN categories_jobtypes cj ON j.id = cj.jobtype_id 
                 WHERE cj.category_id = $1
+                ORDER BY j.id
                 """,
                 category_id
             )
@@ -502,7 +503,8 @@ class AsyncOrm:
                 """
                 SELECT *
                 FROM jobtypes
-                WHERE id = ANY($1::int[]);
+                WHERE id = ANY($1::int[])
+                ORDER BY id;
                 """,
                 jobtypes_ids
             )
@@ -574,6 +576,7 @@ class AsyncOrm:
                 SELECT *
                 FROM jobs
                 WHERE id in {jobs_ids_list}
+                ORDER BY id;
                 """
             )
 
