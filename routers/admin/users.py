@@ -107,7 +107,7 @@ async def add_user_start(callback: types.CallbackQuery, tg_id: str, session: Any
     """Просмотр пользователей"""
     lang = r.get(f"lang:{tg_id}").decode()
 
-    users = await AsyncOrm.get_all_users(session)
+    users = await AsyncOrm.get_all_users(session, only_active=True)
 
     text = await t.t("choose_user", lang)
     keyboard = await kb.users_keyboard(users, lang)

@@ -119,7 +119,6 @@ class AsyncOrm:
         except Exception as e:
             logger.error(f"Ошибка при изменении роли пользователя {user_id} на {role}: {e}")
 
-
     @staticmethod
     async def get_all_users(session: Any, only_active: bool = False) -> List[User]:
         """Получение всех пользователей"""
@@ -890,6 +889,45 @@ class AsyncOrm:
 
         except Exception as e:
             logger.error(f"Ошибка при получении операций по подкатегории {subcategory_id} с {start_date} "
+                         f"до {end_date}: {e}")
+
+    @staticmethod
+    async def get_operations_by_category_and_period(category_id: int, start_date: datetime.datetime,
+                                                    end_date: datetime.datetime, session: Any) -> List[OperationWithJobs]:
+        """Получение операций по категории за период"""
+        try:
+            rows = await session.fetch(
+                """
+                SELECT o.*, c.title AS transport_category, sc.title AS transport_subcategory, t.serial_number AS transport_serial_number
+                FROM operations AS o
+                JOIN transports AS t ON o.transport_id = t.id
+                JOIN categories AS c ON t.category_id = c.id
+                JOIN subcategories AS sc ON t.subcategory_id = sc.id
+                WHERE o.created_at > $1 AND o.created_at < $2 AND c.id = $3;
+                """,
+                start_date, end_date, category_id
+            )
+            operations = [OperationWithJobs.model_validate(row) for row in rows]
+
+            # получение jobs с jobtype для операций
+            for i in range(len(operations)):
+                rows = await session.fetch(
+                    """
+                    SELECT j.id, j.title, jt.title AS jobtype_title
+                    FROM jobs AS j
+                    JOIN operations_jobs AS oj ON j.id = oj.job_id
+                    JOIN jobtypes AS jt ON j.jobtype_id = jt.id
+                    WHERE oj.operation_id = $1 
+                    """,
+                    operations[i].id
+                )
+                jobs_with_jobtype = [JobWithJobtypeTitle.model_validate(row) for row in rows]
+                operations[i].jobs = jobs_with_jobtype
+
+            return sorted(operations, key=lambda o: o.created_at, reverse=True)
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении операций по подкатегории {category_id} с {start_date} "
                          f"до {end_date}: {e}")
 
     @staticmethod
