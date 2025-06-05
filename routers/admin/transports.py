@@ -14,7 +14,7 @@ from database.orm import AsyncOrm
 from routers.keyboards import transports as kb
 from routers.states.transports import AddTransportCategoryFSM, EditCategoryFSM, AddSubCategory, EditSubcategory, \
     AddVehicle, EditVehicle, MassiveAddVehicle
-from utils.validations import parse_input_transport_numbers
+from utils.validations import parse_input_transport_numbers, transport_list_to_str
 
 router = Router()
 
@@ -979,12 +979,19 @@ async def select_subcategory(callback: types.CallbackQuery, tg_id: str, state: F
         await state.set_state(MassiveAddVehicle.input_vehicle)
 
     text = f"{category_emoji + ' ' if category_emoji else ''}{await t.t(category_title, lang)} -> {subcategory.title}\n"
+
     if current_state == MassiveAddVehicle.input_subcategory:
+        existing_transport = await AsyncOrm.get_transports_for_subcategory(subcategory_id, session)
+        existing_transports_string = transport_list_to_str([transport.serial_number for transport in existing_transport])
+        text += await t.t("existing_transport", lang) + "\n"
+        text += existing_transports_string
         text += await t.t("input_transport_number_massive", lang)
+
     elif current_state == EditVehicle.input_vehicle:
         existing_transport = await AsyncOrm.get_transports_for_subcategory(subcategory_id, session)
-
+        existing_transports_string = transport_list_to_str([transport.serial_number for transport in existing_transport])
         text += await t.t("existing_transport", lang) + "\n"
+        text += existing_transports_string
     else:
         text += await t.t("input_transport_number", lang)
 
@@ -1053,7 +1060,7 @@ async def input_transport_number(message: types.Message, tg_id: str, state: FSMC
         # Если все нормально и такого номера транспорта еще нет
         await state.set_state(AddVehicle.confirm)
 
-        text = f"{await t.t('add_transport', lang)}?\n{category_emoji + ' ' if category_emoji else ''}{category_title} -> {subcategory_title}-{input_text}"
+        text = f"{await t.t('add_transport', lang)}?\n{category_emoji + ' ' if category_emoji else ''}{await t.t(category_title, lang)} -> {subcategory_title}-{input_text}"
         keyboard = await kb.confirm_transport_create_keyboard(lang)
         await message.answer(text, reply_markup=keyboard.as_markup())
 
@@ -1223,7 +1230,7 @@ async def confirm_transport_add(callback: types.CallbackQuery, tg_id: str, state
         try:
             new_transport_number = int(data["new_transport_number"])
             await AsyncOrm.edit_transport(new_transport_number, serial_number, subcategory_id, session)
-            text = f"✅ {await t.t('vehicle', lang)} {category_emoji + ' ' if category_emoji else ''}{category_title} -> {subcategory_title}-{new_transport_number} {await t.t('success', lang)} {await t.t('changed', lang)}"
+            text = f"✅ {await t.t('vehicle', lang)} {category_emoji + ' ' if category_emoji else ''}{await t.t(category_title, lang)} -> {subcategory_title}-{new_transport_number} {await t.t('success', lang)} {await t.t('changed', lang)}"
         except Exception as e:
             await callback.message.edit_text(f"Ошибка при изменении транспорта: {e}", reply_markup=keyboard.as_markup())
             return
@@ -1236,7 +1243,7 @@ async def confirm_transport_add(callback: types.CallbackQuery, tg_id: str, state
         try:
             for transport_number in numbers_list:
                 await AsyncOrm.create_transport(int(transport_number), subcategory_id, category_id, session)
-            text = f"✅ {await t.t('vehicle', lang)} {category_emoji + ' ' if category_emoji else ''}{category_title} -> {subcategory_title} {numbers_string} {await t.t('success', lang)} {await t.t('created', lang)}"
+            text = f"✅ {await t.t('vehicle', lang)} {category_emoji + ' ' if category_emoji else ''}{await t.t(category_title, lang)} -> {subcategory_title} {numbers_string} {await t.t('success', lang)} {await t.t('created', lang)}"
 
         except Exception as e:
             await callback.message.edit_text(f"Ошибка при создании транспорта: {e}", reply_markup=keyboard.as_markup())

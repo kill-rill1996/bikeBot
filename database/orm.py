@@ -1236,6 +1236,7 @@ class AsyncOrm:
                 FROM transports AS t
                 JOIN subcategories AS sc ON t.subcategory_id = sc.id
                 WHERE sc.id=$1
+                ORDER BY t.serial_number ASC
                 """,
                 subcategory_id
             )
