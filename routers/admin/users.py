@@ -268,8 +268,8 @@ async def delete_user(callback: types.CallbackQuery, tg_id: str, session: Any) -
     user_id = int(callback.data.split("|")[1])
     user = await AsyncOrm.get_user_by_id(user_id, session)
 
-    # удаление из БД
-    await AsyncOrm.delete_user(user.tg_id, session)
+    # делаем неактивным в БД
+    await AsyncOrm.deactivate_user(user.tg_id, session)
 
     # удаление из кэша
     r.delete(f"allowed_users:{user.tg_id}")

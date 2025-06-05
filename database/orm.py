@@ -292,6 +292,32 @@ class AsyncOrm:
             logger.error(f"Ошибка при удалении пользователя {tg_id}: {e}")
 
     @staticmethod
+    async def deactivate_user(tg_id: str, session: Any) -> None:
+        """Делаем пользователя неактивным"""
+        try:
+            # ставим is_active = False
+            await session.execute(
+                """
+                UPDATE users
+                SET is_active = false
+                WHERE tg_id = $1;
+                """,
+                tg_id
+            )
+
+            # удаляем из allowed_users
+            await session.execute(
+                """
+                DELETE FROM allowed_users
+                WHERE tg_id = $1
+                """,
+                tg_id
+            )
+
+        except Exception as e:
+            logger.error(f"Ошибка при переводе пользователя {tg_id} в неактивные: {e}")
+
+    @staticmethod
     async def get_all_categories(session: Any) -> List[Category]:
         """Получение всех категорий транспорта"""
         try:

@@ -19,6 +19,7 @@ class EditJobetype(StatesGroup):
 
 
 class AddJob(StatesGroup):
+    select_category = State()
     select_jobtype = State()
     input_job_title = State()
     translate_1 = State()
@@ -27,6 +28,7 @@ class AddJob(StatesGroup):
 
 
 class EditJob(StatesGroup):
+    select_category = State()
     select_jobtype = State()
     select_job = State()
     input_job_title = State()

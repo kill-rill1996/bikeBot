@@ -373,15 +373,38 @@ async def confirm_create_jobtype(callback: types.CallbackQuery, tg_id: str, stat
 # ADD JOB
 @router.callback_query(F.data == "jobs-management|add_job")
 async def add_job_start(callback: types.CallbackQuery, tg_id: int, state: FSMContext, session: Any) -> None:
-    """Начало добавления job"""
+    """Начало добавления job. Выбор категории транспорта"""
     lang = r.get(f"lang:{tg_id}").decode()
+    await state.set_state(AddJob.select_category)
+
+    # получаем категории
+    categories = await AsyncOrm.get_all_categories(session)
+
+    text = await t.t("select_category", lang)
+    keyboard = await kb.select_category_keyboard(categories, "add-job-select-category", lang)
+
+    await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
+
+
+@router.callback_query(F.data.split("|")[0] == "add-job-select-category", AddJob.select_category)
+async def add_job_get_category(callback: types.CallbackQuery, tg_id: int, state: FSMContext, session: Any) -> None:
+    """Получение категории. Выбор jobtype"""
+    lang = r.get(f"lang:{tg_id}").decode()
+    category_id = int(callback.data.split("|")[1])
 
     await state.set_state(AddJob.select_jobtype)
 
-    jobtypes = await AsyncOrm.get_all_jobtypes(session)
+    jobtypes = await AsyncOrm.get_job_types_by_category(category_id, session)
+
+    # если группы узлов нет
+    if not jobtypes:
+        text = await t.t("no_jobtypes", lang)
+        error_keyboard = await kb.back_keyboard(lang, "jobs-management|add_job")
+        await callback.message.edit_text(text, reply_markup=error_keyboard.as_markup())
+        return
 
     text = await t.t("select_jobtype", lang)
-    keyboard = await kb.select_jobtype_keyboard_for_add(jobtypes, lang)
+    keyboard = await kb.select_jobtype_keyboard(jobtypes, "add-job-select-jobtype", "jobs-management|add_job", lang)
 
     await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
 
@@ -437,7 +460,7 @@ async def add_job_get_job_title(message: types.Message, tg_id: int, state: FSMCo
     await state.update_data(languages_2=languages[1])
 
     text = await t.t("add_translate", lang) + " " + await t.t(languages[0], lang)
-    keyboard = await kb.cancel_add_job_keybaord(lang)
+    keyboard = await kb.cancel_add_or_edit_job_keyboard(lang)
     msg = await message.answer(text, reply_markup=keyboard.as_markup())
     await state.update_data(prev_mess=msg)
 
@@ -471,7 +494,7 @@ async def add_job_get_translate_1(message: types.Message, tg_id: int, state: FSM
     await state.set_state(AddJob.translate_2)
 
     text = await t.t("add_translate", lang) + " " + await t.t(data["languages_2"], lang)
-    keyboard = await kb.cancel_add_job_keybaord(lang)
+    keyboard = await kb.cancel_add_or_edit_job_keyboard(lang)
     msg = await message.answer(text, reply_markup=keyboard.as_markup())
 
     await state.update_data(prev_mess=msg)
@@ -510,7 +533,7 @@ async def add_job_get_translate_2(message: types.Message, tg_id: int, state: FSM
     job_title = data["job_title"]
 
     text = await t.t("confirm_job_add", lang)
-    keyboard = await kb.add_job_confirm_keyboard(lang)
+    keyboard = await kb.add_or_edit_job_confirm_keyboard("add_job_confirmed", lang)
     await message.answer(text.format(job_title), reply_markup=keyboard.as_markup())
 
 
@@ -534,7 +557,7 @@ async def save_job(callback: types.CallbackQuery, tg_id: int, state: FSMContext,
             dictionary_for_translator
         )
     except Exception as e:
-        keyboard = await kb.cancel_add_job_keybaord(lang)
+        keyboard = await kb.cancel_add_or_edit_job_keyboard(lang)
         await waiting_message.edit_text(f"Ошибка при сохранении перевода: {e}", reply_markup=keyboard.as_markup())
         await state.clear()
         return
@@ -553,15 +576,40 @@ async def save_job(callback: types.CallbackQuery, tg_id: int, state: FSMContext,
 # EDIT JOB
 @router.callback_query(F.data == "jobs-management|edit_job")
 async def edit_job_start(callback: types.CallbackQuery, tg_id: int, state: FSMContext, session: Any) -> None:
-    """Начало изменения job. Выбор jobtype"""
+    """Начало изменения job. Выбор category"""
     lang = r.get(f"lang:{tg_id}").decode()
+
+    await state.set_state(EditJob.select_category)
+
+    # получаем категории
+    categories = await AsyncOrm.get_all_categories(session)
+
+    text = await t.t("select_category", lang)
+    keyboard = await kb.select_category_keyboard(categories, "edit-job-select-category", lang)
+
+    await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
+
+
+@router.callback_query(F.data.split("|")[0] == "edit-job-select-category", EditJob.select_category)
+@router.callback_query(F.data.split("|")[0] == "back_from_get_jobtype", EditJob.select_category)
+async def edit_job_get_category(callback: types.CallbackQuery, tg_id: int, state: FSMContext, session: Any) -> None:
+    """Запись category job. Выбор jobtype"""
+    lang = r.get(f"lang:{tg_id}").decode()
+    category_id = int(callback.data.split("|")[1])
 
     await state.set_state(EditJob.select_jobtype)
 
-    jobtypes = await AsyncOrm.get_all_jobtypes(session)
+    jobtypes = await AsyncOrm.get_job_types_by_category(category_id, session)
+
+    # если группы узлов нет
+    if not jobtypes:
+        text = await t.t("no_jobtypes", lang)
+        error_keyboard = await kb.back_keyboard(lang, "jobs-management|edit_job")
+        await callback.message.edit_text(text, reply_markup=error_keyboard.as_markup())
+        return
 
     text = await t.t("select_jobtype", lang)
-    keyboard = await kb.select_jobtype_keyboard_for_edit(jobtypes, lang)
+    keyboard = await kb.select_jobtype_keyboard(jobtypes, "edit-job-select-jobtype", "jobs-management|edit_job", lang)
 
     await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
 
@@ -576,6 +624,14 @@ async def get_jobtype_choose_job(callback: types.CallbackQuery, tg_id: int, stat
     await state.update_data(jobtype_id=jobtype_id)
 
     jobs = await AsyncOrm.get_all_jobs_by_jobtype_id(jobtype_id, session)
+
+    # если работ в группе узлов нет
+    if not jobs:
+        text = await t.t("no_jobs", lang)
+        data = await state.get_data()
+        error_keyboard = await kb.back_keyboard(lang, f"back_from_get_jobtype|{data['category_id']}")
+        await callback.message.edit_text(text, reply_markup=error_keyboard.as_markup())
+        return
 
     text = await t.t("select_job", lang)
     keyboard = await kb.select_job_keyboard(jobs, lang)
@@ -633,7 +689,7 @@ async def edit_job_get_job_title(message: types.Message, tg_id: int, state: FSMC
     await state.update_data(languages_2=languages[1])
 
     text = await t.t("add_translate", lang) + " " + await t.t(languages[0], lang)
-    keyboard = await kb.cancel_add_job_keybaord(lang)
+    keyboard = await kb.cancel_add_or_edit_job_keyboard(lang)
     msg = await message.answer(text, reply_markup=keyboard.as_markup())
     await state.update_data(prev_mess=msg)
 
@@ -667,7 +723,7 @@ async def edit_job_get_translate_1(message: types.Message, tg_id: int, state: FS
     await state.set_state(EditJob.translate_2)
 
     text = await t.t("add_translate", lang) + " " + await t.t(data["languages_2"], lang)
-    keyboard = await kb.cancel_add_job_keybaord(lang)
+    keyboard = await kb.cancel_add_or_edit_job_keyboard(lang)
     msg = await message.answer(text, reply_markup=keyboard.as_markup())
 
     await state.update_data(prev_mess=msg)
@@ -732,7 +788,7 @@ async def save_job(callback: types.CallbackQuery, tg_id: int, state: FSMContext,
             dictionary_for_translator
         )
     except Exception as e:
-        keyboard = await kb.cancel_add_job_keybaord(lang)
+        keyboard = await kb.cancel_add_or_edit_job_keyboard(lang)
         await waiting_message.edit_text(f"Ошибка при сохранении перевода: {e}", reply_markup=keyboard.as_markup())
         await state.clear()
         return
