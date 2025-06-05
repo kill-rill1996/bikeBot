@@ -92,7 +92,7 @@ class Jobtype(Base):
     __tablename__ = "jobtypes"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    title: Mapped[str] = mapped_column(nullable=False, unique=True)
+    title: Mapped[str] = mapped_column(nullable=False)
     emoji: Mapped[str] = mapped_column(nullable=True)
 
     transport_categories: Mapped[list["Category"]] = relationship(

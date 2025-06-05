@@ -460,7 +460,7 @@ class AsyncOrm:
 
     @staticmethod
     async def get_job_types_by_category(category_id: int, session: Any) -> List[Jobtype]:
-        """Получение групп узлов (Jjobtypes) для категории"""
+        """Получение групп узлов (Jobtypes) для категории"""
         try:
             rows = await session.fetch(
                 """
@@ -1255,7 +1255,7 @@ class AsyncOrm:
                          f"на s.n {new_serial_number}: {e}")
 
     @staticmethod
-    async def create_jobtype(jobtype_title: str, selected_categories: list[int],  session: Any, emoji: str = None):
+    async def create_jobtype(jobtype_title: str, category_id: int,  session: Any, emoji: str = None) -> None:
         """Добавление категории узла"""
         try:
             jobtype_id = await session.fetchval(
@@ -1267,14 +1267,13 @@ class AsyncOrm:
                 jobtype_title, emoji
             )
 
-            for category_id in selected_categories:
-                await session.execute(
-                    """
-                    INSERT INTO categories_jobtypes(category_id, jobtype_id)
-                    VALUES($1, $2)
-                    """,
-                    category_id, jobtype_id
-                )
+            await session.execute(
+                """
+                INSERT INTO categories_jobtypes(category_id, jobtype_id)
+                VALUES($1, $2)
+                """,
+                category_id, jobtype_id
+            )
 
         except Exception as e:
             logger.error(f"Ошибка при добавлении группы узла {jobtype_title} для категорий {[selected_categories]}: {e}")
@@ -1297,7 +1296,7 @@ class AsyncOrm:
             logger.error(f"Ошибка при получении id категорий для jobtype {jobtype_id}: {e}")
 
     @staticmethod
-    async def update_jobtype(jobtype_id: int, jobtype_title: str, selected_categories: list[int], session: Any) -> None:
+    async def update_jobtype(jobtype_id: int, jobtype_title: str, session: Any) -> None:
         """Обновление jobtype.title"""
         try:
             # обновляем название группы узла
@@ -1308,23 +1307,23 @@ class AsyncOrm:
                 """,
                 jobtype_title, jobtype_id
             )
-            # удаляем старые связи с категориями
-            await session.execute(
-                """
-                DELETE FROM categories_jobtypes 
-                WHERE jobtype_id = $1
-                """,
-                jobtype_id
-            )
-            # записываем новые связи
-            for category_id in selected_categories:
-                await session.execute(
-                    """
-                    INSERT INTO categories_jobtypes(category_id, jobtype_id)
-                    VALUES($1, $2)
-                    """,
-                    category_id, jobtype_id
-                )
+            # # удаляем старые связи с категориями
+            # await session.execute(
+            #     """
+            #     DELETE FROM categories_jobtypes
+            #     WHERE jobtype_id = $1
+            #     """,
+            #     jobtype_id
+            # )
+            # # записываем новые связи
+            # for category_id in selected_categories:
+            #     await session.execute(
+            #         """
+            #         INSERT INTO categories_jobtypes(category_id, jobtype_id)
+            #         VALUES($1, $2)
+            #         """,
+            #         category_id, jobtype_id
+            #     )
 
         except Exception as e:
             logger.error(f"Ошибка при обновлении jobtype.title для jobtype {jobtype_id}: {e}")

@@ -117,7 +117,27 @@ async def jobetypes_keyboard(job_types: list[Jobtype], lang) -> InlineKeyboardBu
         keyboard.row(
             InlineKeyboardButton(
                 text=f"{job_type.emoji + ' ' if job_type.emoji else ''} {await t.t(job_type.title, lang)}",
-                callback_data=f"jobtype-selected|{job_type.id}"
+                callback_data=f"select_categories_done|{job_type.id}"
+            )
+        )
+
+    # назад
+    back_button: tuple = await btn.get_back_button("jobs-management|edit_jobtype", lang)
+    keyboard.row(
+        InlineKeyboardButton(text=back_button[0], callback_data=back_button[1])
+    )
+
+    return keyboard
+
+
+async def select_category(categories: list[Category], lang: str) -> InlineKeyboardBuilder:
+    keyboard = InlineKeyboardBuilder()
+
+    for category in categories:
+        keyboard.row(
+            InlineKeyboardButton(
+                text=f"{category.emoji + ' ' if category.emoji else ''} {await t.t(category.title, lang)}",
+                callback_data=f"jobtype-selected|{category.id}"
             )
         )
 
@@ -128,7 +148,6 @@ async def jobetypes_keyboard(job_types: list[Jobtype], lang) -> InlineKeyboardBu
     )
 
     return keyboard
-
 
 # ADD / EDIT JOB
 async def select_category_keyboard(categories: list[Category], callback_data: str, lang: str) -> InlineKeyboardBuilder:

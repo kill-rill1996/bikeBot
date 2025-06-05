@@ -120,8 +120,3 @@ def transport_list_to_str(transports: list[int]) -> str:
 
     return ", ".join(result)
 
-
-if __name__ == "__main__":
-    print(transport_list_to_str([1, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 17, 18, 103, 112, 113, 114]))
-    # from_transport_list_to_srt([1, 3, 4, 5, 6, 103, 112])
-
