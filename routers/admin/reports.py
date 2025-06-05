@@ -108,7 +108,7 @@ async def mechanic_report(callback: types.CallbackQuery, tg_id: str, session: An
 
         text += row_text + "\n\n"
 
-    keyboard = await kb.report_details_keyboard(period, "individual_mechanic_report", user_id, lang)
+    keyboard = await kb.mechanic_report_details_keyboard(period, "individual_mechanic_report", user_id, lang)
     await waiting_message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
@@ -174,8 +174,69 @@ async def vehicle_report_select_type(callback: types.CallbackQuery, tg_id: str) 
     await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
+# BY CATEGORY
+@router.callback_query(and_f(F.data.split("|")[0] == "vehicle_report_type", F.data.split("|")[1] == "by_category"))
+async def vehicle_report_by_category_choose_category(callback: types.CallbackQuery, tg_id: str, session: Any) -> None:
+    """Выбор подкатегории"""
+    lang = r.get(f"lang:{tg_id}").decode()
+    report_type = callback.data.split("|")[2]
+    period = callback.data.split("|")[3]
+
+    text = await t.t("select_category", lang)
+    categories = await AsyncOrm.get_all_categories(session)
+    keyboard = await kb.select_vehicle_category(categories, report_type, period, lang)
+
+    await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
+
+
+@router.callback_query(F.data.split("|")[0] == "vehicle_report_by_c")
+async def vehicle_report_by_category(callback: types.CallbackQuery, tg_id: str, session: Any) -> None:
+    """Отчет по транспорту по категории"""
+    lang = r.get(f"lang:{tg_id}").decode()
+    report_type = callback.data.split("|")[1]
+    period = callback.data.split("|")[2]
+    category_id = int(callback.data.split("|")[3])
+
+    waiting_message = await callback.message.edit_text(await t.t("please_wait", lang))
+
+    start_date, end_date = get_dates_by_period(period)
+    operations = await AsyncOrm.get_operations_by_subcategory_and_period(category_id, start_date, end_date, session)
+
+    # если нет операций
+    if not operations:
+        msg_text = await t.t("no_operations", lang)
+        keyboard = await kb.back_to("by_category", period, report_type, lang)
+        await waiting_message.edit_text(msg_text, reply_markup=keyboard.as_markup())
+        return
+
+    # header
+    category_title = operations[0].transport_category
+    text = f"📆 {await t.t('vehicle_report', lang)}\n{await t.t('category', lang)} <b>{await t.t(category_title, lang)}</b>\n\n"
+
+    # operations
+    for idx, operation in enumerate(operations, start=1):
+        mechanic = await AsyncOrm.get_user_by_tg_id(operation.tg_id, session)
+        location = await AsyncOrm.get_location_by_id(operation.location_id, session)
+        row_text = f"<b>{idx})</b> {convert_date_time(operation.created_at, with_tz=True)[0]} | " \
+                   f"{operation.transport_subcategory}-{operation.transport_serial_number} | " \
+                   f"{mechanic.username} | {await t.t(location.name, lang)}\n"
+        # суммарное время обслуживания
+        row_text += f"{await t.t('works_time', lang)} {operation.duration} {await t.t('minutes', lang)}\n"
+        comment = operation.comment if operation.comment else "-"
+        row_text += f"{await t.t('comment', lang)} <i>'{comment}'</i>\n"
+
+        # jobs
+        for job in operation.jobs:
+            row_text += "\t\t• " + await t.t(job.title, lang) + "\n"
+
+        text += row_text + "\n"
+
+    keyboard = await kb.vehicle_report_details_keyboard("by_category", period, report_type, lang)
+    await waiting_message.edit_text(text, reply_markup=keyboard.as_markup())
+
+
 # BY SUBCATEGORY
-@router.callback_query(F.data.split("|")[0] == "vehicle_report_type" and F.data.split("|")[1] == "by_subcategory")
+@router.callback_query(and_f(F.data.split("|")[0] == "vehicle_report_type", F.data.split("|")[1] == "by_subcategory"))
 async def vehicle_report_by_subcategory_choose_subcategory(callback: types.CallbackQuery, tg_id: str, session: Any) -> None:
     """Выбор подкатегории"""
     lang = r.get(f"lang:{tg_id}").decode()
@@ -204,7 +265,7 @@ async def vehicle_report_by_subcategory(callback: types.CallbackQuery, tg_id: st
 
     if not operations:
         msg_text = await t.t("no_operations", lang)
-        keyboard = await kb.back_to_choose_subcategory("by_subcategory", period, report_type, lang)
+        keyboard = await kb.back_to("by_subcategory", period, report_type, lang)
         await waiting_message.edit_text(msg_text, reply_markup=keyboard.as_markup())
         return
 
@@ -229,7 +290,7 @@ async def vehicle_report_by_subcategory(callback: types.CallbackQuery, tg_id: st
 
         text += row_text + "\n"
 
-    keyboard = await kb.vehicle_report_by_category_details_keyboard("by_subcategory", period, report_type, lang)
+    keyboard = await kb.vehicle_report_details_keyboard("by_subcategory", period, report_type, lang)
     await waiting_message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
@@ -289,7 +350,7 @@ async def vehicle_report_by_transport(callback: types.CallbackQuery, tg_id: str,
 
     if not operations:
         msg_text = await t.t("no_operations", lang)
-        keyboard = await kb.back_to_choose_subcategory("by_transport", period, report_type, lang)
+        keyboard = await kb.back_to("by_transport", period, report_type, lang)
         await waiting_message.edit_text(msg_text, reply_markup=keyboard.as_markup())
         return
 
@@ -313,25 +374,40 @@ async def vehicle_report_by_transport(callback: types.CallbackQuery, tg_id: str,
 
         text += row_text + "\n"
 
-    keyboard = await kb.vehicle_report_by_category_details_keyboard("by_transport", period, report_type, lang)
+    keyboard = await kb.vehicle_report_details_keyboard("by_transport", period, report_type, lang)
     await waiting_message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
 # 📆 Отчет по категориям работ
 @router.callback_query(and_f(F.data.split("|")[0] == "reports-period", F.data.split("|")[1] == "work_categories_report"))
+async def report_by_jobtypes_select_category(callback: types.CallbackQuery, tg_id: int, session: Any) -> None:
+    """Выбор категории"""
+    lang = r.get(f"lang:{tg_id}").decode()
+    report_type = callback.data.split("|")[1]
+    period = callback.data.split("|")[2]
+
+    text = await t.t("select_category", lang)
+    categories = await AsyncOrm.get_all_categories(session)
+
+    keyboard = await kb.select_category_for_jobtypes_report(categories, report_type, period, lang)
+    await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
+
+
+@router.callback_query(F.data.split("|")[0] == "jobtypes_report_category")
 @router.callback_query(F.data.split("|")[0] == "back_to_select")
 async def report_by_jobtypes_select_jobtypes(callback: types.CallbackQuery, tg_id: int, state: FSMContext, session: Any) -> None:
     """Выбор jobtypes для отчета по работам"""
     lang = r.get(f"lang:{tg_id}").decode()
     report_type = callback.data.split("|")[1]
     period = callback.data.split("|")[2]
+    category_id = int(callback.data.split("|")[3])
 
     # устанавливаем стейт для мультивыбора
     await state.set_state(JobtypesReport.select)
     await state.update_data(selected_jobtypes=[])
 
     # для производительности храним в стейте
-    jobtypes = await AsyncOrm.get_all_jobtypes(session)
+    jobtypes = await AsyncOrm.get_job_types_by_category(category_id, session)
     await state.update_data(jobtypes=jobtypes)
 
     text = await t.t("choose_jobtypes", lang)
@@ -447,6 +523,7 @@ async def report_by_jobtypes(callback: types.CallbackQuery, tg_id: str, state: F
             row_text += f"{k}: {v} "
 
         text += row_text + "\n\n"
+
 
     keyboard = await kb.jobtypes_report_details_keyboard(report_type, period, lang)
     await waiting_message.edit_text(text, reply_markup=keyboard.as_markup())

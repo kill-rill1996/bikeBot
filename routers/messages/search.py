@@ -15,7 +15,7 @@ async def search_transport_result(operations: list[OperationJobsUserLocation], l
     message = f"<b>{text.format(len(operations))}\n\n</b>"
 
     for operation in operations:
-        date: str = convert_date_time(operation.created_at)[0]
+        date: str = convert_date_time(operation.created_at, with_tz=True)[0]
         category_title = await t.t(operation.category_title, lang)
 
         message += f"{date}: ID {operation.id} | {category_title} | {operation.subcategory_title}-{operation.serial_number} | "
@@ -32,7 +32,7 @@ async def search_transport_result(operations: list[OperationJobsUserLocation], l
 async def operation_detail_message(operation: OperationJobsUserLocation, lang: str) -> str:
     """Вывод деталей по выбранной работе"""
     message = await t.t("selected_work_details", lang) + "\n\n"
-    date = convert_date_time(operation.created_at)[0]
+    date = convert_date_time(operation.created_at, with_tz=True)[0]
     message += f"ID: {operation.id}, {date}, {operation.duration} {await t.t('minutes', lang)}\n{await t.t(operation.category_title, lang)} {operation.subcategory_title}-{operation.serial_number}\n\n"
 
     for job in operation.jobs:

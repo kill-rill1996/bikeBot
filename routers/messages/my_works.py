@@ -5,7 +5,7 @@ from utils.date_time_service import convert_date_time
 
 async def work_detail_message(lang: str, work: OperationDetailJobs) -> str:
     """Сообщения для вывода информации по работе"""
-    local_date = convert_date_time(work.created_at)[0]
+    local_date = convert_date_time(work.created_at, with_tz=True)[0]
     comment = work.comment if work.comment else "-"
 
     message = await t.t("work_details", lang) + "\n" \

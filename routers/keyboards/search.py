@@ -71,7 +71,7 @@ async def found_operations_keyboard(
 
     # формируем из операций кнопки в формате date: ID|category|subcat-sn
     for operation in operations:
-        date = convert_date_time(operation.created_at)[0]
+        date = convert_date_time(operation.created_at, True)[0]
         text = f"{date}: {operation.id} | {await t.t(operation.category_title, lang)} | " \
                f"{operation.subcategory_title}-{operation.serial_number}"
         keyboard.row(
