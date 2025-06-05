@@ -312,6 +312,7 @@ class AsyncOrm:
                 """,
                 tg_id
             )
+            logger.info(f"Переведен в неактивные пользователь с tg_id {tg_id}")
 
         except Exception as e:
             logger.error(f"Ошибка при переводе пользователя {tg_id} в неактивные: {e}")
