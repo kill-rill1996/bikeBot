@@ -209,7 +209,8 @@
         "created": "created",
         "add_transport": "Add transport",
         "no_jobs": "There are no operations in the node group",
-        "no_jobtypes": "There is no node group in the category"
+        "no_jobtypes": "There is no node group in the category",
+        "existing_transport": "Already existing transport:"
     },
     "ru": {
         "input_name": "Введите ваше имя (например Джон Доу)",
@@ -427,7 +428,8 @@
         "created": "создана",
         "add_transport": "Добавить транспорт",
         "no_jobs": "В группе узлов нет операций",
-        "no_jobtypes": "В категории нет группы узлов"
+        "no_jobtypes": "В категории нет группы узлов",
+        "existing_transport": "Уже существующий транспорт:"
     },
     "es": {
         "name_error": "Nombre de usuario incorrecto ingresado, por favor inténtelo nuevamente",
@@ -639,6 +641,7 @@
         "created": "creado",
         "add_transport": "Añadir transporte",
         "no_jobs": "No hay operaciones en el grupo de nodos",
-        "no_jobtypes": "No hay ningún grupo de nodos en la categoría"
+        "no_jobtypes": "No hay ningún grupo de nodos en la categoría",
+        "existing_transport": "Transporte ya existente:"
     }
 }
