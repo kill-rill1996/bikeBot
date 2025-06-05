@@ -13,6 +13,8 @@ from routers.keyboards import my_works as kb
 from routers.messages import my_works as ms
 from routers.states.edit_work import EditWorkFSM
 
+from logger import logger
+
 from schemas.operations import OperationJobs, OperationDetailJobs
 
 from database.orm import AsyncOrm
@@ -140,7 +142,7 @@ async def edit_my_work(callback: types.CallbackQuery, tg_id: str, session: Any, 
     await state.update_data(operation_id=operation_id)
 
     # если еще можно изменить работу
-    text = await t.t("your_comment", lang) + "\n\n" + f"<i>{operation.comment}</i>" + "\n\n" \
+    text = await t.t("your_comment", lang) + "\n\n" + f"<i>{operation.comment if operation.comment else '-'}</i>" + "\n\n" \
            + await t.t("enter_new_comment", lang)
     keyboard = await kb.back_keyboard(lang, period, operation_id)
 
@@ -236,6 +238,8 @@ async def delete_my_work(callback: types.CallbackQuery, tg_id: str, session: Any
     lang = r.get(f"lang:{tg_id}").decode()
     operation_id = int(callback.data.split("|")[1])
 
+    operation: OperationDetailJobs = await AsyncOrm.select_operation(operation_id, session)
+
     # защита от ошибки при удалении из БД
     try:
         await AsyncOrm.delete_work(operation_id, session)
@@ -247,4 +251,8 @@ async def delete_my_work(callback: types.CallbackQuery, tg_id: str, session: Any
     text = await t.t("success_delete", lang)
     keyboard = await kb.after_comment_updated_keyboard(lang)
     await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
+
+    logger.info(f"Пользователь {tg_id} удалил работу ID {operation.id} | {operation.created_at} | \"{operation.comment}\""
+                f" | {operation.duration} min | {operation.transport_category} "
+                f"{operation.transport_subcategory}-{operation.serial_number} | {operation.jobs_titles}")
 
