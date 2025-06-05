@@ -228,6 +228,52 @@ async def select_transport(transports: List[TransportNumber], report_type: str, 
     return keyboard
 
 
+async def transport_pagination_keyboard(transports: List[TransportNumber], page: int, report_type: str, period: str, lang: str) -> InlineKeyboardBuilder:
+    """Клавиатура пагинации для выбора транспорта"""
+    keyboard = InlineKeyboardBuilder()
+
+    # pagination
+    nums_on_page = 24
+    pages = get_page_nums(len(transports), nums_on_page)
+
+    # при переходе с первой на последнюю
+    if page == 0:
+        page = pages
+
+    # при переходе с последней на первую
+    if page > pages:
+        page = 1
+
+    start = (page - 1) * nums_on_page
+    end = page * nums_on_page
+    page_transports = transports[start:end]
+
+    for transport in page_transports:
+        text = f"{transport.subcategory_title}-{transport.serial_number}"
+
+        keyboard.row(InlineKeyboardButton(text=text, callback_data=f"vehicle_report_by_t|{report_type}|{period}|{transport.id}"))
+
+    keyboard.adjust(4)
+
+    # pages
+    if len(transports) > nums_on_page:
+        keyboard.row(
+            InlineKeyboardButton(text=f"<", callback_data=f"prev|{page}|{report_type}|{period}"),
+            InlineKeyboardButton(text=f"{page}/{pages}", callback_data="pages"),
+            InlineKeyboardButton(text=f">", callback_data=f"next|{page}|{report_type}|{period}")
+        )
+
+    # назад
+    back_button: tuple = await btn.get_back_button(f"reports-period|{report_type}|{period}", lang)
+    keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
+
+    # главное меню
+    main_menu_button: tuple = await btn.get_main_menu_button(lang)
+    keyboard.row(InlineKeyboardButton(text=main_menu_button[0], callback_data=main_menu_button[1]))
+
+    return keyboard
+
+
 async def select_jobtypes(jobtypes: List[Jobtype], selected: List[int], report_type: str, period: str, lang: str) -> InlineKeyboardBuilder:
     """Клавиатура мультивыбора jobtypes"""
     keyboard = InlineKeyboardBuilder()
@@ -307,3 +353,13 @@ async def efficient_report_details_keyboard(report_type: str, lang: str) -> Inli
     keyboard.row(InlineKeyboardButton(text=main_menu_button[0], callback_data=main_menu_button[1]))
 
     return keyboard
+
+
+def get_page_nums(items: int, nums_on_page: int) -> int:
+    """Получение количества страниц"""
+    pages = items // nums_on_page
+
+    if items - pages * nums_on_page != 0:
+        pages += 1
+
+    return pages

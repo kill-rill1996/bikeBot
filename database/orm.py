@@ -427,7 +427,8 @@ class AsyncOrm:
                 """
                 SELECT serial_number
                 FROM transports
-                WHERE category_id = $1 AND subcategory_id = $2;
+                WHERE category_id = $1 AND subcategory_id = $2
+                ORDER BY serial_number;
                 """,
                 category_id, subcategory_id
             )
@@ -643,6 +644,7 @@ class AsyncOrm:
                 """
                 SELECT *
                 FROM locations
+                ORDER BY name;
                 """
             )
 
@@ -1008,7 +1010,8 @@ class AsyncOrm:
                 """
                 SELECT t.id, t.serial_number, sc.title AS subcategory_title 
                 FROM transports AS t 
-                join subcategories AS sc ON t.subcategory_id = sc.id;
+                JOIN subcategories AS sc ON t.subcategory_id = sc.id
+                ORDER BY subcategory_title, t.serial_number;
                 """
             )
             transport_numbers: list[TransportNumber] = [
