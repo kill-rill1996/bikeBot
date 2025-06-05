@@ -257,7 +257,7 @@ async def save_category(callback: types.CallbackQuery, state: FSMContext, tg_id:
             }
     # добавляем в словарь новое слово
     try:
-        await t.update_translation(
+        new_key = await t.add_new_translation(
             new_words_for_translator
         )
     except Exception as e:
@@ -265,11 +265,12 @@ async def save_category(callback: types.CallbackQuery, state: FSMContext, tg_id:
         return
 
     # формируем ключ сохранения в БД
-    category_name_for_db = await t.get_key_for_text(new_words_for_translator['en'])
+    # category_name_for_db = await t.get_key_for_text(new_words_for_translator['en'])
+
     # сохраняем категорию в ДБ
     category = TransportCategory(
         emoji=data['category_emoji'],
-        title=category_name_for_db
+        title=new_key
     )
     try:
         await AsyncOrm.add_category(category, session)
@@ -278,7 +279,7 @@ async def save_category(callback: types.CallbackQuery, state: FSMContext, tg_id:
         await callback.message.edit_text(f"Error {e}")
         return
 
-    text = f"✅ Категория \"{category.emoji + ' ' if category.emoji else ''}{await t.t(category.title, lang)}\" успешно создана"
+    text = f"✅ {await t.t('category', lang)} \"{category.emoji + ' ' if category.emoji else ''}{data['category_name']}\" {await t.t('success', lang)} {await t.t('created', lang)}"
 
     await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
 
@@ -483,9 +484,8 @@ async def confirm_changes(callback: types.CallbackQuery, tg_id: str, session: An
     # удаляем старое ключевое слово
     try:
         old_category: Category = data["old_category"]
-        keyword = await t.get_key_for_text(old_category.title)
+        await t.delete_key_word(old_category.title)
 
-        await t.delete_key_word(keyword)
     except Exception as e:
         await callback.message.edit_text(f"Ошибка при сохранении измененного перевода: {e}",
                                          reply_markup=keyboard.as_markup())
@@ -498,7 +498,7 @@ async def confirm_changes(callback: types.CallbackQuery, tg_id: str, session: An
                 data['languages_2']: data['translation_2']
             }
     try:
-        await t.update_translation(
+        new_key = await t.add_new_translation(
             words_for_translator
         )
     except Exception as e:
@@ -509,7 +509,7 @@ async def confirm_changes(callback: types.CallbackQuery, tg_id: str, session: An
         # save to DB
         await AsyncOrm.update_category_title(
             category_id=int(data['category_id']),
-            title=await t.get_key_for_text(words_for_translator['en']),
+            title=new_key,
             session=session
         )
     except Exception as e:

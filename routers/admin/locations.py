@@ -186,7 +186,7 @@ async def add_location_confirm(callback: types.CallbackQuery, tg_id: int, state:
                 data['languages_2']: data['translation_2']
             }
     try:
-        await t.update_translation(
+        new_key = await t.add_new_translation(
             dictionary_for_translator
         )
     except Exception as e:
@@ -195,8 +195,8 @@ async def add_location_confirm(callback: types.CallbackQuery, tg_id: int, state:
         return
 
     # записываем в БД
-    key = await t.get_key_for_text(dictionary_for_translator["en"])
-    await AsyncOrm.create_location(key, session)
+    # key = await t.get_key_for_text(dictionary_for_translator["en"])
+    await AsyncOrm.create_location(new_key, session)
 
     # заканчиваем стейт
     await state.clear()
@@ -360,7 +360,7 @@ async def edit_location_confirmed(callback: types.CallbackQuery, tg_id: int, sta
                 data['languages_2']: data['translation_2']
             }
     try:
-        await t.update_translation(
+        new_key = await t.add_new_translation(
             dictionary_for_translator
         )
     except Exception as e:
@@ -369,8 +369,8 @@ async def edit_location_confirmed(callback: types.CallbackQuery, tg_id: int, sta
         return
 
     # изменяем в БД
-    key = await t.get_key_for_text(dictionary_for_translator["en"])
-    await AsyncOrm.edit_location(key, data["location_id"], session)
+    # key = await t.get_key_for_text(dictionary_for_translator["en"])
+    await AsyncOrm.edit_location(new_key, data["location_id"], session)
 
     # заканчиваем стейт
     await state.clear()

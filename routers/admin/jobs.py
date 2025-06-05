@@ -321,25 +321,6 @@ async def confirm_create_jobtype(callback: types.CallbackQuery, tg_id: str, stat
         data['languages_2']: data['translation_2']
     }
 
-    # save to DB
-    if current_state == AddJobtype.confirm:
-        # FOR ADD
-        try:
-            await AsyncOrm.create_jobtype(await t.get_key_for_text(words_for_translator['en']), selected_categories, session=session)
-        except Exception as e:
-            await callback.message.edit_text(f"Ошибка при создании категории узлов {e}", reply_markup=keyboard.as_markup())
-    else:
-        # FOR EDIT
-        try:
-            await AsyncOrm.update_jobtype(
-                data["jobtype_id"],
-                await t.get_key_for_text(words_for_translator['en']),
-                selected_categories,
-                session
-            )
-        except Exception as e:
-            await callback.message.edit_text(f"Ошибка при обновлении категории узлов {e}", reply_markup=keyboard.as_markup())
-
     # ONLY for EDIT
     if current_state == EditJobetype.confirm:
         # удаляем старое ключевое слово
@@ -353,12 +334,31 @@ async def confirm_create_jobtype(callback: types.CallbackQuery, tg_id: str, stat
 
     # добавляем новое ключевое слово
     try:
-        await t.update_translation(
+        new_key = await t.add_new_translation(
             words_for_translator
         )
     except Exception as e:
         await callback.message.edit_text(f"Ошибка при сохранении перевода: {e}", reply_markup=keyboard.as_markup())
         return
+
+    # save to DB
+    if current_state == AddJobtype.confirm:
+        # FOR ADD
+        try:
+            await AsyncOrm.create_jobtype(new_key, selected_categories, session=session)
+        except Exception as e:
+            await callback.message.edit_text(f"Ошибка при создании категории узлов {e}", reply_markup=keyboard.as_markup())
+    else:
+        # FOR EDIT
+        try:
+            await AsyncOrm.update_jobtype(
+                data["jobtype_id"],
+                new_key,
+                selected_categories,
+                session
+            )
+        except Exception as e:
+            await callback.message.edit_text(f"Ошибка при обновлении категории узлов {e}", reply_markup=keyboard.as_markup())
 
     # FOR ADD
     if current_state == AddJobtype.confirm:
@@ -530,7 +530,7 @@ async def save_job(callback: types.CallbackQuery, tg_id: int, state: FSMContext,
         data['languages_2']: data['translation_2']
     }
     try:
-        await t.update_translation(
+        new_key = await t.add_new_translation(
             dictionary_for_translator
         )
     except Exception as e:
@@ -540,7 +540,7 @@ async def save_job(callback: types.CallbackQuery, tg_id: int, state: FSMContext,
         return
 
     # сохраняем в бд
-    await AsyncOrm.create_job(data["jobtype_id"], data["job_title"], session)
+    await AsyncOrm.create_job(data["jobtype_id"], new_key, session)
 
     # сброс стейта
     await state.clear()
@@ -728,7 +728,7 @@ async def save_job(callback: types.CallbackQuery, tg_id: int, state: FSMContext,
         data['languages_2']: data['translation_2']
     }
     try:
-        await t.update_translation(
+        new_key = await t.add_new_translation(
             dictionary_for_translator
         )
     except Exception as e:
@@ -738,7 +738,7 @@ async def save_job(callback: types.CallbackQuery, tg_id: int, state: FSMContext,
         return
 
     # изменяем в бд
-    await AsyncOrm.update_job(data["job_id"], data["job_title"], session)
+    await AsyncOrm.update_job(data["job_id"], new_key, session)
 
     # сброс стейта
     await state.clear()

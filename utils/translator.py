@@ -1,7 +1,8 @@
 import json
+import math
+from time import time
 
 from googletrans import Translator as GoogleTrans
-
 
 from settings import settings
 from logger import logger
@@ -36,10 +37,11 @@ class Translator:
                 logger.error(f"Unexpected error loading translations: {e}. Using empty cache.")
                 self.translation = {}
 
-    async def update_translation(self, new_data: dict) -> None:
+    async def add_new_translation(self, new_data: dict) -> str:
         """
-        Записывает в переводчик новые слова
+        Записывает в переводчик новые слова и возвращает новый ключ
         data: dict = {'ru': word, 'en': word, 'es': word}
+        :return key
         """
         # проверяем загружен ли перевод в память, если нет то загружаем
         if not self.translation:
@@ -53,6 +55,16 @@ class Translator:
 
         # перезаписываем файл
         self._rewrite_dictionary_file()
+
+        return new_key
+
+    async def _key_already_exists(self, key: str) -> bool:
+        """Возвращает true, если такой ключ уже существует, иначе false"""
+        # проверяем загружен ли перевод в память, если нет то загружаем
+        if not self.translation:
+            self._load_translations()
+
+        return key in self.translation['en']
 
     async def delete_key_word(self, keyword: str) -> None:
         """
@@ -83,9 +95,15 @@ class Translator:
             logger.error(f"Ошибка при перезаписи файла переводов: {e}")
             raise
 
-    @staticmethod
-    async def get_key_for_text(text: str) -> str:
-        return '_'.join([word.lower() for word in text.split(" ")])
+    async def get_key_for_text(self, text: str) -> str:
+        # формируем новый ключ
+        key_string = '_'.join([word.lower() for word in text.split(" ")])
+
+        # проверяем существует ли такой
+        if await self._key_already_exists(key_string):
+            key_string += f"_{str(math.modf(time())[0])[4:9]}"  # добавляем к ключу unix time для уникальности
+
+        return key_string
 
     async def t(self, key: str, dest_lang: str, text: str | None = None) -> str:
         """
