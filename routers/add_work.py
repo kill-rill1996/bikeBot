@@ -391,7 +391,7 @@ async def get_comment(message: types.Message | types.CallbackQuery, state: FSMCo
     text = await t.t("preview", lang) + "\n"
 
     # дата
-    current_date = convert_date_time(datetime.datetime.now(), settings.timezone)[0]
+    current_date = convert_date_time(datetime.datetime.now(), True)[0]
     date_text = await t.t("date", lang)
     text += date_text + " " + current_date + "\n"
 
