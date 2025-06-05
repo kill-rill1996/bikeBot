@@ -8,7 +8,6 @@ def is_valid_vehicle_number(number: str, serial_numbers: List[int]) -> bool:
     except Exception:
         return False
 
-    # TODO поправить в соответствии с ТЗ
     if number not in serial_numbers:
         return False
 
@@ -75,44 +74,54 @@ def parse_input_transport_numbers(text: str) -> [int]:
     return result
 
 
-def from_transport_list_to_srt(transports: list[int]) -> str:
+def transport_list_to_str(transports: list[int]) -> str:
     """Из списка сортированного serial_number транспортов формирует строку для вывода"""
-    string_result = ""
-    max_index = len(transports) - 1
-    end_num = 0
+    result = []
+    expected_n = 1
+    sub_result = []
 
-    index = 0
-    for serial_number in transports:
-        if index >= max_index:
-            break
+    for n in transports:
+        # если диапазон пустой
+        if not sub_result:
+            sub_result.append(str(n))
+            expected_n = n + 1
 
-        # добавляем первое число
-        if index == 0:
-            string_result += string_result + f"{serial_number}"
-            # проверяем совпадение со след. числом
-            if serial_number == transports[index+1]:
-                end_num = transports[index+1]
-
-        # отрабатываем обычные числа (не первые) если совпали
-        if serial_number == transports[index + 1]:
-            end_num = transports[index + 1]
-
-        # отрабатываем обычные числа
+        # если диапазон начат
         else:
-            # если не было совпашвих совпали
-            if end_num != 0:
-                string_result += f"-{end_num}"
-                string_result += f" {serial_number}"
-                end_num = serial_number
-            # если не были совпашвие
+            # если ожидаемое значение равно поступившему
+            if expected_n == n:
+                # добавляем в диапазон
+                sub_result.append(n)
+                expected_n += 1
+
+            # если ожидаемое значение не равно поступившему
             else:
-                string_result += f" {serial_number}"
+                # добавляем диапазон в результат
+                if len(sub_result) < 3:
+                    # добавляем числа отдельно
+                    for number in sub_result:
+                        result.append(str(number))
+                else:
+                    # добавляем числа через -
+                    result.append(f"{sub_result[0]}-{sub_result[-1]}")
 
-        index += 1
+                # начинаем диапазон заново
+                sub_result = [n]
+                expected_n = n + 1
 
-    print(string_result)
+    # отрабатываем последнее число
+    if len(sub_result) < 3:
+        # добавляем числа отдельно
+        for number in sub_result:
+            result.append(str(number))
+    else:
+        # добавляем числа через -
+        result.append(f"{sub_result[0]}-{sub_result[-1]}")
+
+    return ", ".join(result)
 
 
 if __name__ == "__main__":
-    from_transport_list_to_srt([1, 3, 4, 5, 6, 103, 112])
+    print(transport_list_to_str([1, 3, 4, 5, 7, 8, 9, 10, 11, 12, 13, 14, 17, 18, 103, 112, 113, 114]))
+    # from_transport_list_to_srt([1, 3, 4, 5, 6, 103, 112])
 

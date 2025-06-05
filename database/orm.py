@@ -427,7 +427,8 @@ class AsyncOrm:
                 """
                 SELECT serial_number
                 FROM transports
-                WHERE category_id = $1 AND subcategory_id = $2;
+                WHERE category_id = $1 AND subcategory_id = $2
+                ORDER BY serial_number;
                 """,
                 category_id, subcategory_id
             )
@@ -643,6 +644,7 @@ class AsyncOrm:
                 """
                 SELECT *
                 FROM locations
+                ORDER BY name;
                 """
             )
 

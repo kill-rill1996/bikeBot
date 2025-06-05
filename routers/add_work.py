@@ -10,7 +10,7 @@ from aiogram.fsm.context import FSMContext
 
 from cache import r
 from utils.translator import translator as t
-from utils.validations import is_valid_vehicle_number, is_valid_duration
+from utils.validations import is_valid_vehicle_number, is_valid_duration, transport_list_to_str
 from routers.states.add_work import AddWorkFSM
 from database.orm import AsyncOrm
 from utils.date_time_service import convert_date_time
@@ -61,7 +61,7 @@ async def add_work_vehicle_category(callback: types.CallbackQuery, state: FSMCon
 
 
 @router.callback_query(F.data.split("|")[0] == "vehicle_subcategory", AddWorkFSM.vehicle_subcategory)
-async def add_work_vehicle_subcategory(callback: types.CallbackQuery, state: FSMContext) -> None:
+async def add_work_vehicle_subcategory(callback: types.CallbackQuery, state: FSMContext, session: Any) -> None:
     """Запись подкатегории. Выбор номера"""
     subcategory_id = int(callback.data.split("|")[1])
     subcategory_title = callback.data.split("|")[2]
@@ -75,14 +75,19 @@ async def add_work_vehicle_subcategory(callback: types.CallbackQuery, state: FSM
     # меняем стейт
     await state.set_state(AddWorkFSM.vehicle_number)
 
-    text = await t.t("enter_the_number", lang) + " " + subcategory_title
-
-    # category_id нужна для кнопки назад
+    # получение доступных номеров транспорта для категории и подкатегории
     data = await state.get_data()
     category_id = data["category_id"]
+    serial_numbers = await AsyncOrm.get_sn_by_category_and_subcategory(category_id, subcategory_id, session)
+    serial_numbers_str = transport_list_to_str(serial_numbers)
+
+    text = await t.t("enter_the_number", lang)
+    formatted_text = text.format(subcategory_title, serial_numbers_str)
+
+    # category_id нужна для кнопки назад
     keyboard = await kb.select_bicycle_number(category_id, lang)
 
-    msg = await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
+    msg = await callback.message.edit_text(formatted_text, reply_markup=keyboard.as_markup())
     await state.update_data(prev_mess=msg)
 
 
@@ -110,12 +115,15 @@ async def add_work_vehicle_number(message: types.Message | types.CallbackQuery, 
         subcategory_id = data["subcategory_id"]
         serial_numbers = await AsyncOrm.get_sn_by_category_and_subcategory(category_id, subcategory_id, session)
 
-        # если номер неправильный
+        # если номер неправильный или его нет в базе
         if not is_valid_vehicle_number(serial_number, serial_numbers):
             # отправляем сообщение о необходимости ввести номер еще раз
-            text = await t.t("wrong_number", lang) + " " + f"{data['subcategory_title']}\n" + await t.t("one_more", lang)
+            serial_numbers_str = transport_list_to_str(serial_numbers)
+            text = await t.t("wrong_number", lang) + "!\n\n" + await t.t("enter_the_number", lang) + "\n\n" + await t.t("one_more", lang)
+            formatted_text = text.format(data["subcategory_title"], serial_numbers_str)
+
             keyboard = await kb.select_bicycle_number(category_id, lang)
-            msg = await message.answer(text, reply_markup=keyboard.as_markup())
+            msg = await message.answer(formatted_text, reply_markup=keyboard.as_markup())
 
             # записываем в предыдущие сообщения
             await state.update_data(prev_mess=msg)
