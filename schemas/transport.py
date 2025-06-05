@@ -14,3 +14,4 @@ class TransportSubcategory(BaseModel):
     subcategory_id: int
     serial_number: int
     subcategory_title: str
+

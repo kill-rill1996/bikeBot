@@ -75,6 +75,44 @@ def parse_input_transport_numbers(text: str) -> [int]:
     return result
 
 
+def from_transport_list_to_srt(transports: list[int]) -> str:
+    """Из списка сортированного serial_number транспортов формирует строку для вывода"""
+    string_result = ""
+    max_index = len(transports) - 1
+    end_num = 0
+
+    index = 0
+    for serial_number in transports:
+        if index >= max_index:
+            break
+
+        # добавляем первое число
+        if index == 0:
+            string_result += string_result + f"{serial_number}"
+            # проверяем совпадение со след. числом
+            if serial_number == transports[index+1]:
+                end_num = transports[index+1]
+
+        # отрабатываем обычные числа (не первые) если совпали
+        if serial_number == transports[index + 1]:
+            end_num = transports[index + 1]
+
+        # отрабатываем обычные числа
+        else:
+            # если не было совпашвих совпали
+            if end_num != 0:
+                string_result += f"-{end_num}"
+                string_result += f" {serial_number}"
+                end_num = serial_number
+            # если не были совпашвие
+            else:
+                string_result += f" {serial_number}"
+
+        index += 1
+
+    print(string_result)
+
+
 if __name__ == "__main__":
-    parse_input_transport_numbers("300-305, 150, 152")
+    from_transport_list_to_srt([1, 3, 4, 5, 6, 103, 112])
 

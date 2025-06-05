@@ -981,6 +981,10 @@ async def select_subcategory(callback: types.CallbackQuery, tg_id: str, state: F
     text = f"{category_emoji + ' ' if category_emoji else ''}{await t.t(category_title, lang)} -> {subcategory.title}\n"
     if current_state == MassiveAddVehicle.input_subcategory:
         text += await t.t("input_transport_number_massive", lang)
+    elif current_state == EditVehicle.input_vehicle:
+        existing_transport = await AsyncOrm.get_transports_for_subcategory(subcategory_id, session)
+
+        text += await t.t("existing_transport", lang) + "\n"
     else:
         text += await t.t("input_transport_number", lang)
 

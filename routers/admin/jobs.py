@@ -325,9 +325,9 @@ async def confirm_create_jobtype(callback: types.CallbackQuery, tg_id: str, stat
     if current_state == EditJobetype.confirm:
         # удаляем старое ключевое слово
         try:
-            old_jobtype: Jobtype = data["old_jobtype"]
-            keyword = await t.get_key_for_text(old_jobtype.title)
-            await t.delete_key_word(keyword)
+            # old_jobtype: Jobtype = data["old_jobtype"]
+            # keyword = await t.get_key_for_text(old_jobtype.title)
+            await t.delete_key_word(old_jobtype.title)
         except Exception as e:
             await callback.message.edit_text(f"Ошибка при сохранении измененного перевода: {e}", reply_markup=keyboard.as_markup())
             return
