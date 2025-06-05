@@ -227,10 +227,6 @@ async def pagination_handler(callback: types.CallbackQuery, state: FSMContext, s
     tg_id = str(callback.from_user.id)
     lang = r.get(f"lang:{tg_id}").decode()
 
-    # wait message
-    wait_text = await t.t("please_wait", lang)
-    wait_message = await callback.message.edit_text(wait_text)
-
     action = callback.data.split("|")[0]
     current_page = int(callback.data.split("|")[1])
 
@@ -251,7 +247,7 @@ async def pagination_handler(callback: types.CallbackQuery, state: FSMContext, s
     # category_id необходимо, чтобы создать кнопку назад
     category_id = data["category_id"]
     keyboard = await kb.select_jobs_keyboard(jobs, page, category_id, lang, selected_jobs)
-    await wait_message.edit_text(text, reply_markup=keyboard.as_markup())
+    await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
 @router.callback_query(F.data.split("|")[0] == "work_job_done", AddWorkFSM.job)

@@ -2,7 +2,7 @@ import os
 from typing import Any
 
 from aiogram import Router, F, types
-from aiogram.filters import and_f
+from aiogram.filters import and_f, or_f
 from aiogram.fsm.context import FSMContext
 from aiogram.types import FSInputFile
 
@@ -243,8 +243,34 @@ async def vehicle_report_by_transport_choose_transport(callback: types.CallbackQ
 
     text = await t.t("choose_transport", lang)
     transports = await AsyncOrm.get_all_transports(session)
-    keyboard = await kb.select_transport(transports, report_type, period, lang)
 
+    page = 1
+    keyboard = await kb.transport_pagination_keyboard(transports, page, report_type, period, lang)
+
+    await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
+
+
+@router.callback_query(or_f(F.data.split("|")[0] == "prev", F.data.split("|")[0] == "next"))
+async def transport_pagination_handler(callback: types.CallbackQuery, tg_id: str, session: Any) -> None:
+    """Вспомогательный хэндлер для пагинации"""
+    lang = r.get(f"lang:{tg_id}").decode()
+    report_type = callback.data.split("|")[2]
+    period = callback.data.split("|")[3]
+
+    action = callback.data.split("|")[0]
+    current_page = int(callback.data.split("|")[1])
+
+    # меняем номер страницы
+    if action == "prev":
+        page = current_page - 1
+    else:
+        page = current_page + 1
+
+    # плучаем данные для пагинации
+    transports = await AsyncOrm.get_all_transports(session)
+
+    keyboard = await kb.transport_pagination_keyboard(transports, page, report_type, period, lang)
+    text = await t.t("choose_transport", lang)
     await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
 
 

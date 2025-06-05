@@ -1008,7 +1008,8 @@ class AsyncOrm:
                 """
                 SELECT t.id, t.serial_number, sc.title AS subcategory_title 
                 FROM transports AS t 
-                join subcategories AS sc ON t.subcategory_id = sc.id;
+                JOIN subcategories AS sc ON t.subcategory_id = sc.id
+                ORDER BY subcategory_title, t.serial_number;
                 """
             )
             transport_numbers: list[TransportNumber] = [
