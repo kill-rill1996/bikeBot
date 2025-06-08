@@ -254,7 +254,7 @@ async def select_category_add_transport(categories: list[Category], lang: str) -
     return keyboard
 
 
-async def subcategories_for_add_vehicle(subcategories: list[Subcategory], lang: str) -> InlineKeyboardBuilder:
+async def subcategories_for_add_vehicle(subcategories: list[Subcategory], callback: str, lang: str) -> InlineKeyboardBuilder:
     keyboard = InlineKeyboardBuilder()
 
     for sc in subcategories:
@@ -265,7 +265,7 @@ async def subcategories_for_add_vehicle(subcategories: list[Subcategory], lang: 
     keyboard.adjust(4)
 
     # назад
-    back_button: tuple = await btn.get_back_button("transport-management|add_vehicle", lang)
+    back_button: tuple = await btn.get_back_button(callback, lang)
     keyboard.row(
         InlineKeyboardButton(text=back_button[0], callback_data=back_button[1])
     )
