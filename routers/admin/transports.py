@@ -904,8 +904,6 @@ async def add_vehicle(callback: types.CallbackQuery, tg_id: str, state: FSMConte
     elif callback.data == "transport-management|bulk_vehicle_addition":
         await state.set_state(MassiveAddVehicle.input_category)
 
-    current_state = await state.get_state()
-
     # если пока нет категорий
     if not categories:
         keyboard = await kb.there_are_not_yet("admin|vehicle_management", lang)
@@ -929,9 +927,12 @@ async def select_category_for_add_vehicle(callback: types.CallbackQuery, tg_id: 
     # change state
     if current_state in (AddVehicle.input_category, AddVehicle.input_vehicle):
         await state.set_state(AddVehicle.input_subcategory)
+        callback_string = "transport-management|add_vehicle"
     elif current_state in (EditVehicle.input_category, EditVehicle.input_vehicle):
+        callback_string = "transport-management|edit_vehicle"
         await state.set_state(EditVehicle.input_subcategory)
     elif current_state in (MassiveAddVehicle.input_category, MassiveAddVehicle.input_vehicle):
+        callback_string = "transport-management|bulk_vehicle_addition"
         await state.set_state(MassiveAddVehicle.input_subcategory)
 
     # from DB
@@ -948,7 +949,7 @@ async def select_category_for_add_vehicle(callback: types.CallbackQuery, tg_id: 
     text = f"{category.emoji + ' ' if category.emoji else ''}{await t.t(category.title, lang)}\n"
     text += await t.t("select_subcategory", lang)
 
-    keyboard = await kb.subcategories_for_add_vehicle(subcategories, lang)
+    keyboard = await kb.subcategories_for_add_vehicle(subcategories, callback_string, lang)
 
     await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
 
@@ -983,10 +984,10 @@ async def select_subcategory(callback: types.CallbackQuery, tg_id: str, state: F
     text = f"{category_emoji + ' ' if category_emoji else ''}{await t.t(category_title, lang)} -> {subcategory.title}\n"
 
     if current_state == MassiveAddVehicle.input_subcategory:
-        existing_transport = await AsyncOrm.get_transports_for_subcategory(subcategory_id, session)
-        existing_transports_string = transport_list_to_str([transport.serial_number for transport in existing_transport])
-        text += await t.t("existing_transport", lang) + "\n"
-        text += existing_transports_string
+        # existing_transport = await AsyncOrm.get_transports_for_subcategory(subcategory_id, session)
+        # existing_transports_string = transport_list_to_str([transport.serial_number for transport in existing_transport])
+        # text += await t.t("existing_transport", lang) + "\n"
+        # text += existing_transports_string + "\n"
         text += await t.t("input_transport_number_massive", lang)
 
     elif current_state == EditVehicle.input_subcategory:
