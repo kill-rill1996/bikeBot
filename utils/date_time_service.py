@@ -37,11 +37,14 @@ def get_dates_by_period(period: str) -> (datetime.datetime, datetime.datetime):
 
     elif period == "week":
         end_period = datetime.datetime.now()
-        start_period = end_period - datetime.timedelta(days=7)
+        week_day = end_period.weekday()
+        start_period = end_period - datetime.timedelta(days=week_day)
 
     elif period == "month":
         end_period = datetime.datetime.now()
-        start_period = end_period - datetime.timedelta(days=30)  # ставим для месяца 30 дней
+        month = end_period.month
+        year = end_period.year
+        start_period = datetime.datetime(year, month, 1)  # ставим для месяца 30 дней
 
     # кастомный период в формате custom-{start_date}-{end_date}
     # TODO нужно ли

@@ -1284,16 +1284,16 @@ class AsyncOrm:
             logger.error(f"Ошибка при получении транспорта s.n {serial_number} подкатегории {subcategory_id}: {e}")
 
     @staticmethod
-    async def edit_transport(new_serial_number: int, old_serial_number: int, subcategory_id: int, session: Any):
+    async def edit_transport(new_serial_number: int, old_serial_number: int, category_id: int, subcategory_id: int, session: Any):
         """Изменение транспорта"""
         try:
             await session.execute(
                 """
                 UPDATE transports
                 SET serial_number = $1
-                WHERE subcategory_id = $2 AND serial_number = $3
+                WHERE category_id = $2 AND subcategory_id = $3 AND serial_number = $4
                 """,
-                new_serial_number, old_serial_number, subcategory_id
+                new_serial_number, category_id, subcategory_id, old_serial_number
             )
 
         except Exception as e:
