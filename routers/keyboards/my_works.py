@@ -34,14 +34,14 @@ async def works_my_works_list(lang: str, works: list[OperationJobs], period: str
 
     for w in works:
         # формируем данные с переводом
-        created_at = convert_date_time(w.created_at, True)[0]
+        date, time = convert_date_time(w.created_at, True)
         transport_category = await t.t(w.transport_category, lang)
-        job_title = await t.t(w.jobs_titles[0], lang)   # TODO подумать что выводить в кнопку (т.к. работ может быть много, берем пока только 1-ую)
+        jobtype_title = await t.t(w.jobtype_title, lang)
 
         # в callback добавляем период, чтобы в след. хэндлере можно было его использовать в кнопке назад
         keyboard.row(
             InlineKeyboardButton(
-                text=f"{created_at}|{w.id}|{transport_category}|{w.transport_subcategory}-{w.serial_number}|{job_title}",
+                text=f"{date} {time} | ID {w.id} | {transport_category} | {w.transport_subcategory}-{w.serial_number} | {jobtype_title}",
                 callback_data=f"my-works-list|{w.id}|{period}"
             )
         )

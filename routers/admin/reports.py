@@ -1,3 +1,4 @@
+import datetime
 import os
 from typing import Any
 
@@ -8,10 +9,11 @@ from aiogram.types import FSInputFile
 
 from cache import r
 from logger import logger
-from routers.states.reports import JobtypesReport
+from routers.states.reports import IndividualMechanicReport, SummaryMechanicReport, TransportReport, JobTypesReport, \
+    InefficiencyReport
 from utils.excel_reports import individual_mechanic_excel_report
 from utils.translator import translator as t
-from utils.date_time_service import get_dates_by_period
+from utils.date_time_service import get_dates_by_period, get_next_and_prev_month_and_year, convert_str_to_datetime
 from database.orm import AsyncOrm
 from utils.date_time_service import convert_date_time
 
@@ -31,10 +33,30 @@ async def reports_menu(callback: types.CallbackQuery, tg_id: str) -> None:
 
 
 @router.callback_query(F.data.split("|")[0] == "admin-reports")
-async def choose_period(callback: types.CallbackQuery, tg_id: str) -> None:
+async def choose_period(callback: types.CallbackQuery, tg_id: str, state: FSMContext) -> None:
     """Вспомогательная функция для выбора периода для всех отчетов"""
+    try:
+        await state.clear()
+    except Exception as e:
+        pass
+
     lang = r.get(f"lang:{tg_id}").decode()
     report_type = callback.data.split("|")[1]
+
+    # устанавливаем стейт для каждого отчета отдельно
+    if report_type == "individual_mechanic_report":
+        await state.set_state(IndividualMechanicReport.period)
+    elif report_type == "summary_report_by_mechanics":
+        await state.set_state(SummaryMechanicReport.period)
+    elif report_type == "vehicle_report":
+        await state.set_state(TransportReport.period)
+    elif report_type == "work_categories_report":
+        await state.set_state(JobTypesReport.period)
+    elif report_type == "inefficiency_report":
+        await state.set_state(InefficiencyReport.period)
+
+    # записываем тип отчета в стейт
+    await state.update_data(report_type=report_type)
 
     text = await t.t("select_period", lang)
     keyboard = await kb.select_period_keyboard(report_type, lang)
@@ -42,13 +64,103 @@ async def choose_period(callback: types.CallbackQuery, tg_id: str) -> None:
     await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
+@router.callback_query(and_f(F.data.split("|")[0] == "reports-period", F.data.split("|")[2] == "custom"))
+@router.callback_query(F.data.split("|")[0] == "select_end_date")
+@router.callback_query(F.data.split("|")[0] == "action")
+async def custom_period_choose(callback: types.CallbackQuery, tg_id: str, state: FSMContext) -> None:
+    """Вспомогательная функция для выбора кастомного периода"""
+    lang = r.get(f"lang:{tg_id}").decode()
+    report_type = callback.data.split("|")[1]
+
+    # для выбора второй даты
+    if callback.data.split("|")[0] == "select_end_date":
+
+        # устанавливаем стейт для каждого отчета отдельно
+        if report_type == "individual_mechanic_report":
+            await state.set_state(IndividualMechanicReport.end_date)
+        elif report_type == "summary_report_by_mechanics":
+            await state.set_state(SummaryMechanicReport.report)
+        elif report_type == "vehicle_report":
+            await state.set_state(TransportReport.report)
+        elif report_type == "work_categories_report":
+            await state.set_state(JobTypesReport.report)
+        elif report_type == "inefficiency_report":
+            await state.set_state(InefficiencyReport.report)
+
+        # собираем первую дату
+        start_date_str = callback.data.split("|")[2]
+        start_date = convert_str_to_datetime(start_date_str)
+
+        # записываем первую дату в стейт
+        await state.update_data(start_date=start_date)
+
+        # данные для формирования клавиатуры
+        now_year = datetime.datetime.now().year
+        now_month = datetime.datetime.now().month
+        dates_data = get_next_and_prev_month_and_year(now_month, now_year)
+
+        text = await t.t("select_date_end", lang) + f"\n{convert_date_time(start_date, with_tz=True)[0]}-"
+        keyboard = await kb.select_custom_date(report_type, now_year, now_month, lang, dates_data=dates_data, end_date=True)
+
+    # для выбора первой даты
+    elif callback.data.split("|")[0] == "reports-period" and callback.data.split("|")[2] == "custom":
+        # данные для формирования клавиатуры
+        now_year = datetime.datetime.now().year
+        now_month = datetime.datetime.now().month
+        dates_data = get_next_and_prev_month_and_year(now_month, now_year)
+
+        text = await t.t("select_date_start", lang)
+        keyboard = await kb.select_custom_date(report_type, now_year, now_month, lang, dates_data=dates_data)
+
+    # для перелистывания месяцев
+    else:
+        month = int(callback.data.split("|")[2])
+        year = int(callback.data.split("|")[3])
+
+        # для перелистывания в первом и втором выборе
+        data = await state.get_data()
+        if data.get("start_date"):
+            end_date = True
+            start_date = convert_date_time(data["start_date"], with_tz=True)[0]
+            text = await t.t("select_date_end", lang) + f"\n{start_date}-"
+        else:
+            end_date = False
+            text = await t.t("select_date_start", lang)
+
+        # данные для формирования клавиатуры
+        dates_data = get_next_and_prev_month_and_year(month, year)
+
+        keyboard = await kb.select_custom_date(report_type, year, month, lang, dates_data=dates_data, end_date=end_date)
+
+    await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
+
+
 # 📆 Индивидуальный отчет по механику
 @router.callback_query(and_f(F.data.split("|")[0] == "reports-period", F.data.split("|")[1] == "individual_mechanic_report"))
-async def choose_mechanic(callback: types.CallbackQuery, tg_id: str, session: Any) -> None:
+@router.callback_query(F.data.split("|")[0] == "clndr", IndividualMechanicReport.end_date)
+async def choose_mechanic(callback: types.CallbackQuery, tg_id: str, session: Any, state: FSMContext) -> None:
     """Выбор механика для отчета"""
     lang = r.get(f"lang:{tg_id}").decode()
     report_type = callback.data.split("|")[1]
     period = callback.data.split("|")[2]
+
+    # если был произвольный период
+    if callback.data.split("|")[0] == "clndr":
+        # формируем даты в формате datetime для дальнейшего сравнения
+        data = await state.get_data()
+        start_date = data["start_date"]
+        end_date = convert_str_to_datetime(callback.data.split("|")[3])
+
+        # меняем даты местами, если end_date меньше чем start_date
+        if start_date > end_date:
+            start_date, end_date = end_date, start_date
+
+        # записываем обе даты в стейт
+        await state.update_data(start_date=start_date)
+        await state.update_data(end_date=end_date)
+
+    # меняем стейт
+    await state.set_state(IndividualMechanicReport.report)
 
     text = await t.t("select_mechanic", lang)
 
@@ -58,8 +170,8 @@ async def choose_mechanic(callback: types.CallbackQuery, tg_id: str, session: An
     await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
-@router.callback_query(F.data.split("|")[0] == "mechanic")
-async def mechanic_report(callback: types.CallbackQuery, tg_id: str, session: Any) -> None:
+@router.callback_query(F.data.split("|")[0] == "mechanic", IndividualMechanicReport.report)
+async def mechanic_report(callback: types.CallbackQuery, tg_id: str, session: Any, state: FSMContext) -> None:
     """Отчет по механику за выбранный период"""
     lang = r.get(f"lang:{tg_id}").decode()
     period = callback.data.split("|")[1]
@@ -69,7 +181,15 @@ async def mechanic_report(callback: types.CallbackQuery, tg_id: str, session: An
 
     user = await AsyncOrm.get_user_by_id(user_id, session)
 
-    start_date, end_date = get_dates_by_period(period)
+    # получаем даты в зависимости от периода
+    if period != "custom":
+        start_date, end_date = get_dates_by_period(period)
+    else:
+        data = await state.get_data()
+        start_date = data["start_date"]
+        end_date = data["end_date"]
+
+    # получаем операции для периода
     operations = await AsyncOrm.get_operations_for_user_by_period(user.tg_id, start_date, end_date, session)
 
     if not operations:
@@ -92,8 +212,12 @@ async def mechanic_report(callback: types.CallbackQuery, tg_id: str, session: An
     # Список всех работ с деталями
     text += await t.t("work_list", lang) + "\n"
     for idx, operation in enumerate(operations, start=1):
-        row_text = f"<b>{idx})</b> {convert_date_time(operation.created_at, with_tz=True)[0]} | {str(operation.duration)} {await t.t('minutes', lang)} | " \
+        date, time = convert_date_time(operation.created_at, with_tz=True)
+        row_text = f"<b>{idx})</b> ID {operation.id} | {date} {time} | {str(operation.duration)} {await t.t('minutes', lang)} | " \
                    f"{await t.t(operation.transport_category, lang)} {operation.transport_subcategory}-{operation.transport_serial_number}\n"
+
+        # группа узлов
+        row_text += await t.t(operation.jobs[0].jobtype_title, lang) + ":\n"
 
         # jobs для каждой операции
         for job in operation.jobs:
@@ -114,12 +238,31 @@ async def mechanic_report(callback: types.CallbackQuery, tg_id: str, session: An
 
 # 📆 Сводный отчет по механикам
 @router.callback_query(F.data.split("|")[0] == "reports-period" and F.data.split("|")[1] == "summary_report_by_mechanics")
-async def summary_report_by_mechanics(callback: types.CallbackQuery, tg_id: str, session: Any) -> None:
+@router.callback_query(F.data.split("|")[0] == "clndr", SummaryMechanicReport.report)
+async def summary_report_by_mechanics(callback: types.CallbackQuery, tg_id: str, session: Any, state: FSMContext) -> None:
     """Сводный отчет по механикам"""
     lang = r.get(f"lang:{tg_id}").decode()
     report_type = callback.data.split("|")[1]
     period = callback.data.split("|")[2]
-    start_date, end_date = get_dates_by_period(period)
+
+    # если был произвольный период
+    if callback.data.split("|")[0] == "clndr":
+        # формируем даты в формате datetime для дальнейшего сравнения
+        data = await state.get_data()
+        start_date = data["start_date"]
+        end_date = convert_str_to_datetime(callback.data.split("|")[3])
+
+        # меняем даты местами, если end_date меньше чем start_date
+        if start_date > end_date:
+            start_date, end_date = end_date, start_date
+
+        # записываем обе даты в стейт
+        await state.update_data(start_date=start_date)
+        await state.update_data(end_date=end_date)
+
+    # не произвольный период
+    else:
+        start_date, end_date = get_dates_by_period(period)
 
     waiting_message = await callback.message.edit_text(await t.t("please_wait", lang))
 
@@ -162,11 +305,31 @@ async def summary_report_by_mechanics(callback: types.CallbackQuery, tg_id: str,
 
 # 📆 Отчет по транспорту
 @router.callback_query(and_f(F.data.split("|")[0] == "reports-period", F.data.split("|")[1] == "vehicle_report"))
-async def vehicle_report_select_type(callback: types.CallbackQuery, tg_id: str) -> None:
+@router.callback_query(F.data.split("|")[0] == "clndr", TransportReport.report)
+async def vehicle_report_select_type(callback: types.CallbackQuery, tg_id: str, state: FSMContext) -> None:
     """Выбор типа отчета по транспорту"""
     lang = r.get(f"lang:{tg_id}").decode()
     report_type = callback.data.split("|")[1]
     period = callback.data.split("|")[2]
+
+    # если был произвольный период
+    if callback.data.split("|")[0] == "clndr":
+        # формируем даты в формате datetime для дальнейшего сравнения
+        data = await state.get_data()
+        start_date = data["start_date"]
+        end_date = convert_str_to_datetime(callback.data.split("|")[3])
+
+        # меняем даты местами, если end_date меньше чем start_date
+        if start_date > end_date:
+            start_date, end_date = end_date, start_date
+
+    # не произвольный период
+    else:
+        start_date, end_date = get_dates_by_period(period)
+
+    # записываем обе даты в стейт
+    await state.update_data(start_date=start_date)
+    await state.update_data(end_date=end_date)
 
     text = await t.t("choose_vehicle_report_type", lang)
     keyboard = await kb.select_vehicle_report_type(report_type, period, lang)
@@ -176,7 +339,7 @@ async def vehicle_report_select_type(callback: types.CallbackQuery, tg_id: str) 
 
 # BY CATEGORY
 @router.callback_query(and_f(F.data.split("|")[0] == "vehicle_report_type", F.data.split("|")[1] == "by_category"))
-async def vehicle_report_by_category_choose_category(callback: types.CallbackQuery, tg_id: str, session: Any) -> None:
+async def vehicle_report_by_category_choose_category(callback: types.CallbackQuery, tg_id: str, session: Any, state: FSMContext) -> None:
     """Выбор подкатегории"""
     lang = r.get(f"lang:{tg_id}").decode()
     report_type = callback.data.split("|")[2]
@@ -190,7 +353,7 @@ async def vehicle_report_by_category_choose_category(callback: types.CallbackQue
 
 
 @router.callback_query(F.data.split("|")[0] == "vehicle_report_by_c")
-async def vehicle_report_by_category(callback: types.CallbackQuery, tg_id: str, session: Any) -> None:
+async def vehicle_report_by_category(callback: types.CallbackQuery, tg_id: str, session: Any, state: FSMContext) -> None:
     """Отчет по транспорту по категории"""
     lang = r.get(f"lang:{tg_id}").decode()
     report_type = callback.data.split("|")[1]
@@ -199,7 +362,15 @@ async def vehicle_report_by_category(callback: types.CallbackQuery, tg_id: str, 
 
     waiting_message = await callback.message.edit_text(await t.t("please_wait", lang))
 
-    start_date, end_date = get_dates_by_period(period)
+    # получаем даты в зависимости от периода
+    if period != "custom":
+        start_date, end_date = get_dates_by_period(period)
+    else:
+        data = await state.get_data()
+        start_date = data["start_date"]
+        end_date = data["end_date"]
+
+    # получаем операции по датам
     operations = await AsyncOrm.get_operations_by_category_and_period(category_id, start_date, end_date, session)
 
     # если нет операций
@@ -217,7 +388,8 @@ async def vehicle_report_by_category(callback: types.CallbackQuery, tg_id: str, 
     for idx, operation in enumerate(operations, start=1):
         mechanic = await AsyncOrm.get_user_by_tg_id(operation.tg_id, session)
         location = await AsyncOrm.get_location_by_id(operation.location_id, session)
-        row_text = f"<b>{idx})</b> {convert_date_time(operation.created_at, with_tz=True)[0]} | " \
+        date, time = convert_date_time(operation.created_at, with_tz=True)
+        row_text = f"<b>{idx})</b> ID {operation.id} | {date} {time} | " \
                    f"{operation.transport_subcategory}-{operation.transport_serial_number} | " \
                    f"{mechanic.username} | {await t.t(location.name, lang)}\n"
         # суммарное время обслуживания
@@ -231,7 +403,8 @@ async def vehicle_report_by_category(callback: types.CallbackQuery, tg_id: str, 
 
         text += row_text + "\n"
 
-    keyboard = await kb.vehicle_report_details_keyboard("by_category", period, report_type, lang)
+    back_to = f"vehicle_report_type|by_category|{report_type}|{period}"
+    keyboard = await kb.vehicle_report_details_keyboard(back_to, period, report_type, lang)
     await waiting_message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
@@ -251,7 +424,7 @@ async def vehicle_report_by_subcategory_choose_subcategory(callback: types.Callb
 
 
 @router.callback_query(F.data.split("|")[0] == "vehicle_report_by_sc")
-async def vehicle_report_by_subcategory(callback: types.CallbackQuery, tg_id: str, session: Any) -> None:
+async def vehicle_report_by_subcategory(callback: types.CallbackQuery, tg_id: str, session: Any, state: FSMContext) -> None:
     """Отчет по транспорту по подкатегории"""
     lang = r.get(f"lang:{tg_id}").decode()
     report_type = callback.data.split("|")[1]
@@ -260,7 +433,15 @@ async def vehicle_report_by_subcategory(callback: types.CallbackQuery, tg_id: st
 
     waiting_message = await callback.message.edit_text(await t.t("please_wait", lang))
 
-    start_date, end_date = get_dates_by_period(period)
+    # получаем даты в зависимости от периода
+    if period != "custom":
+        start_date, end_date = get_dates_by_period(period)
+    else:
+        data = await state.get_data()
+        start_date = data["start_date"]
+        end_date = data["end_date"]
+
+    # получаем операции
     operations = await AsyncOrm.get_operations_by_subcategory_and_period(subcategory_id, start_date, end_date, session)
 
     if not operations:
@@ -276,7 +457,8 @@ async def vehicle_report_by_subcategory(callback: types.CallbackQuery, tg_id: st
     for idx, operation in enumerate(operations, start=1):
         mechanic = await AsyncOrm.get_user_by_tg_id(operation.tg_id, session)
         location = await AsyncOrm.get_location_by_id(operation.location_id, session)
-        row_text = f"<b>{idx})</b> {convert_date_time(operation.created_at, with_tz=True)[0]} | " \
+        date, time = convert_date_time(operation.created_at, with_tz=True)
+        row_text = f"<b>{idx})</b> ID {operation.id} | {date} {time} | " \
                    f"{operation.transport_subcategory}-{operation.transport_serial_number} | " \
                    f"{mechanic.username} | {await t.t(location.name, lang)}\n"
         # суммарное время обслуживания
@@ -290,20 +472,57 @@ async def vehicle_report_by_subcategory(callback: types.CallbackQuery, tg_id: st
 
         text += row_text + "\n"
 
-    keyboard = await kb.vehicle_report_details_keyboard("by_subcategory", period, report_type, lang)
+    back_to = f"vehicle_report_type|by_subcategory|{report_type}|{period}"
+    keyboard = await kb.vehicle_report_details_keyboard(back_to, period, report_type, lang)
     await waiting_message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
 # BY TRANSPORT
 @router.callback_query(and_f(F.data.split("|")[0] == "vehicle_report_type", F.data.split("|")[1] == "by_transport"))
-async def vehicle_report_by_transport_choose_transport(callback: types.CallbackQuery, tg_id: str, session: Any) -> None:
-    """Выбор транспорта"""
+async def vehicle_report_by_transport_choose_category(callback: types.CallbackQuery, tg_id: str, session: Any) -> None:
+    """Выбор категории для отчета по серийному номеру транспорта"""
     lang = r.get(f"lang:{tg_id}").decode()
     report_type = callback.data.split("|")[2]
     period = callback.data.split("|")[3]
 
+    categories = await AsyncOrm.get_all_categories(session)
+
+    text = await t.t("select_category", lang)
+    keyboard = await kb.select_category_for_transport_report(categories, report_type, period, lang)
+    await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
+
+
+@router.callback_query(F.data.split("|")[0] == "transport_report_category")
+async def vehicle_report_by_transport_choose_subcategory(callback: types.CallbackQuery, tg_id: str, session: Any, state: FSMContext) -> None:
+    """Выбор подкатегории для отчета по серийному номеру транспорта"""
+    lang = r.get(f"lang:{tg_id}").decode()
+    report_type = callback.data.split("|")[1]
+    period = callback.data.split("|")[2]
+    category_id = int(callback.data.split("|")[3])
+
+    await state.update_data(category_id=category_id)
+
+    subcategories = await AsyncOrm.get_subcategories_by_category(category_id, session)
+
+    text = await t.t("choose_subcategory", lang)
+    keyboard = await kb.select_subcategory_for_transport_report(subcategories, report_type, period, lang)
+    await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
+
+
+@router.callback_query(F.data.split("|")[0] == "transport_report_subcategory")
+async def vehicle_report_by_transport_choose_transport(callback: types.CallbackQuery, tg_id: str, session: Any, state: FSMContext) -> None:
+    """Выбор транспорта"""
+    lang = r.get(f"lang:{tg_id}").decode()
+    report_type = callback.data.split("|")[1]
+    period = callback.data.split("|")[2]
+    subcategory_id = int(callback.data.split("|")[3])
+
+    await state.update_data(subcategory_id=subcategory_id)
+
     text = await t.t("choose_transport", lang)
-    transports = await AsyncOrm.get_all_transports(session)
+    transports = await AsyncOrm.get_transports_for_subcategory(subcategory_id, session)
+
+    await state.update_data(transports=transports)
 
     page = 1
     keyboard = await kb.transport_pagination_keyboard(transports, page, report_type, period, lang)
@@ -312,7 +531,7 @@ async def vehicle_report_by_transport_choose_transport(callback: types.CallbackQ
 
 
 @router.callback_query(or_f(F.data.split("|")[0] == "prev", F.data.split("|")[0] == "next"))
-async def transport_pagination_handler(callback: types.CallbackQuery, tg_id: str, session: Any) -> None:
+async def transport_pagination_handler(callback: types.CallbackQuery, tg_id: str, session: Any, state: FSMContext) -> None:
     """Вспомогательный хэндлер для пагинации"""
     lang = r.get(f"lang:{tg_id}").decode()
     report_type = callback.data.split("|")[2]
@@ -328,7 +547,8 @@ async def transport_pagination_handler(callback: types.CallbackQuery, tg_id: str
         page = current_page + 1
 
     # плучаем данные для пагинации
-    transports = await AsyncOrm.get_all_transports(session)
+    data = await state.get_data()
+    transports = data["transports"]
 
     keyboard = await kb.transport_pagination_keyboard(transports, page, report_type, period, lang)
     text = await t.t("choose_transport", lang)
@@ -336,7 +556,7 @@ async def transport_pagination_handler(callback: types.CallbackQuery, tg_id: str
 
 
 @router.callback_query(F.data.split("|")[0] == "vehicle_report_by_t")
-async def vehicle_report_by_transport(callback: types.CallbackQuery, tg_id: str, session: Any) -> None:
+async def vehicle_report_by_transport(callback: types.CallbackQuery, tg_id: str, session: Any, state: FSMContext) -> None:
     """Отчет по транспорту"""
     lang = r.get(f"lang:{tg_id}").decode()
     report_type = callback.data.split("|")[1]
@@ -345,7 +565,14 @@ async def vehicle_report_by_transport(callback: types.CallbackQuery, tg_id: str,
 
     waiting_message = await callback.message.edit_text(await t.t("please_wait", lang))
 
-    start_date, end_date = get_dates_by_period(period)
+    # получаем даты в зависимости от периода
+    if period != "custom":
+        start_date, end_date = get_dates_by_period(period)
+    else:
+        data = await state.get_data()
+        start_date = data["start_date"]
+        end_date = data["end_date"]
+
     operations = await AsyncOrm.get_operations_by_transport_and_period(transport_id, start_date, end_date, session)
 
     if not operations:
@@ -361,8 +588,8 @@ async def vehicle_report_by_transport(callback: types.CallbackQuery, tg_id: str,
     for idx, operation in enumerate(operations, start=1):
         mechanic = await AsyncOrm.get_user_by_tg_id(operation.tg_id, session)
         location = await AsyncOrm.get_location_by_id(operation.location_id, session)
-        row_text = f"<b>{idx})</b> {convert_date_time(operation.created_at, with_tz=True)[0]} | " \
-                   f"{mechanic.username} | {await t.t(location.name, lang)}\n"
+        date, time = convert_date_time(operation.created_at, with_tz=True)
+        row_text = f"<b>{idx})</b> ID {operation.id} | {date} {time} | {mechanic.username} | {await t.t(location.name, lang)}\n"
         # суммарное время обслуживания
         row_text += f"{await t.t('works_time', lang)} {operation.duration} {await t.t('minutes', lang)}\n"
         comment = operation.comment if operation.comment else "-"
@@ -374,17 +601,38 @@ async def vehicle_report_by_transport(callback: types.CallbackQuery, tg_id: str,
 
         text += row_text + "\n"
 
-    keyboard = await kb.vehicle_report_details_keyboard("by_transport", period, report_type, lang)
+    back_to = f"transport_report_subcategory|{report_type}|{period}|{transport.subcategory_id}"
+    keyboard = await kb.vehicle_report_details_keyboard(back_to, period, report_type, lang)
     await waiting_message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
 # 📆 Отчет по категориям работ
 @router.callback_query(and_f(F.data.split("|")[0] == "reports-period", F.data.split("|")[1] == "work_categories_report"))
-async def report_by_jobtypes_select_category(callback: types.CallbackQuery, tg_id: int, session: Any) -> None:
+@router.callback_query(F.data.split("|")[0] == "clndr", JobTypesReport.report)
+async def report_by_jobtypes_select_category(callback: types.CallbackQuery, tg_id: int, session: Any, state: FSMContext) -> None:
     """Выбор категории"""
     lang = r.get(f"lang:{tg_id}").decode()
     report_type = callback.data.split("|")[1]
     period = callback.data.split("|")[2]
+
+    # если был произвольный период
+    if callback.data.split("|")[0] == "clndr":
+        # формируем даты в формате datetime для дальнейшего сравнения
+        data = await state.get_data()
+        start_date = data["start_date"]
+        end_date = convert_str_to_datetime(callback.data.split("|")[3])
+
+        # меняем даты местами, если end_date меньше чем start_date
+        if start_date > end_date:
+            start_date, end_date = end_date, start_date
+
+    # не произвольный период
+    else:
+        start_date, end_date = get_dates_by_period(period)
+
+    # записываем обе даты в стейт
+    await state.update_data(start_date=start_date)
+    await state.update_data(end_date=end_date)
 
     text = await t.t("select_category", lang)
     categories = await AsyncOrm.get_all_categories(session)
@@ -402,8 +650,8 @@ async def report_by_jobtypes_select_jobtypes(callback: types.CallbackQuery, tg_i
     period = callback.data.split("|")[2]
     category_id = int(callback.data.split("|")[3])
 
-    # устанавливаем стейт для мультивыбора
-    await state.set_state(JobtypesReport.select)
+    # устанавливаем правильный стейт для мультивыбора (если его нет из кастомного периода)
+    await state.set_state(JobTypesReport.report)
     await state.update_data(selected_jobtypes=[])
 
     # для производительности храним в стейте
@@ -416,7 +664,7 @@ async def report_by_jobtypes_select_jobtypes(callback: types.CallbackQuery, tg_i
     await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
-@router.callback_query(F.data.split("|")[0] == "jobtypes_select", JobtypesReport.select)
+@router.callback_query(F.data.split("|")[0] == "jobtypes_select", JobTypesReport.report)
 async def multiselect(callback: types.CallbackQuery, tg_id: str, state: FSMContext) -> None:
     """Вспомогательная функция для мультиселекта"""
     lang = r.get(f"lang:{tg_id}").decode()
@@ -442,7 +690,7 @@ async def multiselect(callback: types.CallbackQuery, tg_id: str, state: FSMConte
     await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
-@router.callback_query(F.data.split("|")[0] == "jobtype_select_done", JobtypesReport.select)
+@router.callback_query(F.data.split("|")[0] == "jobtype_select_done", JobTypesReport.report)
 async def report_by_jobtypes(callback: types.CallbackQuery, tg_id: str, state: FSMContext, session: Any) -> None:
     """Отчет по jobtypes"""
     lang = r.get(f"lang:{tg_id}").decode()
@@ -457,7 +705,13 @@ async def report_by_jobtypes(callback: types.CallbackQuery, tg_id: str, state: F
     await state.clear()
 
     jobtypes = await AsyncOrm.get_jobtypes_by_ids(selected_jobtypes, session)
-    start_date, end_date = get_dates_by_period(period)
+
+    # получаем даты в зависимости от периода
+    if period != "custom":
+        start_date, end_date = get_dates_by_period(period)
+    else:
+        start_date = data["start_date"]
+        end_date = data["end_date"]
 
     text = f"📆 {await t.t('work_categories_report', lang)}\n\n"
 
@@ -524,22 +778,40 @@ async def report_by_jobtypes(callback: types.CallbackQuery, tg_id: str, state: F
 
         text += row_text + "\n\n"
 
-
     keyboard = await kb.jobtypes_report_details_keyboard(report_type, period, lang)
     await waiting_message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
 # 📆 Отчет по неэффективности
 @router.callback_query(and_f(F.data.split("|")[0] == "reports-period", F.data.split("|")[1] == "inefficiency_report"))
-async def inefficiency_report(callback: types.CallbackQuery, tg_id: str, session: Any) -> None:
+@router.callback_query(F.data.split("|")[0] == "clndr", InefficiencyReport.report)
+async def inefficiency_report(callback: types.CallbackQuery, tg_id: str, session: Any, state: FSMContext) -> None:
     """Отчет по неэффективности"""
     lang = r.get(f"lang:{tg_id}").decode()
     report_type = callback.data.split("|")[1]
     period = callback.data.split("|")[2]
 
+    # если был произвольный период
+    if callback.data.split("|")[0] == "clndr":
+        # формируем даты в формате datetime для дальнейшего сравнения
+        data = await state.get_data()
+        start_date = data["start_date"]
+        end_date = convert_str_to_datetime(callback.data.split("|")[3])
+
+        # меняем даты местами, если end_date меньше чем start_date
+        if start_date > end_date:
+            start_date, end_date = end_date, start_date
+
+    # не произвольный период
+    else:
+        start_date, end_date = get_dates_by_period(period)
+
+    # записываем обе даты в стейт
+    await state.update_data(start_date=start_date)
+    await state.update_data(end_date=end_date)
+
     waiting_message = await callback.message.edit_text(await t.t("please_wait", lang))
 
-    start_date, end_date = get_dates_by_period(period)
     operations = await AsyncOrm.get_operations_with_jobs_and_transport_by_period(start_date, end_date, session)
 
     if not operations:
@@ -563,10 +835,20 @@ async def inefficiency_report(callback: types.CallbackQuery, tg_id: str, session
     # сортируем по количеству
     sorted_jobs = {k: v for k, v in sorted(transport_jobs_count.items(), key=lambda item: item[1], reverse=True)}
 
-    # учитываем работы повторяющиеся только больше двух раз
+    # учитываем работы повторяющиеся только больше определенного количества раз за период
+    if period == "today" or period == "yesterday":
+        frequent_works = 2
+    elif period == "week":
+        frequent_works = 7
+    elif period == "month":
+        frequent_works = 15
+    # TODO для custom_period
+    else:
+        frequent_works = 10
+
     row_text = ""
     for k, v in sorted_jobs.items():
-        if v >= 2:
+        if v >= frequent_works:
             row_text += "\t\t• " + k + f": {v}" + "\n"
 
     # повторяющиеся работы за период
@@ -580,7 +862,8 @@ async def inefficiency_report(callback: types.CallbackQuery, tg_id: str, session
     text += await t.t("no_comments", lang) + "\n"
     for o in operations:
         if not o.comment:
-            row_text = f"{convert_date_time(o.created_at, with_tz=True)[0]} | ID {o.id} | " \
+            date, time = convert_date_time(o.created_at, with_tz=True)
+            row_text = f"{date} {time} | ID {o.id} | " \
                        f"{o.transport_subcategory}-{o.transport_serial_number}\n"
             text += row_text
 
@@ -589,15 +872,18 @@ async def inefficiency_report(callback: types.CallbackQuery, tg_id: str, session
 
 
 @router.callback_query(F.data.split("|")[0] == "excel_export")
-async def send_excel_file(callback: types.CallbackQuery, tg_id: str, session: Any) -> None:
+async def send_excel_file(callback: types.CallbackQuery, tg_id: str, session: Any, state: FSMContext) -> None:
     """Отправка эксель файла для типа отчета"""
     lang = r.get(f"lang:{tg_id}").decode()
     report_type = callback.data.split("|")[1]
     period = callback.data.split("|")[2]
 
     waiting_message = await callback.message.edit_text(await t.t("please_wait", lang))
-    start_date, end_date = get_dates_by_period(period)
+    data = await state.get_data()
+    start_date = data["start_date"]
+    end_date = data["end_date"]
 
+    # 📆 Индивидуальный отчет по механику
     if report_type == "individual_mechanic_report":
         # получаем данные для отчета
         user_id = int(callback.data.split("|")[3])
@@ -617,7 +903,16 @@ async def send_excel_file(callback: types.CallbackQuery, tg_id: str, session: An
 
         # отправляем отчет
         await waiting_message.delete()
-        await callback.message.answer_document(document)
+        start_date_formatted = convert_date_time(start_date, with_tz=True)[0]
+        end_date_formatted = convert_date_time(end_date, with_tz=True)[0]
+        text = f"{await t.t('individual_mechanic_report', lang)} {start_date_formatted} - {end_date_formatted}"
+        await callback.message.answer_document(document, caption=text)
+
+        # отправляем сообщение с клавиатурой
+        text = await t.t("excel_ready", lang)
+        back_callback = f"mechanic|{period}|{user_id}"
+        keyboard = await kb.excel_ready_keyboard(back_callback, lang)
+        await callback.message.answer(text, reply_markup=keyboard.as_markup())
 
         # удаляем отчет
         try:

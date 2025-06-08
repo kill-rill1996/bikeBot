@@ -30,6 +30,7 @@ class OperationJob(BaseModel):
     transport_subcategory: str
     created_at: datetime.datetime
     job_title: str
+    jobtype_title: str | None = None
 
 
 class OperationJobs(BaseModel):
@@ -40,6 +41,7 @@ class OperationJobs(BaseModel):
     transport_subcategory: str
     created_at: datetime.datetime
     jobs_titles: list[str] = None
+    jobtype_title: str | None = None
 
 
 class OperationDetailJobs(BaseModel):

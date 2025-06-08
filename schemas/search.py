@@ -7,6 +7,7 @@ class TransportNumber(BaseModel):
     id: int
     subcategory_title: str
     serial_number: int
+    subcategory_id: int | None = None
 
 
 class JobTitle(BaseModel):

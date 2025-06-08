@@ -196,6 +196,13 @@
         "input_new_jobtype": "Enter a new group name:\n(e.g. \"Electrical Equipment\")\nAdd an emoji (optional):\n(e.g. \"⚡\")\n",
         "select_jobtype": "Select a group of nodes",
         "confirm_jobtype_update": "Update nodegroup?",
+        "excel_date": "Date",
+        "excel_time": "Time",
+        "excel_transport": "Transport",
+        "excel_jobs": "Operations",
+        "excel_comment": "Comment",
+        "excel_avg_time": "Average time for work",
+        "excel_jobtype": "Nodegroup",
         "input_job_title": "Input new operations title",
         "confirm_job_add": "Add operation «{0}»?",
         "new_job": "A new operation has been created!",
@@ -211,7 +218,10 @@
         "no_jobs": "There are no operations in the node group",
         "no_jobtypes": "There is no node group in the category",
         "existing_transport": "Already existing transport:",
-        "by_category": "By category"
+        "by_category": "By category",
+        "excel_ready": "The report has been successfully exported to Excel!",
+        "select_date_start": "Select first date",
+        "select_date_end": "Select second date"
     },
     "ru": {
         "input_name": "Введите ваше имя (например Джон Доу)",
@@ -416,6 +426,7 @@
         "excel_jobs": "Работы",
         "excel_comment": "Комментарий",
         "excel_avg_time": "Среднее время на работу",
+        "excel_jobtype": "Группа узлов",
         "input_job_title": "Введи название операции:\n(например, 'Замена проводки')",
         "confirm_job_add": "Добавить операцию «{0}»?",
         "new_job": "Новая операция создана",
@@ -431,7 +442,10 @@
         "no_jobs": "В группе узлов нет операций",
         "no_jobtypes": "В категории нет группы узлов",
         "existing_transport": "Уже существующий транспорт:",
-        "by_category": "По категории"
+        "by_category": "По категории",
+        "excel_ready": "Отчет успешно экспортирован в Excel!",
+        "select_date_start": "Выберите первую дату",
+        "select_date_end": "Выберите вторую дату"
     },
     "es": {
         "name_error": "Nombre de usuario incorrecto ingresado, por favor inténtelo nuevamente",
@@ -630,6 +644,13 @@
         "input_new_jobtype": "Ingrese un nuevo nombre de grupo:\n(p. ej., \"Equipo eléctrico\")\nAgregue un emoji (opcional):\n(p. ej., \"⚡\")\n",
         "select_jobtype": "Seleccionar un grupo de nodos",
         "confirm_jobtype_update": "¿Actualizar grupo de nodos?",
+        "excel_date": "Fetcha",
+        "excel_time": "Tiempo",
+        "excel_transport": "Transporte",
+        "excel_jobs": "Obras",
+        "excel_comment": "Comentario",
+        "excel_avg_time": "Tiempo promedio para trabajar",
+        "excel_jobtype": "Grupo de nodos",
         "input_job_title": "Introduzca el nombre del grupo:\n(por ejemplo, 'Equipo eléctrico')",
         "confirm_job_add": "¿Añadir operación «{0}»?",
         "new_job": "¡Operación creada!",
@@ -645,6 +666,9 @@
         "no_jobs": "No hay operaciones en el grupo de nodos",
         "no_jobtypes": "No hay ningún grupo de nodos en la categoría",
         "existing_transport": "Transporte ya existente:",
-        "by_category": "Por categoría"
+        "by_category": "Por categoría",
+        "excel_ready": "¡El informe se ha exportado correctamente a Excel!",
+        "select_date_start": "Selecciona la primera fecha",
+        "select_date_end": "Selecciona segunda fecha"
     }
 }

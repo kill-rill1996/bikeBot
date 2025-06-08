@@ -407,7 +407,7 @@ class AsyncOrm:
         try:
             row = await session.fetchrow(
                 """
-                SELECT t.id, t.serial_number, sc.title AS subcategory_title 
+                SELECT t.id, t.serial_number, sc.title AS subcategory_title, sc.id AS subcategory_id
                 FROM transports AS t 
                 JOIN subcategories AS sc ON t.subcategory_id = sc.id
                 WHERE t.id = $1;
@@ -539,6 +539,7 @@ class AsyncOrm:
                 SELECT *
                 FROM jobs
                 WHERE jobtype_id = $1
+                ORDER BY id;
                 """,
                 jobtype_id
             )
@@ -734,13 +735,14 @@ class AsyncOrm:
             rows = await session.fetch(
                 """
                 SELECT o.id, o.duration AS duration, t.serial_number, c.title AS transport_category, 
-                sc.title AS transport_subcategory, o.created_at, j.title AS job_title
+                sc.title AS transport_subcategory, o.created_at, j.title AS job_title, jt.title AS jobtype_title
                 FROM operations AS o
                 JOIN transports AS t ON o.transport_id = t.id
                 JOIN categories AS c ON t.category_id = c.id
                 JOIN subcategories AS sc ON t.subcategory_id = sc.id
                 JOIN operations_jobs AS oj ON o.id = oj.operation_id
                 JOIN jobs AS j ON oj.job_id = j.id
+                JOIN jobtypes AS jt ON j.jobtype_id = jt.id
                 WHERE o.tg_id = $1 AND o.created_at >= $2 AND o.created_at <= $3
                 ORDER BY o.created_at DESC
                 """,
@@ -768,6 +770,7 @@ class AsyncOrm:
                                 transport_subcategory=operation.transport_subcategory,
                                 created_at=operation.created_at,
                                 jobs_titles=value,
+                                jobtype_title=operation.jobtype_title
                             )
                         )
                         break
@@ -1319,7 +1322,7 @@ class AsyncOrm:
             )
 
         except Exception as e:
-            logger.error(f"Ошибка при добавлении группы узла {jobtype_title} для категорий {[selected_categories]}: {e}")
+            logger.error(f"Ошибка при добавлении группы узла {jobtype_title} для категории {category_id}: {e}")
             raise
 
     @staticmethod

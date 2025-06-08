@@ -3,7 +3,7 @@ from typing import Any
 from aiogram import Router, types, F
 
 from database.orm import AsyncOrm
-from routers.keyboards import settings as kb
+from routers.keyboards import setting as kb
 from routers.keyboards.menu import main_menu_keyboard
 from utils.translator import translator as t
 from cache import r

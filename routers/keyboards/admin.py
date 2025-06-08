@@ -1,3 +1,4 @@
+import calendar
 from typing import List
 
 from aiogram.types import InlineKeyboardButton
@@ -5,9 +6,10 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from routers.buttons import buttons as btn
 from schemas.categories_and_jobs import Subcategory, Jobtype, Category
-from schemas.search import TransportNumber
-from schemas.transport import Transport
+from schemas.transport import TransportSubcategory
 from schemas.users import User
+from settings import settings
+from utils.date_time_service import get_days_in_month
 from utils.translator import translator as t
 
 
@@ -54,13 +56,69 @@ async def select_period_keyboard(report_type: str, lang: str) -> InlineKeyboardB
     )
     keyboard.row(
         InlineKeyboardButton(text=f"{await t.t('month', lang)}", callback_data=f"reports-period|{report_type}|month"),
-        # TODO доделать
-        InlineKeyboardButton(text=f"{await t.t('custom_period', lang)}", callback_data=f"reports-period|{report_type}|custom-period")
+        InlineKeyboardButton(text=f"{await t.t('custom_period', lang)}", callback_data=f"reports-period|{report_type}|custom")
     )
 
     # назад
     back_button: tuple = await btn.get_back_button("admin|reports", lang)
     keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
+    return keyboard
+
+
+async def select_custom_date(report_type: str, year: int, month: int, lang: str,
+                             dates_data: dict, end_date: bool = None) -> InlineKeyboardBuilder:
+    """Клавиатура выбора кастомного периода"""
+    keyboard = InlineKeyboardBuilder()
+
+    # получаем дни в месяце датами
+    month_days = get_days_in_month(year, month)
+
+    # заголовок клавиатуры
+    header = f"🗓️ {settings.calendar_months[lang][month]} {year}"
+    keyboard.add(InlineKeyboardButton(text=header, callback_data="ignore"))
+
+    # дни недели
+    week_days = ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"]
+    keyboard.row(*[InlineKeyboardButton(text=day, callback_data='ignore') for day in week_days])
+
+    buttons = []
+
+    # отступ для первого дня в месяце
+    buttons += [InlineKeyboardButton(text=" ", callback_data="ignore")] * (month_days[0].weekday())
+
+    # кнопки по дням месяца
+    for d in month_days:
+        # если выбор второй даты
+        if end_date:
+            callback = f"clndr|{report_type}|custom|{d.day}.{d.month}.{d.year}"
+
+        # если выбор первой даты
+        else:
+            callback = f"select_end_date|{report_type}|{d.day}.{d.month}.{d.year}"
+
+        buttons.append(InlineKeyboardButton(text=str(d.day), callback_data=f'{callback}'))
+
+    # отступ после последнего дня
+    buttons += [InlineKeyboardButton(text=" ", callback_data="ignore")] * (6 - month_days[-1].weekday())
+
+    # разбиваем по 7 штук в строке
+    for i in range(0, len(buttons), 7):
+        keyboard.row(*buttons[i:i + 7])
+
+    # кнопки следующего месяца и предыдущего
+    prev_month_name = settings.calendar_months[lang][dates_data["prev_month"]]
+    next_month_name = settings.calendar_months[lang][dates_data["next_month"]]
+    keyboard.row(
+        InlineKeyboardButton(text=f"<< {prev_month_name} {dates_data['prev_year']}",
+                             callback_data=f"action|{report_type}|{dates_data['prev_month']}|{dates_data['prev_year']}"),
+        InlineKeyboardButton(text=f"{next_month_name} {dates_data['next_year']} >>",
+                             callback_data=f"action|{report_type}|{dates_data['next_month']}|{dates_data['next_year']}")
+    )
+
+    # назад
+    back_button: tuple = await btn.get_back_button(f"admin-reports|{report_type}", lang)
+    keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
+
     return keyboard
 
 
@@ -172,27 +230,13 @@ async def select_category_for_jobtypes_report(categories: List[Category], report
     return keyboard
 
 
-async def back_to(report_sub_type: str, period: str, report_type: str, lang: str) -> InlineKeyboardBuilder:
-    """Клавиатура возврата"""
+async def select_category_for_transport_report(categories: List[Category], report_type: str, period: str, lang: str) -> InlineKeyboardBuilder:
+    """Выбор категории для отчета по серийному номеру транспорта"""
     keyboard = InlineKeyboardBuilder()
 
-    # назад
-    back_button: tuple = await btn.get_back_button(f"vehicle_report_type|{report_sub_type}|{report_type}|{period}", lang)
-    keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
-
-    return keyboard
-
-
-async def select_transport(transports: List[TransportNumber], report_type: str, period: str, lang: str) -> InlineKeyboardBuilder:
-    """Клавиатура выбора транспорта"""
-    keyboard = InlineKeyboardBuilder()
-
-    for tr in transports:
-        keyboard.row(
-            InlineKeyboardButton(text=f"{tr.subcategory_title}-{tr.serial_number}", callback_data=f"vehicle_report_by_t|{report_type}|{period}|{tr.id}")
-        )
-
-    keyboard.adjust(4)
+    for c in categories:
+        emoji = c.emoji + " " if c.emoji else ""
+        keyboard.row(InlineKeyboardButton(text=emoji + await t.t(c.title, lang), callback_data=f"transport_report_category|{report_type}|{period}|{c.id}"))
 
     # назад
     back_button: tuple = await btn.get_back_button(f"reports-period|{report_type}|{period}", lang)
@@ -205,7 +249,38 @@ async def select_transport(transports: List[TransportNumber], report_type: str, 
     return keyboard
 
 
-async def transport_pagination_keyboard(transports: List[TransportNumber], page: int, report_type: str, period: str, lang: str) -> InlineKeyboardBuilder:
+async def select_subcategory_for_transport_report(subcategories: List[Subcategory], report_type: str, period: str, lang: str) -> InlineKeyboardBuilder:
+    """Выбор подкатегории для отчета по серийному номеру транспорта"""
+    keyboard = InlineKeyboardBuilder()
+
+    for sc in subcategories:
+        keyboard.row(InlineKeyboardButton(text=sc.title, callback_data=f"transport_report_subcategory|{report_type}|{period}|{sc.id}"))
+
+    keyboard.adjust(3)
+
+    # назад
+    back_button: tuple = await btn.get_back_button(f"vehicle_report_type|by_transport|{report_type}|{period}", lang)
+    keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
+
+    # главное меню
+    main_menu_button: tuple = await btn.get_main_menu_button(lang)
+    keyboard.row(InlineKeyboardButton(text=main_menu_button[0], callback_data=main_menu_button[1]))
+
+    return keyboard
+
+
+async def back_to(report_sub_type: str, period: str, report_type: str, lang: str) -> InlineKeyboardBuilder:
+    """Клавиатура возврата"""
+    keyboard = InlineKeyboardBuilder()
+
+    # назад
+    back_button: tuple = await btn.get_back_button(f"vehicle_report_type|{report_sub_type}|{report_type}|{period}", lang)
+    keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
+
+    return keyboard
+
+
+async def transport_pagination_keyboard(transports: List[TransportSubcategory], page: int, report_type: str, period: str, lang: str) -> InlineKeyboardBuilder:
     """Клавиатура пагинации для выбора транспорта"""
     keyboard = InlineKeyboardBuilder()
 
@@ -241,7 +316,8 @@ async def transport_pagination_keyboard(transports: List[TransportNumber], page:
         )
 
     # назад
-    back_button: tuple = await btn.get_back_button(f"reports-period|{report_type}|{period}", lang)
+    category_id = transports[0].category_id
+    back_button: tuple = await btn.get_back_button(f"transport_report_category|{report_type}|{period}|{category_id}", lang)
     keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
 
     # главное меню
@@ -331,7 +407,7 @@ async def summary_report_details_keyboard(report_type: str, lang: str) -> Inline
     return keyboard
 
 
-async def vehicle_report_details_keyboard(report_sub_type: str, period: str, report_type: str, lang: str) -> InlineKeyboardBuilder:
+async def vehicle_report_details_keyboard(back_to: str, period: str, report_type: str, lang: str) -> InlineKeyboardBuilder:
     """Клавиатура возврата к выбору периода"""
     keyboard = InlineKeyboardBuilder()
 
@@ -342,7 +418,7 @@ async def vehicle_report_details_keyboard(report_sub_type: str, period: str, rep
     )
 
     # назад
-    back_button: tuple = await btn.get_back_button(f"vehicle_report_type|{report_sub_type}|{report_type}|{period}", lang)
+    back_button: tuple = await btn.get_back_button(back_to, lang)
     keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
 
     # главное меню
@@ -385,6 +461,21 @@ async def efficient_report_details_keyboard(report_type: str, lang: str) -> Inli
 
     # назад
     back_button: tuple = await btn.get_back_button(f"admin-reports|{report_type}", lang)
+    keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
+
+    # главное меню
+    main_menu_button: tuple = await btn.get_main_menu_button(lang)
+    keyboard.row(InlineKeyboardButton(text=main_menu_button[0], callback_data=main_menu_button[1]))
+
+    return keyboard
+
+
+async def excel_ready_keyboard(back_callback: str, lang: str) -> InlineKeyboardBuilder:
+    """Клавиатура отчета по неэффективности"""
+    keyboard = InlineKeyboardBuilder()
+
+    # назад
+    back_button: tuple = await btn.get_back_button(f"{back_callback}", lang)
     keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
 
     # главное меню
