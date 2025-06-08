@@ -195,7 +195,7 @@ async def add_work_category(callback: types.CallbackQuery, state: FSMContext, se
         jobs_translated.append(j)
 
     # сортировка по имени операции в переводе
-    jobs_sorted = sorted(jobs, key=lambda j: j.title)
+    jobs_sorted = sorted(jobs_translated, key=lambda j: j.title)
     await state.update_data(jobs_for_select=jobs_sorted)
 
     text = await t.t("select_operation", lang)
