@@ -202,7 +202,7 @@ async def add_work_category(callback: types.CallbackQuery, state: FSMContext, se
     # category_id необходимо, чтобы создать кнопку назад
     category_id = data["category_id"]
     page = 1
-    keyboard = await kb.select_jobs_keyboard(jobs, page, category_id, lang, [])
+    keyboard = await kb.select_jobs_keyboard(jobs_sorted, page, category_id, lang, [])
 
     await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
 
