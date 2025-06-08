@@ -83,7 +83,7 @@ async def select_jobs_keyboard(jobs: List[Job], page: int, category_id: int, lan
     keyboard = InlineKeyboardBuilder()
 
     # pagination
-    nums_on_page = 4
+    nums_on_page = 10
     pages = get_page_nums(len(jobs), nums_on_page)
 
     # при переходе с первой на последнюю
@@ -96,7 +96,16 @@ async def select_jobs_keyboard(jobs: List[Job], page: int, category_id: int, lan
 
     start = (page - 1) * nums_on_page
     end = page * nums_on_page
-    page_jobs = jobs[start:end]
+
+    jobs_sorted = []
+    for job in jobs:
+        translated_title = await t.t(job.title, lang)
+        job.title = translated_title
+        jobs_sorted.append(job)
+
+    jobs_sorted = sorted(jobs_sorted, key=lambda j: j.title)
+
+    page_jobs = jobs_sorted[start:end]
 
     for job in page_jobs:
         text = await t.t(job.title, lang)

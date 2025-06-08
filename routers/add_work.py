@@ -188,15 +188,16 @@ async def add_work_category(callback: types.CallbackQuery, state: FSMContext, se
     jobs = await AsyncOrm.get_all_jobs_by_jobtype_id(jobtype_id, session)
 
     # переводим названия операций для сортировки
-    jobs_translated = []
-    for j in jobs:
-        translated_title = await t.t(j.title, lang)
-        j.title = translated_title
-        jobs_translated.append(j)
-
-    # сортировка по имени операции в переводе
-    jobs_sorted = sorted(jobs_translated, key=lambda j: j.title)
-    await state.update_data(jobs_for_select=jobs_sorted)
+    # jobs_translated = []
+    # for j in jobs:
+    #     translated_title = await t.t(j.title, lang)
+    #     j.title = translated_title
+    #     jobs_translated.append(j)
+    #
+    # # сортировка по имени операции в переводе
+    # jobs_sorted = sorted(jobs_translated, key=lambda j: j.title)
+    # await state.update_data(jobs_for_select=jobs_sorted)
+    await state.update_data(jobs_for_select=jobs)
 
     text = await t.t("select_operation", lang)
 
