@@ -83,7 +83,7 @@ async def select_jobs_keyboard(jobs: List[Job], page: int, category_id: int, lan
     keyboard = InlineKeyboardBuilder()
 
     # pagination
-    nums_on_page = 4
+    nums_on_page = 10
     pages = get_page_nums(len(jobs), nums_on_page)
 
     # при переходе с первой на последнюю
