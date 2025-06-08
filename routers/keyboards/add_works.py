@@ -108,7 +108,7 @@ async def select_jobs_keyboard(jobs: List[Job], page: int, category_id: int, lan
     page_jobs = jobs_sorted[start:end]
 
     for job in page_jobs:
-        text = await t.t(job.title, lang)
+        text = job.title
 
         # помечаем выбранные
         if job.id in selected_jobs:

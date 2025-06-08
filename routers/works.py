@@ -2,11 +2,14 @@ import datetime
 from typing import Any
 
 from aiogram import Router, F, types
+from aiogram.filters import and_f
 from aiogram.fsm.context import FSMContext
 
 from cache import r
+from routers.states.my_works import MyWorksCustom
 from utils.translator import translator as t
-from utils.date_time_service import convert_date_time, get_dates_by_period
+from utils.date_time_service import convert_date_time, get_dates_by_period, get_next_and_prev_month_and_year, \
+    convert_str_to_datetime
 
 from routers.keyboards.works import works_menu_keyboard
 from routers.keyboards import my_works as kb
@@ -50,7 +53,8 @@ async def my_works_period(callback: types.CallbackQuery, tg_id: str) -> None:
 
 
 @router.callback_query(F.data.split("|")[0] == "my-works")
-async def my_works_list(callback: types.CallbackQuery, tg_id: str, session: Any) -> None:
+@router.callback_query(F.data.split("|")[0] == "back-from-works-list-custom")
+async def my_works_list(callback: types.CallbackQuery, tg_id: str, state: FSMContext, session: Any) -> None:
     """Вывод списка работ за выбранный период"""
     lang = r.get(f"lang:{tg_id}").decode()
 
@@ -60,22 +64,128 @@ async def my_works_list(callback: types.CallbackQuery, tg_id: str, session: Any)
     # получаем выбранный период и формируем start/end период выборки
     period = callback.data.split("|")[1]
 
-    # заглушка для кастомного периода
+    # для кастомного периода
     if period == "custom-period":
-        # TODO заглушка
-        end_period = datetime.datetime.now()
-        start_period = datetime.datetime.now()
-        await callback.message.edit_text("Введите кастомный период")
-        return
+        now_year = datetime.datetime.now().year
+        now_month = datetime.datetime.now().month
+        dates_data = get_next_and_prev_month_and_year(now_month, now_year)
 
-    # получаем границы дат для выборки
-    start_date, end_date = get_dates_by_period(period)
+        text = await t.t("select_date_start", lang)
+        keyboard = await kb.select_custom_date(now_year, now_month, lang, dates_data=dates_data)
+
+        # начинаем FSM
+        await state.set_state(MyWorksCustom.period)
+
+        await wait_message.edit_text(text, reply_markup=keyboard.as_markup())
+    else:
+        # получаем границы дат для выборки
+        start_date, end_date = get_dates_by_period(period)
+
+        # получаем из БД
+        operations: list[OperationJobs] = await AsyncOrm.select_operations(start_date, end_date, tg_id, session)
+
+        # формируем клавиатуру
+        keyboard = await kb.works_my_works_list(lang, operations, period)
+
+        # если нет работ за выбранный период
+        if not operations:
+            text = await t.t("empty_works", lang)
+            await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
+            return
+
+        text = await t.t("works_list", lang)
+
+        # TODO пагинация
+        await wait_message.edit_text(text, reply_markup=keyboard.as_markup())
+
+
+# ONLY FOR CUSTOM
+@router.callback_query(F.data.split("|")[0] == "works_end_date")
+@router.callback_query(F.data.split("|")[0] == "w_action")
+async def get_custom_period(callback: types.CallbackQuery, tg_id: str, state: FSMContext) -> None:
+    """Обработка кастомного периода"""
+    lang = r.get(f"lang:{tg_id}").decode()
+
+    # для выбора второй даты
+    if callback.data.split("|")[0] == "works_end_date":
+
+        # собираем первую дату
+        start_date_str = callback.data.split("|")[1]
+        start_date = convert_str_to_datetime(start_date_str)
+
+        # устанавливаем стейт для каждого отчета отдельно
+        await state.set_state(MyWorksCustom.end_date)
+
+        # записываем первую дату в стейт
+        await state.update_data(start_date=start_date)
+
+        # данные для формирования клавиатуры
+        now_year = datetime.datetime.now().year
+        now_month = datetime.datetime.now().month
+        dates_data = get_next_and_prev_month_and_year(now_month, now_year)
+
+        text = await t.t("select_date_end", lang) + f"\n{convert_date_time(start_date, with_tz=True)[0]}-"
+        keyboard = await kb.select_custom_date(now_year, now_month, lang, dates_data=dates_data, end_date=True)
+
+    # для выбора первой даты
+    elif callback.data.split("|")[0] == "reports-period" and callback.data.split("|")[2] == "custom":
+        # данные для формирования клавиатуры
+        now_year = datetime.datetime.now().year
+        now_month = datetime.datetime.now().month
+        dates_data = get_next_and_prev_month_and_year(now_month, now_year)
+
+        text = await t.t("select_date_start", lang)
+        keyboard = await kb.select_custom_date(now_year, now_month, lang, dates_data=dates_data)
+
+        # для перелистывания месяцев
+    else:
+        month = int(callback.data.split("|")[1])
+        year = int(callback.data.split("|")[2])
+
+        # для перелистывания в первом и втором выборе
+        data = await state.get_data()
+        if data.get("start_date"):
+            end_date = True
+            start_date = convert_date_time(data["start_date"], with_tz=True)[0]
+            text = await t.t("select_date_end", lang) + f"\n{start_date}-"
+        else:
+            end_date = False
+            text = await t.t("select_date_start", lang)
+
+        # данные для формирования клавиатуры
+        dates_data = get_next_and_prev_month_and_year(month, year)
+
+        keyboard = await kb.select_custom_date(year, month, lang, dates_data=dates_data, end_date=end_date)
+
+    await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
+
+
+@router.callback_query(F.data.split("|")[0] == "w_clndr", MyWorksCustom.end_date)
+async def work_works_list_custom_period(callback: types.CallbackQuery, tg_id: str, session: Any, state: FSMContext) -> None:
+    """Вывод списка работ в кастомном периоде"""
+    lang = r.get(f"lang:{tg_id}").decode()
+
+    # формируем даты в формате datetime для дальнейшего сравнения
+    data = await state.get_data()
+    start_date = data["start_date"]
+    end_date = convert_str_to_datetime(callback.data.split("|")[2])
+
+    # меняем даты местами, если end_date меньше чем start_date
+    if start_date > end_date:
+        start_date, end_date = end_date, start_date
+
+    # записываем обе даты в стейт
+    await state.update_data(start_date=start_date)
+    await state.update_data(end_date=end_date)
 
     # получаем из БД
     operations: list[OperationJobs] = await AsyncOrm.select_operations(start_date, end_date, tg_id, session)
 
     # формируем клавиатуру
-    keyboard = await kb.works_my_works_list(lang, operations, period)
+    keyboard = await kb.works_my_works_list(lang, operations, "custom")
+
+    # очищаем state
+    await state.clear()
 
     # если нет работ за выбранный период
     if not operations:
@@ -86,7 +196,7 @@ async def my_works_list(callback: types.CallbackQuery, tg_id: str, session: Any)
     text = await t.t("works_list", lang)
 
     # TODO пагинация
-    await wait_message.edit_text(text, reply_markup=keyboard.as_markup())
+    await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
 @router.callback_query(F.data.split("|")[0] == "my-works-list")
