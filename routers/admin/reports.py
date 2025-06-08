@@ -11,7 +11,7 @@ from cache import r
 from logger import logger
 from routers.states.reports import IndividualMechanicReport, SummaryMechanicReport, TransportReport, JobTypesReport, \
     InefficiencyReport
-from utils.excel_reports import individual_mechanic_excel_report
+from utils.excel_reports import individual_mechanic_excel_report, summary_mechanics_excel_report
 from utils.translator import translator as t
 from utils.date_time_service import get_dates_by_period, get_next_and_prev_month_and_year, convert_str_to_datetime
 from database.orm import AsyncOrm
@@ -184,6 +184,9 @@ async def mechanic_report(callback: types.CallbackQuery, tg_id: str, session: An
     # получаем даты в зависимости от периода
     if period != "custom":
         start_date, end_date = get_dates_by_period(period)
+
+        await state.update_data(start_date=start_date)
+        await state.update_data(end_date=end_date)
     else:
         data = await state.get_data()
         start_date = data["start_date"]
@@ -237,7 +240,7 @@ async def mechanic_report(callback: types.CallbackQuery, tg_id: str, session: An
 
 
 # 📆 Сводный отчет по механикам
-@router.callback_query(F.data.split("|")[0] == "reports-period" and F.data.split("|")[1] == "summary_report_by_mechanics")
+@router.callback_query(and_f(F.data.split("|")[0] == "reports-period", F.data.split("|")[1] == "summary_report_by_mechanics"))
 @router.callback_query(F.data.split("|")[0] == "clndr", SummaryMechanicReport.report)
 async def summary_report_by_mechanics(callback: types.CallbackQuery, tg_id: str, session: Any, state: FSMContext) -> None:
     """Сводный отчет по механикам"""
@@ -256,13 +259,13 @@ async def summary_report_by_mechanics(callback: types.CallbackQuery, tg_id: str,
         if start_date > end_date:
             start_date, end_date = end_date, start_date
 
-        # записываем обе даты в стейт
-        await state.update_data(start_date=start_date)
-        await state.update_data(end_date=end_date)
-
     # не произвольный период
     else:
         start_date, end_date = get_dates_by_period(period)
+
+    # записываем обе даты в стейт
+    await state.update_data(start_date=start_date)
+    await state.update_data(end_date=end_date)
 
     waiting_message = await callback.message.edit_text(await t.t("please_wait", lang))
 
@@ -299,7 +302,7 @@ async def summary_report_by_mechanics(callback: types.CallbackQuery, tg_id: str,
     for k, v in sorted_mechanics.items():
         text += f"{k} {v}\n"
 
-    keyboard = await kb.summary_report_details_keyboard(report_type, lang)
+    keyboard = await kb.summary_report_details_keyboard(report_type, period, lang)
     await waiting_message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
@@ -879,9 +882,19 @@ async def send_excel_file(callback: types.CallbackQuery, tg_id: str, session: An
     period = callback.data.split("|")[2]
 
     waiting_message = await callback.message.edit_text(await t.t("please_wait", lang))
-    data = await state.get_data()
-    start_date = data["start_date"]
-    end_date = data["end_date"]
+
+    if period != "custom":
+        start_date, end_date = get_dates_by_period(period)
+    else:
+        data = await state.get_data()
+        start_date = data["start_date"]
+        end_date = data["end_date"]
+
+    # скидываем стейт
+    try:
+        await state.clear()
+    except Exception:
+        pass
 
     # 📆 Индивидуальный отчет по механику
     if report_type == "individual_mechanic_report":
@@ -890,36 +903,52 @@ async def send_excel_file(callback: types.CallbackQuery, tg_id: str, session: An
         user = await AsyncOrm.get_user_by_id(user_id, session)
         operations = await AsyncOrm.get_operations_for_user_by_period(user.tg_id, start_date, end_date, session)
 
-        # если нет операций
-        if not operations:
-            msg_text = await t.t("no_operations", lang)
-            keyboard = await kb.back_to_mechanic(period, report_type, lang)
-            await waiting_message.edit_text(msg_text, reply_markup=keyboard.as_markup())
-            return
-
         # путь до отчета
         file_path = await individual_mechanic_excel_report(operations, user.username, start_date, end_date, report_type, lang)
         document = FSInputFile(file_path)
 
-        # отправляем отчет
-        await waiting_message.delete()
+        # текст сообщения
         start_date_formatted = convert_date_time(start_date, with_tz=True)[0]
         end_date_formatted = convert_date_time(end_date, with_tz=True)[0]
         text = f"{await t.t('individual_mechanic_report', lang)} {start_date_formatted} - {end_date_formatted}"
-        await callback.message.answer_document(document, caption=text)
 
-        # отправляем сообщение с клавиатурой
-        text = await t.t("excel_ready", lang)
-        back_callback = f"mechanic|{period}|{user_id}"
-        keyboard = await kb.excel_ready_keyboard(back_callback, lang)
-        await callback.message.answer(text, reply_markup=keyboard.as_markup())
+        # формируем callback для кнопки назад
+        back_callback = f"admin|reports"
 
-        # удаляем отчет
-        try:
-            os.remove(file_path)
-        except Exception as e:
-            logger.error(f"Не удалось удалить файл с отчетом {file_path}: {e}")
+    # 📆 Сводный отчет по механикам
+    elif report_type == "summary_report_by_mechanics":
+        # путь до отчета
+        file_path = await summary_mechanics_excel_report(start_date, end_date, report_type, lang, session)
+        document = FSInputFile(file_path)
 
+        # текст сообщения
+        start_date_formatted = convert_date_time(start_date, with_tz=True)[0]
+        end_date_formatted = convert_date_time(end_date, with_tz=True)[0]
+        text = f"{await t.t('summary_report_by_mechanics', lang)} {start_date_formatted} - {end_date_formatted}"
+
+        # формируем callback для кнопки назад
+        back_callback = f"admin|reports"
+
+    # 📆 Отчет по транспорту
+    elif report_type == "vehicle_report":
+        pass
+
+    # удаляем сообщение для ожидания
+    await waiting_message.delete()
+
+    # отправляем отчет
+    await callback.message.answer_document(document, caption=text)
+
+    # отправляем сообщение с клавиатурой
+    text = await t.t("excel_ready", lang)
+    keyboard = await kb.excel_ready_keyboard(back_callback, lang)
+    await callback.message.answer(text, reply_markup=keyboard.as_markup())
+
+    # удаляем отчет
+    # try:
+    #     os.remove(file_path)
+    # except Exception as e:
+    #     logger.error(f"Не удалось удалить файл с отчетом {file_path}: {e}")
 
 
 

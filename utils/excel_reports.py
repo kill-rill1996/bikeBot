@@ -1,9 +1,12 @@
 import datetime
 import os
+from typing import Any
 
 from openpyxl.styles import Font, PatternFill, Border, Side, Alignment
 
+from database.orm import AsyncOrm
 from schemas.reports import OperationWithJobs
+from schemas.users import User
 from utils.date_time_service import convert_date_time
 from utils.translator import translator as t
 import pandas as pd
@@ -140,5 +143,133 @@ async def individual_mechanic_excel_report(operations: list[OperationWithJobs], 
                 right=Side(style=BORDER_STYLE_THIN),
                 bottom=Side(style=BORDER_STYLE_THIN)
             )
+
+    return excel_path
+
+
+async def summary_mechanics_excel_report(start_date: datetime.datetime, end_date: datetime.datetime, report_type: str, lang: str,
+                                         session: Any) -> str:
+    """Генерация excel отчета. Возвращает путь к файлу"""
+    # Создаем директорию для отчетов, если ее нет
+    os.makedirs("reports", exist_ok=True)
+
+    # Цвета
+    COLOR_DARK_BLUE = "203764"  # Темно-синий текст
+    COLOR_LIGHT_BLUE = "D9E1F2"  # Светло-синий фон
+    COLOR_LIGHT_GREEN = "E2EFDA"  # Светло-зеленый фон
+    COLOR_LIGHT_YELLOW = "FFF2CC"  # Светло-желтый фон
+    COLOR_LIGHT_RED = "FFCCCC"  # Светло-красный фон
+    COLOR_LIGHT_GRAY = "F2F2F2"  # Светло-серый фон
+    COLOR_WHITE = "FFFFFF"  # Белый фон
+
+    # Стили границ
+    BORDER_STYLE_THIN = "thin"
+    BORDER_STYLE_MEDIUM = "medium"
+
+    # Выравнивание
+    ALIGN_CENTER = "center"
+    ALIGN_LEFT = "left"
+    ALIGN_RIGHT = "right"
+
+    # Путь к файлу Excel в зависимости от типа отчета
+    start_date_str = convert_date_time(start_date, with_tz=True)[0]
+    end_date_str = convert_date_time(end_date, with_tz=True)[0]
+    excel_path = f"reports/{report_type}_{start_date_str}_{end_date_str}.xlsx"
+    sheet_name = "summary_mechanics_report"
+    title = f"📆 {await t.t(report_type, lang)} {start_date_str} - {end_date_str}"
+
+    data = []
+
+    columns = [
+        await t.t('mechanic', lang),
+        await t.t('works_count', lang),
+        await t.t('works_time', lang),
+        await t.t('avg_works', lang),
+    ]
+
+    data.append(columns)
+
+    # формируем данные для отчета
+    mechanics = await AsyncOrm.get_all_mechanics(session)
+
+    works_count_rating = {}
+
+    for idx, mechanic in enumerate(mechanics, start=1):
+        row = list()
+
+        row.append(mechanic.username)
+
+        operations = await AsyncOrm.get_operations_for_user_by_period(mechanic.tg_id, start_date, end_date, session)
+
+        # количество работ
+        jobs_count = sum([len(operation.jobs) for operation in operations])
+        row.append(f"{jobs_count}")
+
+        # общее и среднее время
+        duration_sum = sum([operation.duration for operation in operations])
+        if jobs_count != 0:
+            avg_time = round(int(duration_sum) / jobs_count)
+        else:
+            avg_time = 0
+        row.append(f"{duration_sum}")
+        row.append(f"{avg_time}")
+
+        # записываем строчку в общий
+        data.append(row)
+
+        # запись для рейтинга
+        works_count_rating[mechanic.username] = jobs_count
+
+    # Добавляем пустую строку между разделами
+    data.append(["", "", "", ""])
+
+    # рейтинг механиков
+    data.append([f"{await t.t('rating_works', lang)}", "", ""])
+
+    sorted_mechanics = {k: v for k, v in sorted(works_count_rating.items(), key=lambda item: item[1], reverse=True)}
+    for k, v in sorted_mechanics.items():
+        data.append([f"{k}", f"{v}"])
+
+    # Создаем DataFrame с заголовками
+    df = pd.DataFrame(data)
+
+    # Записываем в Excel
+    with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
+        df.to_excel(writer, sheet_name=sheet_name, index=False)
+
+        # Форматирование
+        workbook = writer.book
+        worksheet = writer.sheets[sheet_name]
+
+        # Настройка ширины столбцов
+        worksheet.column_dimensions['A'].width = 20
+        worksheet.column_dimensions['B'].width = 40
+        worksheet.column_dimensions['C'].width = 25
+        worksheet.column_dimensions['D'].width = 25
+
+        # Заголовок отчета с улучшенным форматированием
+        title_cell = worksheet.cell(row=1, column=1)
+        title_cell.value = title
+        title_cell.font = Font(bold=True, size=14, color=COLOR_DARK_BLUE)  # Темно-синий текст
+
+        # объединяем для заголовка
+        worksheet.merge_cells('A1:D1')
+
+        # делаем заголовок по центру
+        title_cell.alignment = Alignment(horizontal=ALIGN_CENTER)
+
+        # Добавляем светло-синий фон для заголовка
+        title_cell.fill = PatternFill(start_color=COLOR_LIGHT_BLUE, end_color=COLOR_LIGHT_BLUE, fill_type="solid")
+
+        # Добавляем границу для заголовка
+        title_cell.border = Border(left=Side(style=BORDER_STYLE_MEDIUM), right=Side(style=BORDER_STYLE_MEDIUM),
+            top=Side(style=BORDER_STYLE_MEDIUM), bottom=Side(style=BORDER_STYLE_MEDIUM))
+
+        # делаем названия колонок по центру и добавляем границы
+        for i in range(4):
+            column_cell = worksheet.cell(row=2, column=i + 1)
+            column_cell.alignment = Alignment(horizontal=ALIGN_CENTER)
+            column_cell.border = Border(left=Side(style=BORDER_STYLE_THIN), right=Side(style=BORDER_STYLE_THIN),
+                bottom=Side(style=BORDER_STYLE_THIN))
 
     return excel_path
