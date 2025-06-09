@@ -38,7 +38,7 @@ async def operation_detail_message(operation: OperationJobsUserLocation, lang: s
     for job in operation.jobs:
         message += f"\t\t• {await t.t(job[1], lang)} -> {await t.t(job[0], lang)}\n"
 
-    message += f"\n{operation.location}\n{operation.username}"
+    message += f"\n{await t.t(operation.location, lang)}\n{operation.username}"
 
     if operation.comment:
         message += f": \"<i>{operation.comment}</i>\""
