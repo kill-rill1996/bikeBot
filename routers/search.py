@@ -104,7 +104,7 @@ async def get_data_to_search(message: types.Message | types.CallbackQuery, tg_id
         transports_for_keyboard: list[TransportNumber] = []
         # получаем совпавший транспорт из списка БД
         for transport in db_transports:
-            if f"{transport.subcategory_title}-{transport.serial_number}" in similar_transports:
+            if f"{transport.subcategory_title.lower()}-{transport.serial_number}" in similar_transports:
                 transports_for_keyboard.append(transport)
 
     keyboard = await kb.transport_jobs_keyboard(lang, transports_for_keyboard)
@@ -208,7 +208,7 @@ async def get_match_transport_or_job(
 ) -> list[str]:
     """Парсит введенные данные и возвращает варианты для дальнейшего поиска"""
     # формируем названия транспорта
-    transport_names = [f"{transport.subcategory_title}-{transport.serial_number}" for transport in transports]
+    transport_names = [f"{transport.subcategory_title.lower()}-{transport.serial_number}" for transport in transports]
 
     # переводим работы в нужный язык
     translated_jobs = {op.id: await t.t(op.job_title, lang) for op in operations}
@@ -219,16 +219,15 @@ async def get_match_transport_or_job(
     if any(char.isdigit() for char in input_data):
         # делим присланные данные для более подробного поиска
         input_data_split = input_data.split(" ")
-
         for word in input_data_split:
 
             # проверяем переданные слова на наличие в нем транспорта и добавляем к предполагаемому транспорту
-            transports.extend(difflib.get_close_matches(word, transport_names, n=10, cutoff=0.3))
+            transports.extend(difflib.get_close_matches(word.lower(), transport_names, n=6, cutoff=0.3))
 
     # если цифр нет, то проверяем только на работы
     else:
         # проверяем jobs
-        matches_titles = difflib.get_close_matches(input_data, translated_jobs.values(), n=10)
+        matches_titles = difflib.get_close_matches(input_data, translated_jobs.values(), n=6)
         for key, value in translated_jobs.items():
             if value in matches_titles:
                 for op in operations:
