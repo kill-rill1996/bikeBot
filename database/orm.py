@@ -833,7 +833,7 @@ class AsyncOrm:
                 FROM operations AS o
                 JOIN transports AS t ON o.transport_id = t.id
                 JOIN categories AS c ON t.category_id = c.id
-                JOIN subcategories sc ON sc.id = t.category_id
+                JOIN subcategories AS sc ON sc.id = t.subcategory_id
                 WHERE o.tg_id = $1 AND o.created_at > $2 AND o.created_at < $3
                 """,
                 tg_id, start_date, end_date

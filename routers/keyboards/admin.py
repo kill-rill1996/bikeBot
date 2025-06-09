@@ -411,8 +411,7 @@ async def vehicle_report_details_keyboard(back_to: str, period: str, report_type
     keyboard = InlineKeyboardBuilder()
 
     keyboard.row(
-        # TODO поправить
-        InlineKeyboardButton(text=f"{await t.t('excel_export', lang)}", callback_data=f"excel_export"),
+        InlineKeyboardButton(text=f"{await t.t('excel_export', lang)}", callback_data=f"excel_export|{report_type}|{period}"),
         InlineKeyboardButton(text=f"{await t.t('graphic', lang)}", callback_data=f"graphic")
     )
 

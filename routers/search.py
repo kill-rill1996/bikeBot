@@ -223,12 +223,12 @@ async def get_match_transport_or_job(
         for word in input_data_split:
 
             # проверяем переданные слова на наличие в нем транспорта и добавляем к предполагаемому транспорту
-            transports.extend(difflib.get_close_matches(word, transport_names, n=2, cutoff=0.3))
+            transports.extend(difflib.get_close_matches(word, transport_names, n=10, cutoff=0.3))
 
     # если цифр нет, то проверяем только на работы
     else:
         # проверяем jobs
-        matches_titles = difflib.get_close_matches(input_data, translated_jobs.values(), n=2)
+        matches_titles = difflib.get_close_matches(input_data, translated_jobs.values(), n=10)
         for key, value in translated_jobs.items():
             if value in matches_titles:
                 for op in operations:

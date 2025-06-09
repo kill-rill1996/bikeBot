@@ -11,7 +11,9 @@ from cache import r
 from logger import logger
 from routers.states.reports import IndividualMechanicReport, SummaryMechanicReport, TransportReport, JobTypesReport, \
     InefficiencyReport
-from utils.excel_reports import individual_mechanic_excel_report, summary_mechanics_excel_report
+from utils.excel_reports import individual_mechanic_excel_report, summary_mechanics_excel_report, \
+    vehicle_report_by_transport_excel_report, vehicle_report_by_subcategory_excel_report, \
+    vehicle_report_by_category_excel_report
 from utils.translator import translator as t
 from utils.date_time_service import get_dates_by_period, get_next_and_prev_month_and_year, convert_str_to_datetime
 from database.orm import AsyncOrm
@@ -347,6 +349,9 @@ async def vehicle_report_by_category_choose_category(callback: types.CallbackQue
     lang = r.get(f"lang:{tg_id}").decode()
     report_type = callback.data.split("|")[2]
     period = callback.data.split("|")[3]
+    report_subtype = callback.data.split("|")[1]
+
+    await state.update_data(report_subtype=report_subtype)
 
     text = await t.t("select_category", lang)
     categories = await AsyncOrm.get_all_categories(session)
@@ -362,6 +367,8 @@ async def vehicle_report_by_category(callback: types.CallbackQuery, tg_id: str, 
     report_type = callback.data.split("|")[1]
     period = callback.data.split("|")[2]
     category_id = int(callback.data.split("|")[3])
+
+    await state.update_data(category_id=category_id)
 
     waiting_message = await callback.message.edit_text(await t.t("please_wait", lang))
 
@@ -413,11 +420,14 @@ async def vehicle_report_by_category(callback: types.CallbackQuery, tg_id: str, 
 
 # BY SUBCATEGORY
 @router.callback_query(and_f(F.data.split("|")[0] == "vehicle_report_type", F.data.split("|")[1] == "by_subcategory"))
-async def vehicle_report_by_subcategory_choose_subcategory(callback: types.CallbackQuery, tg_id: str, session: Any) -> None:
+async def vehicle_report_by_subcategory_choose_subcategory(callback: types.CallbackQuery, tg_id: str, session: Any, state: FSMContext) -> None:
     """Выбор подкатегории"""
     lang = r.get(f"lang:{tg_id}").decode()
     report_type = callback.data.split("|")[2]
     period = callback.data.split("|")[3]
+    report_subtype = callback.data.split("|")[1]
+
+    await state.update_data(report_subtype=report_subtype)
 
     text = await t.t("choose_subcategory", lang)
     subcategories = await AsyncOrm.get_all_subcategories(session)
@@ -433,6 +443,8 @@ async def vehicle_report_by_subcategory(callback: types.CallbackQuery, tg_id: st
     report_type = callback.data.split("|")[1]
     period = callback.data.split("|")[2]
     subcategory_id = int(callback.data.split("|")[3])
+
+    await state.update_data(subcategory_id=subcategory_id)
 
     waiting_message = await callback.message.edit_text(await t.t("please_wait", lang))
 
@@ -482,11 +494,14 @@ async def vehicle_report_by_subcategory(callback: types.CallbackQuery, tg_id: st
 
 # BY TRANSPORT
 @router.callback_query(and_f(F.data.split("|")[0] == "vehicle_report_type", F.data.split("|")[1] == "by_transport"))
-async def vehicle_report_by_transport_choose_category(callback: types.CallbackQuery, tg_id: str, session: Any) -> None:
+async def vehicle_report_by_transport_choose_category(callback: types.CallbackQuery, tg_id: str, session: Any, state: FSMContext) -> None:
     """Выбор категории для отчета по серийному номеру транспорта"""
     lang = r.get(f"lang:{tg_id}").decode()
     report_type = callback.data.split("|")[2]
     period = callback.data.split("|")[3]
+    report_subtype = callback.data.split("|")[1]
+
+    await state.update_data(report_subtype=report_subtype)
 
     categories = await AsyncOrm.get_all_categories(session)
 
@@ -565,6 +580,8 @@ async def vehicle_report_by_transport(callback: types.CallbackQuery, tg_id: str,
     report_type = callback.data.split("|")[1]
     period = callback.data.split("|")[2]
     transport_id = int(callback.data.split("|")[3])
+
+    await state.update_data(transport_id=transport_id)
 
     waiting_message = await callback.message.edit_text(await t.t("please_wait", lang))
 
@@ -880,13 +897,13 @@ async def send_excel_file(callback: types.CallbackQuery, tg_id: str, session: An
     lang = r.get(f"lang:{tg_id}").decode()
     report_type = callback.data.split("|")[1]
     period = callback.data.split("|")[2]
+    data = await state.get_data()
 
     waiting_message = await callback.message.edit_text(await t.t("please_wait", lang))
 
     if period != "custom":
         start_date, end_date = get_dates_by_period(period)
     else:
-        data = await state.get_data()
         start_date = data["start_date"]
         end_date = data["end_date"]
 
@@ -931,7 +948,65 @@ async def send_excel_file(callback: types.CallbackQuery, tg_id: str, session: An
 
     # 📆 Отчет по транспорту
     elif report_type == "vehicle_report":
-        pass
+        report_subtype = data["report_subtype"]
+
+        if report_subtype == "by_category":
+            # данные для отчета
+            category_id = data["category_id"]
+            operations = await AsyncOrm.get_operations_by_category_and_period(category_id, start_date, end_date, session)
+            category_title = operations[0].transport_category
+
+            # путь до отчета
+            file_path = await vehicle_report_by_category_excel_report(operations, start_date, end_date, report_type,
+                                                                         report_subtype, lang, session,
+                                                                         category_title=category_title)
+            document = FSInputFile(file_path)
+
+            # текст сообщения
+            start_date_formatted = convert_date_time(start_date, with_tz=True)[0]
+            end_date_formatted = convert_date_time(end_date, with_tz=True)[0]
+            text = f"{await t.t('vehicle_report', lang)} {start_date_formatted} - {end_date_formatted}"
+
+            # формируем callback для кнопки назад
+            back_callback = f"admin|reports"
+
+        elif report_subtype == "by_subcategory":
+            # данные для отчета
+            subcategory_id = data["subcategory_id"]
+            subcategory = await AsyncOrm.get_subcategory_by_id(subcategory_id, session)
+            operations = await AsyncOrm.get_operations_by_subcategory_and_period(subcategory_id, start_date, end_date, session)
+
+            # путь до отчета
+            file_path = await vehicle_report_by_subcategory_excel_report(operations, start_date, end_date, report_type,
+                                                                       report_subtype, lang, session, subcategory=subcategory)
+            document = FSInputFile(file_path)
+
+            # текст сообщения
+            start_date_formatted = convert_date_time(start_date, with_tz=True)[0]
+            end_date_formatted = convert_date_time(end_date, with_tz=True)[0]
+            text = f"{await t.t('vehicle_report', lang)} {start_date_formatted} - {end_date_formatted}"
+
+            # формируем callback для кнопки назад
+            back_callback = f"admin|reports"
+
+        else:
+            # данные для отчета
+            transport_id = data["transport_id"]
+            operations = await AsyncOrm.get_operations_by_transport_and_period(transport_id, start_date, end_date, session)
+            transport = await AsyncOrm.get_transport_by_id(transport_id, session)
+
+            # путь до отчета
+            file_path = await vehicle_report_by_transport_excel_report(operations, start_date, end_date, report_type,
+                                                                       report_subtype, lang, session, transport=transport)
+            document = FSInputFile(file_path)
+
+            # текст сообщения
+            start_date_formatted = convert_date_time(start_date, with_tz=True)[0]
+            end_date_formatted = convert_date_time(end_date, with_tz=True)[0]
+            text = f"{await t.t('vehicle_report', lang)} {start_date_formatted} - {end_date_formatted}"
+
+            # формируем callback для кнопки назад
+            back_callback = f"admin|reports"
 
     # удаляем сообщение для ожидания
     await waiting_message.delete()
@@ -945,10 +1020,10 @@ async def send_excel_file(callback: types.CallbackQuery, tg_id: str, session: An
     await callback.message.answer(text, reply_markup=keyboard.as_markup())
 
     # удаляем отчет
-    # try:
-    #     os.remove(file_path)
-    # except Exception as e:
-    #     logger.error(f"Не удалось удалить файл с отчетом {file_path}: {e}")
+    try:
+        os.remove(file_path)
+    except Exception as e:
+        logger.error(f"Не удалось удалить файл с отчетом {file_path}: {e}")
 
 
 
