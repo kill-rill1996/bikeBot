@@ -97,15 +97,15 @@ async def select_jobs_keyboard(jobs: List[Job], page: int, category_id: int, lan
     start = (page - 1) * nums_on_page
     end = page * nums_on_page
 
-    jobs_sorted = []
-    for job in jobs:
-        translated_title = await t.t(job.title, lang)
-        job.title = translated_title
-        jobs_sorted.append(job)
+    # jobs_sorted = []
+    # for job in jobs:
+    #     translated_title = await t.t(job.title, lang)
+    #     job.title = translated_title
+    #     jobs_sorted.append(job)
+    #
+    # jobs_sorted = sorted(jobs_sorted, key=lambda j: j.title)
 
-    jobs_sorted = sorted(jobs_sorted, key=lambda j: j.title)
-
-    page_jobs = jobs_sorted[start:end]
+    page_jobs = jobs[start:end]
 
     for job in page_jobs:
         text = job.title
