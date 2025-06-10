@@ -10,10 +10,10 @@ from aiogram.types import FSInputFile
 from cache import r
 from logger import logger
 from routers.states.reports import IndividualMechanicReport, SummaryMechanicReport, TransportReport, JobTypesReport, \
-    InefficiencyReport
+    InefficiencyReport, LocationReport
 from utils.excel_reports import individual_mechanic_excel_report, summary_mechanics_excel_report, \
     vehicle_report_by_transport_excel_report, vehicle_report_by_subcategory_excel_report, \
-    vehicle_report_by_category_excel_report
+    vehicle_report_by_category_excel_report, categories_work_excel_report
 from utils.translator import translator as t
 from utils.date_time_service import get_dates_by_period, get_next_and_prev_month_and_year, convert_str_to_datetime
 from database.orm import AsyncOrm
@@ -56,6 +56,8 @@ async def choose_period(callback: types.CallbackQuery, tg_id: str, state: FSMCon
         await state.set_state(JobTypesReport.period)
     elif report_type == "inefficiency_report":
         await state.set_state(InefficiencyReport.period)
+    elif report_type == "location_report":
+        await state.set_state(LocationReport.period)
 
     # записываем тип отчета в стейт
     await state.update_data(report_type=report_type)
@@ -88,6 +90,8 @@ async def custom_period_choose(callback: types.CallbackQuery, tg_id: str, state:
             await state.set_state(JobTypesReport.report)
         elif report_type == "inefficiency_report":
             await state.set_state(InefficiencyReport.report)
+        elif report_type == "location_report":
+            await state.set_state(LocationReport.report)
 
         # собираем первую дату
         start_date_str = callback.data.split("|")[2]
@@ -206,17 +210,22 @@ async def mechanic_report(callback: types.CallbackQuery, tg_id: str, session: An
     # mechanic
     text = f"📆 {await t.t('individual_mechanic_report', lang)}\n{user.username}\n\n"
 
-    # количество работ
     jobs_count = sum([len(operation.jobs) for operation in operations])
+    duration_sum = str(sum([operation.duration for operation in operations]))
+    avg_time = round(int(duration_sum) / jobs_count)
+
+    # количество работ
     text += await t.t("number_of_works", lang) + " " + f"<b>{str(jobs_count)}</b>" + "\n"
 
+    # среднее время на работу
+    text += await t.t("excel_avg_time", lang) + " " + f"<b>{avg_time}</b>" + " " + await t.t("minutes", lang) + "\n"
+
     # количество потраченного времени
-    duration_sum = str(sum([operation.duration for operation in operations]))
     text += await t.t("total_time_spent", lang) + " " + f"<b>{duration_sum}</b>" + " " + await t.t("minutes", lang) + "\n\n"
 
     # Список всех работ с деталями
     text += await t.t("work_list", lang) + "\n"
-    for idx, operation in enumerate(operations, start=1):
+    for idx, operation in enumerate(operations[:15], start=1):
         date, time = convert_date_time(operation.created_at, with_tz=True)
         row_text = f"<b>{idx})</b> ID {operation.id} | {date} {time} | {str(operation.duration)} {await t.t('minutes', lang)} | " \
                    f"{await t.t(operation.transport_category, lang)} {operation.transport_subcategory}-{operation.transport_serial_number}\n"
@@ -395,7 +404,7 @@ async def vehicle_report_by_category(callback: types.CallbackQuery, tg_id: str, 
     text = f"📆 {await t.t('vehicle_report', lang)}\n{await t.t('category', lang)} <b>{await t.t(category_title, lang)}</b>\n\n"
 
     # operations
-    for idx, operation in enumerate(operations, start=1):
+    for idx, operation in enumerate(operations[:15], start=1):
         mechanic = await AsyncOrm.get_user_by_tg_id(operation.tg_id, session)
         location = await AsyncOrm.get_location_by_id(operation.location_id, session)
         date, time = convert_date_time(operation.created_at, with_tz=True)
@@ -469,7 +478,7 @@ async def vehicle_report_by_subcategory(callback: types.CallbackQuery, tg_id: st
     text = f"📆 {await t.t('vehicle_report', lang)}\n{await t.t('subcategory', lang)} <b>{subcategory.title}</b>\n\n"
 
     # operations
-    for idx, operation in enumerate(operations, start=1):
+    for idx, operation in enumerate(operations[:15], start=1):
         mechanic = await AsyncOrm.get_user_by_tg_id(operation.tg_id, session)
         location = await AsyncOrm.get_location_by_id(operation.location_id, session)
         date, time = convert_date_time(operation.created_at, with_tz=True)
@@ -605,7 +614,7 @@ async def vehicle_report_by_transport(callback: types.CallbackQuery, tg_id: str,
     text = f"📆 {await t.t('vehicle_report', lang)}\n<b>{transport.subcategory_title}-{transport.serial_number}</b>\n\n"
 
     # operations
-    for idx, operation in enumerate(operations, start=1):
+    for idx, operation in enumerate(operations[:15], start=1):
         mechanic = await AsyncOrm.get_user_by_tg_id(operation.tg_id, session)
         location = await AsyncOrm.get_location_by_id(operation.location_id, session)
         date, time = convert_date_time(operation.created_at, with_tz=True)
@@ -732,6 +741,9 @@ async def report_by_jobtypes(callback: types.CallbackQuery, tg_id: str, state: F
     else:
         start_date = data["start_date"]
         end_date = data["end_date"]
+
+    await state.update_data(start_date=start_date)
+    await state.update_data(end_date=end_date)
 
     text = f"📆 {await t.t('work_categories_report', lang)}\n\n"
 
@@ -891,6 +903,142 @@ async def inefficiency_report(callback: types.CallbackQuery, tg_id: str, session
     await waiting_message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
+# 📆 Индивидуальный отчет по местоположению
+@router.callback_query(and_f(F.data.split("|")[0] == "reports-period", F.data.split("|")[1] == "location_report"))
+@router.callback_query(F.data.split("|")[0] == "clndr", LocationReport.report)
+async def location_report_select_location(callback: types.CallbackQuery, tg_id: str, session: Any, state: FSMContext) -> None:
+    """Выбор локации для отчета"""
+    lang = r.get(f"lang:{tg_id}").decode()
+    report_type = callback.data.split("|")[1]
+    period = callback.data.split("|")[2]
+
+    # если был произвольный период
+    if callback.data.split("|")[0] == "clndr":
+        # формируем даты в формате datetime для дальнейшего сравнения
+        data = await state.get_data()
+        start_date = data["start_date"]
+        end_date = convert_str_to_datetime(callback.data.split("|")[3])
+
+        # меняем даты местами, если end_date меньше чем start_date
+        if start_date > end_date:
+            start_date, end_date = end_date, start_date
+
+    # не произвольный период
+    else:
+        start_date, end_date = get_dates_by_period(period)
+
+    # записываем обе даты в стейт
+    await state.update_data(start_date=start_date)
+    await state.update_data(end_date=end_date)
+
+    text = await t.t("choose_location", lang)
+
+    locations = await AsyncOrm.get_locations(session)
+    keyboard = await kb.select_location(locations, report_type, period, lang)
+
+    await callback.message.edit_text(text, reply_markup=keyboard.as_markup())
+
+
+@router.callback_query(F.data.split("|")[0] == "select_location")
+async def location_report(callback: types.CallbackQuery, tg_id: str, session: Any, state: FSMContext) -> None:
+    """Отчет по местоположению"""
+    lang = r.get(f"lang:{tg_id}").decode()
+    report_type = callback.data.split("|")[1]
+    period = callback.data.split("|")[2]
+    location_id = int(callback.data.split("|")[3])
+
+    await state.update_data(location_id=location_id)
+
+    waiting_message = await callback.message.edit_text(await t.t("please_wait", lang))
+
+    # получаем даты в зависимости от периода
+    if period != "custom":
+        start_date, end_date = get_dates_by_period(period)
+    else:
+        data = await state.get_data()
+        start_date = data["start_date"]
+        end_date = data["end_date"]
+
+    # получаем операции по датам
+    location = await AsyncOrm.get_location_by_id(location_id, session)
+    operations = await AsyncOrm.get_operations_by_location_and_period(location_id, start_date, end_date, session)
+
+    # если нет операций
+    if not operations:
+        msg_text = await t.t("no_operations", lang)
+        keyboard = await kb.back_to_location(period, report_type, lang)
+        await waiting_message.edit_text(msg_text, reply_markup=keyboard.as_markup())
+        return
+
+    # header
+    text = f"📆 {await t.t('location_report', lang)}\n{await t.t(location.name, lang)}\n\n"
+
+    # operations
+    unique_transport = {}
+    current_category = operations[0].transport_category
+    current_subcategory = operations[0].transport_subcategory
+    category_counter = 0
+    subcategory_counter = 0
+    total_counter = 0
+    text += f"{await t.t(operations[0].transport_category, lang)}\n" \
+            f"{await t.t('subcategory', lang)} {operations[0].transport_subcategory}\n\n"
+
+    for idx, operation in enumerate(operations, start=1):
+        if unique_transport.get(f"{operation.transport_subcategory}-{operation.transport_serial_number}"):
+            continue
+        else:
+            # чтобы не повторялся транспорт из операций
+            key = f"{operation.transport_subcategory}-{operation.transport_serial_number}"
+            unique_transport[key] = True
+
+            # смена подкатегории для разбивки
+            if operation.transport_subcategory != current_subcategory:
+                # смена категории для разбивки
+                if operation.transport_category != current_category:
+                    # записываем итоги категории и подкатегории
+                    text += f'{await t.t("total", lang)} {current_subcategory}: {subcategory_counter} {await t.t("items", lang)}\n'
+                    text += f'{await t.t("total", lang)} {await t.t(current_category, lang)}: {category_counter} {await t.t("items", lang)}\n\n'
+
+                    # записываем заголовки новых категории и подкатегории
+                    text += f"{await t.t(operation.transport_category, lang)}\n" \
+                            f"{await t.t('subcategory', lang)} {operation.transport_subcategory}\n\n"
+
+                    # меняем текущие подкатегорию и категорию
+                    current_category = operation.transport_category
+                    current_subcategory = operation.transport_subcategory
+                    category_counter = 0
+                    subcategory_counter = 0
+
+                # без смены категории
+                else:
+                    # записываем итоги подкатегории
+                    text += f'{await t.t("total", lang)} {current_subcategory}: {subcategory_counter} {await t.t("items", lang)}\n\n'
+
+                    # записываем заголовок новой подкатегории
+                    text += f"{await t.t('subcategory', lang)} {operation.transport_subcategory}\n\n"
+
+                    # меняем текущие подкатегорию
+                    current_subcategory = operation.transport_subcategory
+                    subcategory_counter = 0
+
+            date, time = convert_date_time(operation.created_at, with_tz=True)
+            row_text = f"{operation.transport_subcategory}-{operation.transport_serial_number} \t\t {date} {time}\n"
+            text += row_text
+            category_counter += 1
+            subcategory_counter += 1
+            total_counter += 1
+
+    # запись последних строк
+    text += f'{await t.t("total", lang)} {current_subcategory}: {subcategory_counter} {await t.t("items", lang)}\n'
+    text += f'{await t.t("total", lang)} {await t.t(current_category, lang)}: {category_counter} {await t.t("items", lang)}\n\n'
+
+    # запись финального подсчета на складе
+    text += f'{await t.t("total_on_warehouse", lang)}: {total_counter} {await t.t("items", lang)}\n\n'
+
+    keyboard = await kb.location_report_details_keyboard(report_type, lang)
+    await waiting_message.edit_text(text, reply_markup=keyboard.as_markup())
+
+
 @router.callback_query(F.data.split("|")[0] == "excel_export")
 async def send_excel_file(callback: types.CallbackQuery, tg_id: str, session: Any, state: FSMContext) -> None:
     """Отправка эксель файла для типа отчета"""
@@ -1007,6 +1155,25 @@ async def send_excel_file(callback: types.CallbackQuery, tg_id: str, session: An
 
             # формируем callback для кнопки назад
             back_callback = f"admin|reports"
+
+    # 📆 Отчет по категориям работ
+    elif report_type == "work_categories_report":
+        # данные для отчета
+        selected_jobtypes = data["selected_jobtypes"]
+        jobtypes = await AsyncOrm.get_jobtypes_by_ids(selected_jobtypes, session)
+
+        # путь до отчета
+        file_path = await categories_work_excel_report(jobtypes, start_date, end_date, report_type, lang, session)
+        document = FSInputFile(file_path)
+
+        # текст сообщения
+        start_date_formatted = convert_date_time(start_date, with_tz=True)[0]
+        end_date_formatted = convert_date_time(end_date, with_tz=True)[0]
+        text = f"{await t.t('work_categories_report', lang)} {start_date_formatted} - {end_date_formatted}"
+
+        # формируем callback для кнопки назад
+        back_callback = f"admin|reports"
+
 
     # удаляем сообщение для ожидания
     await waiting_message.delete()

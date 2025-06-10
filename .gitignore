@@ -344,4 +344,7 @@ redisdata/
 
 *.sqlite3
 *.xlsx
+*.zip
+*.dump
+backup_postgres_uvrm.sh
 # End of https://www.toptal.com/developers/gitignore/api/python,pycharm,macos,venv

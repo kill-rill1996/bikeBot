@@ -6,6 +6,7 @@ from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from routers.buttons import buttons as btn
 from schemas.categories_and_jobs import Subcategory, Jobtype, Category
+from schemas.location import Location
 from schemas.transport import TransportSubcategory
 from schemas.users import User
 from settings import settings
@@ -38,6 +39,7 @@ async def reports_menu_keyboard(lang: str) -> InlineKeyboardBuilder:
     keyboard.row(InlineKeyboardButton(text=f"📆 {await t.t('vehicle_report', lang)}", callback_data="admin-reports|vehicle_report"))
     keyboard.row(InlineKeyboardButton(text=f"📆 {await t.t('work_categories_report', lang)}", callback_data="admin-reports|work_categories_report"))
     keyboard.row(InlineKeyboardButton(text=f"📆 {await t.t('inefficiency_report', lang)}", callback_data="admin-reports|inefficiency_report"))
+    keyboard.row(InlineKeyboardButton(text=f"📆 {await t.t('location_report', lang)}", callback_data="admin-reports|location_report"))
 
     back_button: tuple = await btn.get_back_button("menu|admin", lang)
     keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
@@ -142,6 +144,17 @@ async def choose_mechanic(mechanics: List[User], report_type: str, period: str, 
 
 async def back_to_mechanic(period: str, report_type: str, lang: str) -> InlineKeyboardBuilder:
     """Клавиатура возврата к выбору механика"""
+    keyboard = InlineKeyboardBuilder()
+
+    # назад
+    back_button: tuple = await btn.get_back_button(f"reports-period|{report_type}|{period}", lang)
+    keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
+
+    return keyboard
+
+
+async def back_to_location(period: str, report_type: str, lang: str) -> InlineKeyboardBuilder:
+    """Клавиатура возврата к выбору местоположения"""
     keyboard = InlineKeyboardBuilder()
 
     # назад
@@ -355,6 +368,24 @@ async def select_jobtypes(jobtypes: List[Jobtype], selected: List[int], report_t
     return keyboard
 
 
+async def select_location(locations: List[Location], report_type: str, period: str, lang: str) -> InlineKeyboardBuilder:
+    """Клавиатура выбора локации"""
+    keyboard = InlineKeyboardBuilder()
+
+    for location in locations:
+        keyboard.row(InlineKeyboardButton(text=await t.t(location.name, lang), callback_data=f"select_location|{report_type}|{period}|{location.id}"))
+
+    # назад
+    back_button: tuple = await btn.get_back_button(f"admin-reports|{report_type}", lang)
+    keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
+
+    # главное меню
+    main_menu_button: tuple = await btn.get_main_menu_button(lang)
+    keyboard.row(InlineKeyboardButton(text=main_menu_button[0], callback_data=main_menu_button[1]))
+
+    return keyboard
+
+
 async def back_to_choose_period(report_type: str, lang: str) -> InlineKeyboardBuilder:
     """Клавиатура возврата к выбору периода для отчета по неэффективности"""
     keyboard = InlineKeyboardBuilder()
@@ -449,6 +480,27 @@ async def jobtypes_report_details_keyboard(report_type: str, period: str, lang: 
 
 async def efficient_report_details_keyboard(report_type: str, lang: str) -> InlineKeyboardBuilder:
     """Клавиатура отчета по неэффективности"""
+    keyboard = InlineKeyboardBuilder()
+
+    keyboard.row(
+        # TODO поправить
+        InlineKeyboardButton(text=f"{await t.t('excel_export', lang)}", callback_data=f"excel_export"),
+        InlineKeyboardButton(text=f"{await t.t('graphic', lang)}", callback_data=f"graphic")
+    )
+
+    # назад
+    back_button: tuple = await btn.get_back_button(f"admin-reports|{report_type}", lang)
+    keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
+
+    # главное меню
+    main_menu_button: tuple = await btn.get_main_menu_button(lang)
+    keyboard.row(InlineKeyboardButton(text=main_menu_button[0], callback_data=main_menu_button[1]))
+
+    return keyboard
+
+
+async def location_report_details_keyboard(report_type: str, lang: str) -> InlineKeyboardBuilder:
+    """Клавиатура отчета по местоположению"""
     keyboard = InlineKeyboardBuilder()
 
     keyboard.row(
