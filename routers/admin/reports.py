@@ -13,7 +13,7 @@ from routers.states.reports import IndividualMechanicReport, SummaryMechanicRepo
     InefficiencyReport
 from utils.excel_reports import individual_mechanic_excel_report, summary_mechanics_excel_report, \
     vehicle_report_by_transport_excel_report, vehicle_report_by_subcategory_excel_report, \
-    vehicle_report_by_category_excel_report
+    vehicle_report_by_category_excel_report, categories_work_excel_report
 from utils.translator import translator as t
 from utils.date_time_service import get_dates_by_period, get_next_and_prev_month_and_year, convert_str_to_datetime
 from database.orm import AsyncOrm
@@ -206,17 +206,22 @@ async def mechanic_report(callback: types.CallbackQuery, tg_id: str, session: An
     # mechanic
     text = f"📆 {await t.t('individual_mechanic_report', lang)}\n{user.username}\n\n"
 
-    # количество работ
     jobs_count = sum([len(operation.jobs) for operation in operations])
+    duration_sum = str(sum([operation.duration for operation in operations]))
+    avg_time = round(int(duration_sum) / jobs_count)
+
+    # количество работ
     text += await t.t("number_of_works", lang) + " " + f"<b>{str(jobs_count)}</b>" + "\n"
 
+    # среднее время на работу
+    text += await t.t("excel_avg_time", lang) + " " + f"<b>{avg_time}</b>" + " " + await t.t("minutes", lang) + "\n"
+
     # количество потраченного времени
-    duration_sum = str(sum([operation.duration for operation in operations]))
     text += await t.t("total_time_spent", lang) + " " + f"<b>{duration_sum}</b>" + " " + await t.t("minutes", lang) + "\n\n"
 
     # Список всех работ с деталями
     text += await t.t("work_list", lang) + "\n"
-    for idx, operation in enumerate(operations, start=1):
+    for idx, operation in enumerate(operations[:15], start=1):
         date, time = convert_date_time(operation.created_at, with_tz=True)
         row_text = f"<b>{idx})</b> ID {operation.id} | {date} {time} | {str(operation.duration)} {await t.t('minutes', lang)} | " \
                    f"{await t.t(operation.transport_category, lang)} {operation.transport_subcategory}-{operation.transport_serial_number}\n"
@@ -733,6 +738,9 @@ async def report_by_jobtypes(callback: types.CallbackQuery, tg_id: str, state: F
         start_date = data["start_date"]
         end_date = data["end_date"]
 
+    await state.update_data(start_date=start_date)
+    await state.update_data(end_date=end_date)
+
     text = f"📆 {await t.t('work_categories_report', lang)}\n\n"
 
     for idx, jt in enumerate(jobtypes, start=1):
@@ -1007,6 +1015,25 @@ async def send_excel_file(callback: types.CallbackQuery, tg_id: str, session: An
 
             # формируем callback для кнопки назад
             back_callback = f"admin|reports"
+
+    # 📆 Отчет по категориям работ
+    elif report_type == "work_categories_report":
+        # данные для отчета
+        selected_jobtypes = data["selected_jobtypes"]
+        jobtypes = await AsyncOrm.get_jobtypes_by_ids(selected_jobtypes, session)
+
+        # путь до отчета
+        file_path = await categories_work_excel_report(jobtypes, start_date, end_date, report_type, lang, session)
+        document = FSInputFile(file_path)
+
+        # текст сообщения
+        start_date_formatted = convert_date_time(start_date, with_tz=True)[0]
+        end_date_formatted = convert_date_time(end_date, with_tz=True)[0]
+        text = f"{await t.t('work_categories_report', lang)} {start_date_formatted} - {end_date_formatted}"
+
+        # формируем callback для кнопки назад
+        back_callback = f"admin|reports"
+
 
     # удаляем сообщение для ожидания
     await waiting_message.delete()
