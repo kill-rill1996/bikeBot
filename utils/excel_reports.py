@@ -107,7 +107,7 @@ async def individual_mechanic_excel_report(operations: list[OperationWithJobs], 
         # Настройка ширины столбцов
         worksheet.column_dimensions['A'].width = 15
         worksheet.column_dimensions['B'].width = 20
-        worksheet.column_dimensions['C'].width = 15
+        worksheet.column_dimensions['C'].width = 25
         worksheet.column_dimensions['D'].width = 25
         worksheet.column_dimensions['E'].width = 35
         worksheet.column_dimensions['F'].width = 45
