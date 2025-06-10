@@ -25,3 +25,8 @@ class JobTypesReport(StatesGroup):
 class InefficiencyReport(StatesGroup):
     period = State()
     report = State()
+
+
+class LocationReport(StatesGroup):
+    period = State()
+    report = State()

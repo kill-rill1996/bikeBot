@@ -938,6 +938,31 @@ class AsyncOrm:
                          f"до {end_date}: {e}")
 
     @staticmethod
+    async def get_operations_by_location_and_period(location_id: int, start_date: datetime.datetime,
+                                                    end_date: datetime.datetime, session: Any) -> List[OperationWithJobs]:
+        """Получение операций по локации за период"""
+        try:
+            rows = await session.fetch(
+                """
+                SELECT o.*, c.title AS transport_category, sc.title AS transport_subcategory, t.serial_number AS transport_serial_number
+                FROM operations AS o
+                JOIN transports AS t ON o.transport_id = t.id
+                JOIN categories AS c ON t.category_id = c.id
+                JOIN subcategories AS sc ON t.subcategory_id = sc.id
+                WHERE o.created_at > $1 AND o.created_at < $2 AND o.location_id = $3
+                ORDER BY transport_category, transport_subcategory, transport_serial_number;
+                """,
+                start_date, end_date, location_id
+            )
+            operations = [OperationWithJobs.model_validate(row) for row in rows]
+
+            return operations
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении операций по местоположению {location_id} с {start_date} "
+                         f"до {end_date}: {e}")
+
+    @staticmethod
     async def get_operations_by_transport_and_period(transport_id: int, start_date: datetime.datetime,
                                                        end_date: datetime.datetime, session: Any) -> List[OperationWithJobs]:
         """Получение операций по транспорту за период"""
