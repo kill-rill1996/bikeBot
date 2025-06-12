@@ -403,7 +403,7 @@ async def mechanic_report_details_keyboard(period: str, report_type: str, user_i
 
     keyboard.row(
         InlineKeyboardButton(text=f"{await t.t('excel_export', lang)}", callback_data=f"excel_export|{report_type}|{period}|{user_id}"),
-        InlineKeyboardButton(text=f"{await t.t('graphic', lang)}", callback_data=f"graphic")
+        InlineKeyboardButton(text=f"{await t.t('graphic', lang)}", callback_data=f"graphic-mechanic|{period}|{user_id}")
     )
 
     # назад
@@ -543,3 +543,14 @@ def get_page_nums(items: int, nums_on_page: int) -> int:
         pages += 1
 
     return pages
+
+
+async def back_keyboard(back_callback: str, lang: str) -> InlineKeyboardBuilder:
+    """Клавиатура для возвращения назад"""
+    keyboard = InlineKeyboardBuilder()
+
+    # назад
+    back_button: tuple = await btn.get_back_button(f"{back_callback}", lang)
+    keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
+
+    return keyboard

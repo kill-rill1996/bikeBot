@@ -1,6 +1,9 @@
+import collections
 import datetime
 import os
 from typing import Any
+
+import matplotlib.pyplot as plt
 
 from aiogram import Router, F, types
 from aiogram.filters import and_f, or_f
@@ -11,6 +14,8 @@ from cache import r
 from logger import logger
 from routers.states.reports import IndividualMechanicReport, SummaryMechanicReport, TransportReport, JobTypesReport, \
     InefficiencyReport, LocationReport
+from schemas.reports import OperationWithJobs
+from schemas.users import User
 from utils.excel_reports import individual_mechanic_excel_report, summary_mechanics_excel_report, \
     vehicle_report_by_transport_excel_report, vehicle_report_by_subcategory_excel_report, \
     vehicle_report_by_category_excel_report, categories_work_excel_report
@@ -247,7 +252,9 @@ async def mechanic_report(callback: types.CallbackQuery, tg_id: str, session: An
         text += row_text + "\n\n"
 
     keyboard = await kb.mechanic_report_details_keyboard(period, "individual_mechanic_report", user_id, lang)
-    await waiting_message.edit_text(text, reply_markup=keyboard.as_markup())
+    prev_message = await waiting_message.edit_text(text, reply_markup=keyboard.as_markup())
+
+    await state.update_data(prev_message=prev_message)
 
 
 # 📆 Сводный отчет по механикам
@@ -1174,7 +1181,6 @@ async def send_excel_file(callback: types.CallbackQuery, tg_id: str, session: An
         # формируем callback для кнопки назад
         back_callback = f"admin|reports"
 
-
     # удаляем сообщение для ожидания
     await waiting_message.delete()
 
@@ -1193,10 +1199,113 @@ async def send_excel_file(callback: types.CallbackQuery, tg_id: str, session: An
         logger.error(f"Не удалось удалить файл с отчетом {file_path}: {e}")
 
 
+# GRAPHIC INDIVIDUAL MECHANIC REPORT
+@router.callback_query(F.data.split("|")[0] == "graphic-mechanic")
+async def individual_mechanic_graphic(callback: types.CallbackQuery, tg_id: str, state: FSMContext, session: Any) -> None:
+    """График по индивидуальным отчетам механиков"""
+    lang = r.get(f"lang:{tg_id}").decode()
+    period = callback.data.split("|")[1]
+    user_id = int(callback.data.split("|")[2])
+    data = await state.get_data()
 
+    # меняем предыдущее сообщение
+    try:
+        await data["prev_message"].edit_text(callback.message.text)
+    except:
+        pass
 
+    # получаем даты в зависимости от периода
+    if period != "custom":
+        start_date, end_date = get_dates_by_period(period)
 
+        await state.update_data(start_date=start_date)
+        await state.update_data(end_date=end_date)
+    else:
+        start_date = data["start_date"]
+        end_date = data["end_date"]
 
+    # получаем операции для периода
+    mechanic: User = await AsyncOrm.get_user_by_id(user_id, session)
+    operations: list[OperationWithJobs] = await AsyncOrm.get_operations_for_user_by_period(mechanic.tg_id, start_date, end_date, session)
 
+    # создаем словарь с кол-вом времени по дням
+    durations_by_dates = {}
+    for operation in operations:
+        date_str = convert_date_time(operation.created_at, with_tz=True)[0]
+        if date_str not in durations_by_dates.keys():
+            durations_by_dates[date_str] = operation.duration
+        else:
+            durations_by_dates[date_str] += operation.duration
 
+    # данные для подписи оси Х
+    dates_period = []
+    current_date = start_date
+    while current_date.date() <= end_date.date():
+        dates_period.append(current_date)
+        current_date += datetime.timedelta(days=1)
+
+    # формируем данные для графика
+    graphic_data: list[tuple] = []
+    for day in dates_period:
+        str_date = convert_date_time(day)[0]
+        if durations_by_dates.get(str_date):
+            graphic_data.append((str_date, durations_by_dates[str_date]))
+        else:
+            graphic_data.append((str_date, 0))
+
+    # Создаем новую фигуру с указанными размерами
+    plt.figure(figsize=(10, 6))
+
+    # Настройка графика
+    plt.title(f'Отчет по механику {mechanic.username} {start_date.date()} - {end_date.date()}', fontsize=14)
+    plt.xlabel('Дата', fontsize=12)
+    plt.ylabel('Время, в мин.', fontsize=12)
+    plt.xticks(rotation=0, fontsize=9)
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+    # Устанавливаем лимиты по y от 0 до максимального кол-ва времени + запас 10%
+    plt.ylim(0, max(durations_by_dates.values()) * 1.1)
+
+    bars = plt.bar(
+        [item[0][:6] for item in graphic_data],
+        [item[1] for item in graphic_data],
+        label="Потраченное время",
+        color="skyblue")
+
+    # добавляем подписи значений над столбцами графика
+    for bar in bars:
+        height = bar.get_height()
+        plt.text(bar.get_x() + bar.get_width() / 2., height + 1,
+                 f'{height}',
+                 ha='center', va='bottom', fontsize=10)
+
+    # добавляем линию среднего значения
+    mean_value = sum(durations_by_dates.values()) / len(durations_by_dates.keys())
+    plt.axhline(y=mean_value, color='red',
+                linestyle='--', label=f'Среднее время: {mean_value:.2f}')
+    plt.legend()
+
+    # Путь для сохранения графика
+    chart_path = f"reports/graphics/mechanic_report_{user_id}_{start_date.date()}-{end_date.date()}.png"
+
+    # Сохраняем график
+    plt.tight_layout()
+    plt.savefig(chart_path)
+    plt.close()
+
+    # отправляем фото если получилось создать
+    if chart_path and os.path.exists(chart_path):
+        await callback.message.answer_photo(
+            photo=FSInputFile(chart_path),
+        )
+        # TODO translate
+        text = await t.t("graphic_send", lang)
+
+    # если график не удалось создать
+    else:
+        # TODO translate
+        text = await t.t("graphic_error", lang)
+
+    # отправляем сообщение для дальнейшего выбора
+    keyboard = await kb.back_keyboard(f"mechanic|{period}|{user_id}", lang)
+    await callback.message.answer(text, reply_markup=keyboard.as_markup())
 
