@@ -478,13 +478,13 @@ async def jobtypes_report_details_keyboard(report_type: str, period: str, lang: 
     return keyboard
 
 
-async def efficient_report_details_keyboard(report_type: str, lang: str) -> InlineKeyboardBuilder:
+async def efficient_report_details_keyboard(report_type: str, period: str, lang: str) -> InlineKeyboardBuilder:
     """Клавиатура отчета по неэффективности"""
     keyboard = InlineKeyboardBuilder()
 
     keyboard.row(
         # TODO поправить
-        InlineKeyboardButton(text=f"{await t.t('excel_export', lang)}", callback_data=f"excel_export"),
+        InlineKeyboardButton(text=f"{await t.t('excel_export', lang)}", callback_data=f"excel_export|{report_type}|{period}"),
         InlineKeyboardButton(text=f"{await t.t('graphic', lang)}", callback_data=f"graphic")
     )
 
@@ -499,13 +499,12 @@ async def efficient_report_details_keyboard(report_type: str, lang: str) -> Inli
     return keyboard
 
 
-async def location_report_details_keyboard(report_type: str, lang: str) -> InlineKeyboardBuilder:
+async def location_report_details_keyboard(report_type: str, period: str, lang: str) -> InlineKeyboardBuilder:
     """Клавиатура отчета по местоположению"""
     keyboard = InlineKeyboardBuilder()
 
     keyboard.row(
-        # TODO поправить
-        InlineKeyboardButton(text=f"{await t.t('excel_export', lang)}", callback_data=f"excel_export"),
+        InlineKeyboardButton(text=f"{await t.t('excel_export', lang)}", callback_data=f"excel_export|{report_type}|{period}"),
         InlineKeyboardButton(text=f"{await t.t('graphic', lang)}", callback_data=f"graphic")
     )
 
