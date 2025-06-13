@@ -423,7 +423,7 @@ async def summary_report_details_keyboard(report_type: str, period: str, lang: s
 
     keyboard.row(
         InlineKeyboardButton(text=f"{await t.t('excel_export', lang)}", callback_data=f"excel_export|{report_type}|{period}"),
-        InlineKeyboardButton(text=f"{await t.t('graphic', lang)}", callback_data=f"graphic")
+        InlineKeyboardButton(text=f"{await t.t('graphic', lang)}", callback_data=f"graphic-mechanics|{period}")
     )
 
     # назад

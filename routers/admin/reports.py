@@ -20,7 +20,7 @@ from schemas.users import User
 from utils.excel_reports import individual_mechanic_excel_report, summary_mechanics_excel_report, \
     vehicle_report_by_transport_excel_report, vehicle_report_by_subcategory_excel_report, \
     vehicle_report_by_category_excel_report, categories_work_excel_report
-from utils.graphics import mechanic_report_graphic
+from utils.graphics import mechanic_report_graphic, all_mechanics_report_graphic
 from utils.translator import translator as t
 from utils.date_time_service import get_dates_by_period, get_next_and_prev_month_and_year, convert_str_to_datetime
 from database.orm import AsyncOrm
@@ -1276,6 +1276,81 @@ async def individual_mechanic_graphic(callback: types.CallbackQuery, tg_id: str,
 
     # отправляем сообщение для дальнейшего выбора
     keyboard = await kb.back_keyboard(f"mechanic|{period}|{user_id}", lang)
+    await callback.message.answer(text, reply_markup=keyboard.as_markup())
+
+    # удаляем график
+    try:
+        os.remove(chart_path)
+    except Exception as e:
+        logger.error(f"Ошибка удаления графика {chart_path}: {e}")
+
+
+# GRAPHIC ALL MECHANICS REPORT
+@router.callback_query(F.data.split("|")[0] == "graphic-mechanics")
+async def all_mechanics_graphic(callback: types.CallbackQuery, tg_id: str, state: FSMContext, session: Any) -> None:
+    """График по всем механикам"""
+    lang = r.get(f"lang:{tg_id}").decode()
+    period = callback.data.split("|")[1]
+    data = await state.get_data()
+
+    # меняем предыдущее сообщение
+    try:
+        await data["prev_message"].edit_text(callback.message.text)
+    except:
+        pass
+
+    # получаем даты в зависимости от периода
+    if period != "custom":
+        start_date, end_date = get_dates_by_period(period)
+
+        await state.update_data(start_date=start_date)
+        await state.update_data(end_date=end_date)
+    else:
+        start_date = data["start_date"]
+        end_date = data["end_date"]
+
+    waiting_message = await callback.message.edit_text(await t.t("please_wait", lang))
+
+    mechanics: list[User] = await AsyncOrm.get_all_mechanics(session)
+
+    mechanic_duration_count = {}
+
+    for mechanic in mechanics:
+        operations: list[OperationWithJobs] = await AsyncOrm.get_operations_for_user_by_period(
+            mechanic.tg_id, start_date, end_date, session)
+
+        # количество работ
+        jobs_count = sum([len(operation.jobs) for operation in operations])
+
+        # общее и среднее время
+        duration_sum = sum([operation.duration for operation in operations])
+
+        mechanic_duration_count[mechanic.username] = (duration_sum, jobs_count)
+
+    # строим график и получаем путь до него
+    chart_path = all_mechanics_report_graphic(mechanic_duration_count, start_date, end_date)
+
+    # отправляем фото если получилось создать
+    if chart_path and os.path.exists(chart_path):
+        await callback.message.answer_photo(
+            photo=FSInputFile(chart_path),
+        )
+        text = await t.t("graphic_send", lang)
+
+    # если график не удалось создать
+    else:
+        text = await t.t("graphic_error", lang)
+
+    # TODO поправить кнопку назад (ведет не туда) вопрос что передать в случае кастомного периода
+    # отправляем сообщение для дальнейшего выбора
+    keyboard = await kb.back_keyboard(f"reports-period|summary_report_by_mechanics|{period}", lang)
+
+    # Удаляем сообщение об ожидании
+    try:
+        await waiting_message.delete()
+    except:
+        pass
+
     await callback.message.answer(text, reply_markup=keyboard.as_markup())
 
     # удаляем график
