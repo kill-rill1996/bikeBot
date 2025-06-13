@@ -1,10 +1,6 @@
-import collections
 import datetime
 import os
 from typing import Any
-
-import matplotlib.pyplot as plt
-import numpy as np
 
 from aiogram import Router, F, types
 from aiogram.filters import and_f, or_f
@@ -19,7 +15,8 @@ from schemas.reports import OperationWithJobs
 from schemas.users import User
 from utils.excel_reports import individual_mechanic_excel_report, summary_mechanics_excel_report, \
     vehicle_report_by_transport_excel_report, vehicle_report_by_subcategory_excel_report, \
-    vehicle_report_by_category_excel_report, categories_work_excel_report
+    vehicle_report_by_category_excel_report, categories_work_excel_report, locations_excel_report, \
+    inefficiency_excel_report
 from utils.graphics import mechanic_report_graphic, all_mechanics_report_graphic
 from utils.translator import translator as t
 from utils.date_time_service import get_dates_by_period, get_next_and_prev_month_and_year, convert_str_to_datetime
@@ -885,7 +882,7 @@ async def inefficiency_report(callback: types.CallbackQuery, tg_id: str, session
         frequent_works = 15
     # TODO для custom_period
     else:
-        frequent_works = 10
+        frequent_works = (end_date - start_date).days
 
     row_text = ""
     for k, v in sorted_jobs.items():
@@ -896,8 +893,6 @@ async def inefficiency_report(callback: types.CallbackQuery, tg_id: str, session
     if row_text:
         text += await t.t("repeatable_jobs", lang) + "\n"
         text += row_text + "\n"
-    # else:
-    #     text += await t.t('no_operations', lang) + "\n"
 
     # операции без комментариев
     text += await t.t("no_comments", lang) + "\n"
@@ -908,7 +903,7 @@ async def inefficiency_report(callback: types.CallbackQuery, tg_id: str, session
                        f"{o.transport_subcategory}-{o.transport_serial_number}\n"
             text += row_text
 
-    keyboard = await kb.efficient_report_details_keyboard(report_type, lang)
+    keyboard = await kb.efficient_report_details_keyboard(report_type, period, lang)
     await waiting_message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
@@ -1044,7 +1039,11 @@ async def location_report(callback: types.CallbackQuery, tg_id: str, session: An
     # запись финального подсчета на складе
     text += f'{await t.t("total_on_warehouse", lang)}: {total_counter} {await t.t("items", lang)}\n\n'
 
-    keyboard = await kb.location_report_details_keyboard(report_type, lang)
+    # ограничение по количеству
+    if len(text) > 4000:
+        text = text[:4000]
+
+    keyboard = await kb.location_report_details_keyboard(report_type, period, lang)
     await waiting_message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
@@ -1183,6 +1182,42 @@ async def send_excel_file(callback: types.CallbackQuery, tg_id: str, session: An
         # формируем callback для кнопки назад
         back_callback = f"admin|reports"
 
+    # 📆 Отчет по неэффективности
+    elif report_type == "inefficiency_report":
+        # данные для отчета
+        operations = await AsyncOrm.get_operations_with_jobs_and_transport_by_period(start_date, end_date, session)
+
+        # путь до отчета
+        file_path = await inefficiency_excel_report(operations, start_date, end_date, report_type, lang, period)
+        document = FSInputFile(file_path)
+
+        # текст сообщения
+        start_date_formatted = convert_date_time(start_date, with_tz=True)[0]
+        end_date_formatted = convert_date_time(end_date, with_tz=True)[0]
+        text = f"{await t.t('inefficiency_report', lang)} {start_date_formatted} - {end_date_formatted}"
+
+        # формируем callback для кнопки назад
+        back_callback = f"admin|reports"
+
+    # 📆 Отчет по местоположению
+    elif report_type == "location_report":
+        # данные для отчета
+        location_id = data["location_id"]
+        location = await AsyncOrm.get_location_by_id(location_id, session)
+        operations = await AsyncOrm.get_operations_by_location_and_period(location_id, start_date, end_date, session)
+
+        # путь до отчета
+        file_path = await locations_excel_report(operations, start_date, end_date, report_type, lang, location)
+        document = FSInputFile(file_path)
+
+        # текст сообщения
+        start_date_formatted = convert_date_time(start_date, with_tz=True)[0]
+        end_date_formatted = convert_date_time(end_date, with_tz=True)[0]
+        text = f"{await t.t('location_report', lang)} {location.name} {start_date_formatted} - {end_date_formatted}"
+
+        # формируем callback для кнопки назад
+        back_callback = f"admin|reports"
+
     # удаляем сообщение для ожидания
     await waiting_message.delete()
 
@@ -1272,7 +1307,6 @@ async def individual_mechanic_graphic(callback: types.CallbackQuery, tg_id: str,
     # если график не удалось создать
     else:
         text = await t.t("graphic_error", lang)
-        return
 
     # отправляем сообщение для дальнейшего выбора
     keyboard = await kb.back_keyboard(f"mechanic|{period}|{user_id}", lang)

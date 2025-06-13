@@ -326,7 +326,13 @@
         "washing_and_cleaning": "Washing and cleaning",
         "completeness_check": "Completeness check",
         "marking_and_numbering": "Marking and numbering",
-        "vehicle_labeling": "Vehicle labeling"
+        "vehicle_labeling": "Vehicle labeling",
+        "location": "Location",
+        "location_report": "Location Report",
+        "total": "Total",
+        "items": "items",
+        "total_on_warehouse": "Total number of vehicles in the warehouse",
+        "excel_count": "Count"
     },
     "ru": {
         "input_name": "Введите ваше имя (например Джон Доу)",
@@ -655,7 +661,13 @@
         "washing_and_cleaning": "Мойка и чистка транспорта",
         "completeness_check": "Проверка комплектности",
         "marking_and_numbering": "Маркировка и нанесение номеров",
-        "vehicle_labeling": "Маркировка транспорта"
+        "vehicle_labeling": "Маркировка транспорта",
+        "location": "Локация",
+        "location_report": "Отчет по местоположению",
+        "total": "Итого",
+        "items": "шт.",
+        "total_on_warehouse": "Суммарное кол-во транспорта на складе",
+        "excel_count": "Количество"
     },
     "es": {
         "name_error": "Nombre de usuario incorrecto ingresado, por favor inténtelo nuevamente",
@@ -984,6 +996,12 @@
         "washing_and_cleaning": "Lavado y limpieza",
         "completeness_check": "Verificación de integridad",
         "marking_and_numbering": "Marcado y numeración",
-        "vehicle_labeling": "Etiquetado del vehículo"
+        "vehicle_labeling": "Etiquetado del vehículo",
+        "location": "Ubicación",
+        "location_report": "Informe de ubicación",
+        "total": "Total",
+        "items": "Elenentos",
+        "total_on_warehouse": "Número total de vehículos en el almacén",
+        "excel_count": "Cantidad"
     }
 }
