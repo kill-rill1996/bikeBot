@@ -1,6 +1,10 @@
+import collections
 import datetime
 import os
 from typing import Any
+
+import matplotlib.pyplot as plt
+import numpy as np
 
 from aiogram import Router, F, types
 from aiogram.filters import and_f, or_f
@@ -11,10 +15,13 @@ from cache import r
 from logger import logger
 from routers.states.reports import IndividualMechanicReport, SummaryMechanicReport, TransportReport, JobTypesReport, \
     InefficiencyReport, LocationReport
+from schemas.reports import OperationWithJobs
+from schemas.users import User
 from utils.excel_reports import individual_mechanic_excel_report, summary_mechanics_excel_report, \
     vehicle_report_by_transport_excel_report, vehicle_report_by_subcategory_excel_report, \
     vehicle_report_by_category_excel_report, categories_work_excel_report, locations_excel_report, \
     inefficiency_excel_report
+from utils.graphics import mechanic_report_graphic
 from utils.translator import translator as t
 from utils.date_time_service import get_dates_by_period, get_next_and_prev_month_and_year, convert_str_to_datetime
 from database.orm import AsyncOrm
@@ -248,7 +255,9 @@ async def mechanic_report(callback: types.CallbackQuery, tg_id: str, session: An
         text += row_text + "\n\n"
 
     keyboard = await kb.mechanic_report_details_keyboard(period, "individual_mechanic_report", user_id, lang)
-    await waiting_message.edit_text(text, reply_markup=keyboard.as_markup())
+    prev_message = await waiting_message.edit_text(text, reply_markup=keyboard.as_markup())
+
+    await state.update_data(prev_message=prev_message)
 
 
 # 📆 Сводный отчет по механикам
@@ -1231,10 +1240,85 @@ async def send_excel_file(callback: types.CallbackQuery, tg_id: str, session: An
         logger.error(f"Не удалось удалить файл с отчетом {file_path}: {e}")
 
 
+# GRAPHIC INDIVIDUAL MECHANIC REPORT
+@router.callback_query(F.data.split("|")[0] == "graphic-mechanic")
+async def individual_mechanic_graphic(callback: types.CallbackQuery, tg_id: str, state: FSMContext, session: Any) -> None:
+    """График по индивидуальным отчетам механиков"""
+    lang = r.get(f"lang:{tg_id}").decode()
+    period = callback.data.split("|")[1]
+    user_id = int(callback.data.split("|")[2])
+    data = await state.get_data()
 
+    # меняем предыдущее сообщение
+    try:
+        await data["prev_message"].edit_text(callback.message.text)
+    except:
+        pass
 
+    # получаем даты в зависимости от периода
+    if period != "custom":
+        start_date, end_date = get_dates_by_period(period)
 
+        await state.update_data(start_date=start_date)
+        await state.update_data(end_date=end_date)
+    else:
+        start_date = data["start_date"]
+        end_date = data["end_date"]
 
+    # получаем операции для периода
+    mechanic: User = await AsyncOrm.get_user_by_id(user_id, session)
+    operations: list[OperationWithJobs] = await AsyncOrm.get_operations_for_user_by_period(mechanic.tg_id, start_date, end_date, session)
 
+    # создаем словарь с кол-вом времени по дням формата {day:(duration, count)...}
+    durations_by_dates = {}
+    for operation in operations:
+        date_str = convert_date_time(operation.created_at, with_tz=True)[0]
+        if date_str not in durations_by_dates.keys():
+            durations_by_dates[date_str] = (operation.duration, 1)
+        else:
+            durations_by_dates[date_str] = (durations_by_dates[date_str][0] + operation.duration,  durations_by_dates[date_str][1] + 1)
 
+    # данные для подписи оси Х (выписываем все даты за выбранный период)
+    dates_period = []
+    current_date = start_date
+    while current_date.date() <= end_date.date():
+        dates_period.append(current_date)
+        current_date += datetime.timedelta(days=1)
+
+    # формируем данные для графика формата [(date, sum_duration, count)...]
+    graphic_data: list[tuple] = []
+    for day in dates_period:
+        str_date = convert_date_time(day)[0]
+        if durations_by_dates.get(str_date):
+            graphic_data.append((str_date, durations_by_dates[str_date][0], durations_by_dates[str_date][1]))
+        else:
+            graphic_data.append((str_date, 0, 0))
+
+    x = [item[0][:5] for item in graphic_data]  # даты для значений на оси Х
+    y_1 = [item[1] for item in graphic_data]  # Данные о времени работ для оси Y duration
+    y_2 = [item[2] for item in graphic_data]   # Данные о времени работ для оси Y operaions count
+
+    # строим график и получаем путь до него
+    chart_path = mechanic_report_graphic(durations_by_dates, y_1, y_2, x, mechanic, start_date, end_date)
+
+    # отправляем фото если получилось создать
+    if chart_path and os.path.exists(chart_path):
+        await callback.message.answer_photo(
+            photo=FSInputFile(chart_path),
+        )
+        text = await t.t("graphic_send", lang)
+
+    # если график не удалось создать
+    else:
+        text = await t.t("graphic_error", lang)
+
+    # отправляем сообщение для дальнейшего выбора
+    keyboard = await kb.back_keyboard(f"mechanic|{period}|{user_id}", lang)
+    await callback.message.answer(text, reply_markup=keyboard.as_markup())
+
+    # удаляем график
+    try:
+        os.remove(chart_path)
+    except Exception as e:
+        logger.error(f"Ошибка удаления графика {chart_path}: {e}")
 
