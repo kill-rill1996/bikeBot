@@ -4,6 +4,7 @@ import os
 from typing import Any
 
 import matplotlib.pyplot as plt
+import numpy as np
 
 from aiogram import Router, F, types
 from aiogram.filters import and_f, or_f
@@ -19,6 +20,7 @@ from schemas.users import User
 from utils.excel_reports import individual_mechanic_excel_report, summary_mechanics_excel_report, \
     vehicle_report_by_transport_excel_report, vehicle_report_by_subcategory_excel_report, \
     vehicle_report_by_category_excel_report, categories_work_excel_report
+from utils.graphics import mechanic_report_graphic
 from utils.translator import translator as t
 from utils.date_time_service import get_dates_by_period, get_next_and_prev_month_and_year, convert_str_to_datetime
 from database.orm import AsyncOrm
@@ -1228,84 +1230,57 @@ async def individual_mechanic_graphic(callback: types.CallbackQuery, tg_id: str,
     mechanic: User = await AsyncOrm.get_user_by_id(user_id, session)
     operations: list[OperationWithJobs] = await AsyncOrm.get_operations_for_user_by_period(mechanic.tg_id, start_date, end_date, session)
 
-    # создаем словарь с кол-вом времени по дням
+    # создаем словарь с кол-вом времени по дням формата {day:(duration, count)...}
     durations_by_dates = {}
     for operation in operations:
         date_str = convert_date_time(operation.created_at, with_tz=True)[0]
         if date_str not in durations_by_dates.keys():
-            durations_by_dates[date_str] = operation.duration
+            durations_by_dates[date_str] = (operation.duration, 1)
         else:
-            durations_by_dates[date_str] += operation.duration
+            durations_by_dates[date_str] = (durations_by_dates[date_str][0] + operation.duration,  durations_by_dates[date_str][1] + 1)
 
-    # данные для подписи оси Х
+    # данные для подписи оси Х (выписываем все даты за выбранный период)
     dates_period = []
     current_date = start_date
     while current_date.date() <= end_date.date():
         dates_period.append(current_date)
         current_date += datetime.timedelta(days=1)
 
-    # формируем данные для графика
+    # формируем данные для графика формата [(date, sum_duration, count)...]
     graphic_data: list[tuple] = []
     for day in dates_period:
         str_date = convert_date_time(day)[0]
         if durations_by_dates.get(str_date):
-            graphic_data.append((str_date, durations_by_dates[str_date]))
+            graphic_data.append((str_date, durations_by_dates[str_date][0], durations_by_dates[str_date][1]))
         else:
-            graphic_data.append((str_date, 0))
+            graphic_data.append((str_date, 0, 0))
 
-    # Создаем новую фигуру с указанными размерами
-    plt.figure(figsize=(10, 6))
+    x = [item[0][:5] for item in graphic_data]  # даты для значений на оси Х
+    y_1 = [item[1] for item in graphic_data]  # Данные о времени работ для оси Y duration
+    y_2 = [item[2] for item in graphic_data]   # Данные о времени работ для оси Y operaions count
 
-    # Настройка графика
-    plt.title(f'Отчет по механику {mechanic.username} {start_date.date()} - {end_date.date()}', fontsize=14)
-    plt.xlabel('Дата', fontsize=12)
-    plt.ylabel('Время, в мин.', fontsize=12)
-    plt.xticks(rotation=0, fontsize=9)
-    plt.grid(axis='y', linestyle='--', alpha=0.7)
-    # Устанавливаем лимиты по y от 0 до максимального кол-ва времени + запас 10%
-    plt.ylim(0, max(durations_by_dates.values()) * 1.1)
-
-    bars = plt.bar(
-        [item[0][:6] for item in graphic_data],
-        [item[1] for item in graphic_data],
-        label="Потраченное время",
-        color="skyblue")
-
-    # добавляем подписи значений над столбцами графика
-    for bar in bars:
-        height = bar.get_height()
-        plt.text(bar.get_x() + bar.get_width() / 2., height + 1,
-                 f'{height}',
-                 ha='center', va='bottom', fontsize=10)
-
-    # добавляем линию среднего значения
-    mean_value = sum(durations_by_dates.values()) / len(durations_by_dates.keys())
-    plt.axhline(y=mean_value, color='red',
-                linestyle='--', label=f'Среднее время: {mean_value:.2f}')
-    plt.legend()
-
-    # Путь для сохранения графика
-    chart_path = f"reports/graphics/mechanic_report_{user_id}_{start_date.date()}-{end_date.date()}.png"
-
-    # Сохраняем график
-    plt.tight_layout()
-    plt.savefig(chart_path)
-    plt.close()
+    # строим график и получаем путь до него
+    chart_path = mechanic_report_graphic(durations_by_dates, y_1, y_2, x, mechanic, start_date, end_date)
 
     # отправляем фото если получилось создать
     if chart_path and os.path.exists(chart_path):
         await callback.message.answer_photo(
             photo=FSInputFile(chart_path),
         )
-        # TODO translate
         text = await t.t("graphic_send", lang)
 
     # если график не удалось создать
     else:
-        # TODO translate
         text = await t.t("graphic_error", lang)
+        return
 
     # отправляем сообщение для дальнейшего выбора
     keyboard = await kb.back_keyboard(f"mechanic|{period}|{user_id}", lang)
     await callback.message.answer(text, reply_markup=keyboard.as_markup())
+
+    # удаляем график
+    try:
+        os.remove(chart_path)
+    except Exception as e:
+        logger.error(f"Ошибка удаления графика {chart_path}: {e}")
 
