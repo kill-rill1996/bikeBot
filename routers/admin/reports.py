@@ -11,13 +11,14 @@ from cache import r
 from logger import logger
 from routers.states.reports import IndividualMechanicReport, SummaryMechanicReport, TransportReport, JobTypesReport, \
     InefficiencyReport, LocationReport
+from schemas.location import Location
 from schemas.reports import OperationWithJobs
 from schemas.users import User
 from utils.excel_reports import individual_mechanic_excel_report, summary_mechanics_excel_report, \
     vehicle_report_by_transport_excel_report, vehicle_report_by_subcategory_excel_report, \
     vehicle_report_by_category_excel_report, categories_work_excel_report, locations_excel_report, \
     inefficiency_excel_report
-from utils.graphics import mechanic_report_graphic, all_mechanics_report_graphic
+from utils.graphics import mechanic_report_graphic, all_mechanics_report_graphic, location_graphic_report
 from utils.translator import translator as t
 from utils.date_time_service import get_dates_by_period, get_next_and_prev_month_and_year, convert_str_to_datetime
 from database.orm import AsyncOrm
@@ -912,6 +913,7 @@ async def inefficiency_report(callback: types.CallbackQuery, tg_id: str, session
 @router.callback_query(F.data.split("|")[0] == "clndr", LocationReport.report)
 async def location_report_select_location(callback: types.CallbackQuery, tg_id: str, session: Any, state: FSMContext) -> None:
     """Выбор локации для отчета"""
+    print(callback.data)
     lang = r.get(f"lang:{tg_id}").decode()
     report_type = callback.data.split("|")[1]
     period = callback.data.split("|")[2]
@@ -946,6 +948,7 @@ async def location_report_select_location(callback: types.CallbackQuery, tg_id: 
 @router.callback_query(F.data.split("|")[0] == "select_location")
 async def location_report(callback: types.CallbackQuery, tg_id: str, session: Any, state: FSMContext) -> None:
     """Отчет по местоположению"""
+    print(callback.data)
     lang = r.get(f"lang:{tg_id}").decode()
     report_type = callback.data.split("|")[1]
     period = callback.data.split("|")[2]
@@ -1364,6 +1367,12 @@ async def all_mechanics_graphic(callback: types.CallbackQuery, tg_id: str, state
     # строим график и получаем путь до него
     chart_path = all_mechanics_report_graphic(mechanic_duration_count, start_date, end_date)
 
+    # Удаляем сообщение об ожидании
+    try:
+        await waiting_message.delete()
+    except:
+        pass
+
     # отправляем фото если получилось создать
     if chart_path and os.path.exists(chart_path):
         await callback.message.answer_photo(
@@ -1375,15 +1384,12 @@ async def all_mechanics_graphic(callback: types.CallbackQuery, tg_id: str, state
     else:
         text = await t.t("graphic_error", lang)
 
-    # TODO поправить кнопку назад (ведет не туда) вопрос что передать в случае кастомного периода
     # отправляем сообщение для дальнейшего выбора
-    keyboard = await kb.back_keyboard(f"reports-period|summary_report_by_mechanics|{period}", lang)
-
-    # Удаляем сообщение об ожидании
-    try:
-        await waiting_message.delete()
-    except:
-        pass
+    if period != "custom":
+        keyboard = await kb.back_keyboard(f"reports-period|summary_report_by_mechanics|{period}", lang)
+    else:
+        end_date_callback = convert_date_time(end_date)[0]
+        keyboard = await kb.back_keyboard(f"clndr|summary_report_by_mechanics|{period}|{end_date_callback}", lang)
 
     await callback.message.answer(text, reply_markup=keyboard.as_markup())
 
@@ -1393,3 +1399,94 @@ async def all_mechanics_graphic(callback: types.CallbackQuery, tg_id: str, state
     except Exception as e:
         logger.error(f"Ошибка удаления графика {chart_path}: {e}")
 
+
+# GRAPHIC LOCATION REPORT
+@router.callback_query(F.data.split("|")[0] == "graphic-location")
+async def location_graphic(callback: types.CallbackQuery, tg_id: str, state: FSMContext, session: Any) -> None:
+    """График по всем механикам"""
+    lang = r.get(f"lang:{tg_id}").decode()
+    period = callback.data.split("|")[1]
+    data = await state.get_data()
+    location_id = data["location_id"]
+
+    # меняем предыдущее сообщение
+    try:
+        await data["prev_message"].edit_text(callback.message.text)
+    except:
+        pass
+
+    # получаем даты в зависимости от периода
+    if period != "custom":
+        start_date, end_date = get_dates_by_period(period)
+
+        await state.update_data(start_date=start_date)
+        await state.update_data(end_date=end_date)
+    else:
+        start_date = data["start_date"]
+        end_date = data["end_date"]
+
+    waiting_message = await callback.message.edit_text(await t.t("please_wait", lang))
+
+    # Получаем данные из ДБ
+    location: Location = await AsyncOrm.get_location_by_id(location_id, session)
+    operations: list[OperationWithJobs] = await AsyncOrm.get_operations_by_location_and_period(
+                                                        location_id, start_date, end_date, session)
+
+    operations_dict = {}    # {'date_str': {'Velosiped U': 2, 'Samocati E': 1}}
+    already_checked_transport = {}
+    for operation in operations:
+        date_str = convert_date_time(operation.created_at)[0]
+
+        if not already_checked_transport.get(date_str):
+            already_checked_transport[date_str] = []
+
+        # проверяем был ли уже этот транспорт учтен
+        if f"{operation.transport_subcategory} {operation.transport_subcategory} {operation.transport_serial_number}" in already_checked_transport[date_str]:
+            continue
+
+        key = f"{await t.t(operation.transport_category, lang)} {operation.transport_subcategory}"
+
+        # записываем в словарь по датам и ключу 'Velosipedi U'
+        if operations_dict.get(date_str):
+            if operations_dict[date_str].get(key):
+               operations_dict[date_str][key] += 1
+            else:
+                operations_dict[date_str][key] = 1
+        else:
+            operations_dict[date_str] = {key: 1}
+
+        # помечаем что этот траспорт уже учтен
+        already_checked_transport[date_str].append(f"{operation.transport_subcategory} {operation.transport_subcategory} {operation.transport_serial_number}")
+
+    # строим график и получаем путь до него
+    start_date_str = convert_date_time(start_date)[0]
+    end_date_str = convert_date_time(end_date)[0]
+    chart_path = location_graphic_report(operations_dict, start_date_str, end_date_str, location.name)
+
+    # Удаляем сообщение об ожидании
+    try:
+        await waiting_message.delete()
+    except:
+        pass
+
+    # отправляем фото если получилось создать
+    if chart_path and os.path.exists(chart_path):
+        await callback.message.answer_photo(
+            photo=FSInputFile(chart_path),
+        )
+        text = await t.t("graphic_send", lang)
+
+    # если график не удалось создать
+    else:
+        text = await t.t("graphic_error", lang)
+
+    # отправляем сообщение для дальнейшего выбора
+    keyboard = await kb.back_keyboard(f"select_location|location_report|{period}|{location_id}", lang)
+
+    await callback.message.answer(text, reply_markup=keyboard.as_markup())
+
+    # удаляем график
+    try:
+        os.remove(chart_path)
+    except Exception as e:
+        logger.error(f"Ошибка удаления графика {chart_path}: {e}")
