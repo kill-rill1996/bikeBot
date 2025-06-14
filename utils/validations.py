@@ -14,6 +14,19 @@ def is_valid_vehicle_number(number: str, serial_numbers: List[int]) -> bool:
     return True
 
 
+def is_valid_operation_id(operation_id: str, operation_ids: List[int]) -> bool:
+    """Валидация номера работы"""
+    try:
+        operation_id = int(operation_id)
+    except Exception:
+        return False
+
+    if operation_id not in operation_ids:
+        return False
+
+    return True
+
+
 def is_valid_duration(duration: str) -> bool:
     """Валидация времени работы"""
     try:

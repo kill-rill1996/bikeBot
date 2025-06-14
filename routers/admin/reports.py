@@ -741,8 +741,6 @@ async def report_by_jobtypes(callback: types.CallbackQuery, tg_id: str, state: F
     data = await state.get_data()
     selected_jobtypes = data["selected_jobtypes"]
 
-    await state.clear()
-
     jobtypes = await AsyncOrm.get_jobtypes_by_ids(selected_jobtypes, session)
 
     # получаем даты в зависимости от периода
@@ -796,7 +794,7 @@ async def report_by_jobtypes(callback: types.CallbackQuery, tg_id: str, state: F
         sorted_mechanics = {k: v for k, v in sorted(mechanic_count.items(), key=lambda item: item[1], reverse=True)}
 
         for k, v in sorted_jobs.items():
-            row_text += f"{await t.t(k, lang)} {v}\n"
+            row_text += f"{await t.t(k, lang)}: {v}\n"
 
         # самые частый транспорт
         row_text += await t.t('most_recent_transport', lang) + "\n"

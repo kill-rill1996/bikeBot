@@ -1179,6 +1179,87 @@ class AsyncOrm:
                 f"Ошибка при получении операции с работами, механиком и транспортом: {e}")
 
     @staticmethod
+    async def get_operations_ids(session: Any) -> List[int]:
+        """Получение id всех операций"""
+        try:
+            rows = await session.fetch(
+                """
+                SELECT id
+                FROM operations
+                ORDER BY id
+                """
+            )
+
+            operations_ids = [row["id"] for row in rows]
+            return operations_ids
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении id всех операций: {e}")
+
+    @staticmethod
+    async def get_operation_by_id(operation_id: int, session: Any) -> OperationWithJobs:
+        """Получение операции с jobs по operation_id"""
+        try:
+            row = await session.fetchrow(
+                """
+                SELECT o.*, c.title AS transport_category, sc.title AS transport_subcategory, t.serial_number AS transport_serial_number
+                FROM operations AS o
+                JOIN transports AS t ON o.transport_id = t.id
+                JOIN categories AS c ON t.category_id = c.id
+                JOIN subcategories sc ON sc.id = t.category_id
+                WHERE o.id = $1
+                """,
+                operation_id
+            )
+            operation = OperationWithJobs.model_validate(row)
+
+            # получение jobs с jobtype для операции
+            rows = await session.fetch(
+                """
+                SELECT j.id, j.title, jt.title AS jobtype_title
+                FROM jobs AS j
+                JOIN operations_jobs AS oj ON j.id = oj.job_id
+                JOIN jobtypes AS jt ON j.jobtype_id = jt.id
+                WHERE oj.operation_id = $1 
+                """,
+                operation.id
+            )
+            jobs_with_jobtype = [JobWithJobtypeTitle.model_validate(row) for row in rows]
+            operation.jobs = jobs_with_jobtype
+
+            return operation
+
+        except Exception as e:
+            logger.error(f"Ошибка при получении операции с работами по id {operation_id}: {e}")
+
+    @staticmethod
+    async def delete_operation(operation_id: int, session: Any) -> None:
+        """Удаление операции и записей в operations_jobs"""
+        try:
+            # удаление из operations_jobs
+            await session.execute(
+                """
+                DELETE FROM operations_jobs
+                WHERE operation_id = $1
+                """,
+                operation_id
+            )
+            logger.info(f"Удалены записи из таблицы operations_jobs по operation_id {operation_id}")
+
+            # удаление из operations
+            await session.execute(
+                """
+                DELETE FROM operations
+                WHERE id = $1
+                """,
+                operation_id
+            )
+            logger.info(f"Удалена операция с ID {operation_id}")
+
+        except Exception as e:
+            logger.error(f"Ошибка при удалении операции с ID {operation_id}: {e}")
+
+    @staticmethod
     async def add_category(category: m.TransportCategory, session: Any) -> None:
         """Добавление новой категории"""
         try:

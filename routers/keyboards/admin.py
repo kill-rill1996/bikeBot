@@ -23,6 +23,7 @@ async def admin_menu_keyboard(lang: str) -> InlineKeyboardBuilder:
     keyboard.row(InlineKeyboardButton(text=f"🌎 {await t.t('location_management', lang)}", callback_data="admin|location_management"))
     keyboard.row(InlineKeyboardButton(text=f"🛠 {await t.t('operation_management', lang)}", callback_data="admin|operation_management"))
     keyboard.row(InlineKeyboardButton(text=f"👤 {await t.t('user_management', lang)}", callback_data="admin|user_management"))
+    keyboard.row(InlineKeyboardButton(text=f"🗑️ {await t.t('delete_work', lang)}", callback_data="admin|delete_work"))
 
     back_button: tuple = await btn.get_back_button("main-menu", lang)
     keyboard.row(InlineKeyboardButton(text=back_button[0], callback_data=back_button[1]))
@@ -462,8 +463,7 @@ async def jobtypes_report_details_keyboard(report_type: str, period: str, lang: 
     keyboard = InlineKeyboardBuilder()
 
     keyboard.row(
-        # TODO поправить
-        InlineKeyboardButton(text=f"{await t.t('excel_export', lang)}", callback_data=f"excel_export"),
+        InlineKeyboardButton(text=f"{await t.t('excel_export', lang)}", callback_data=f"excel_export|{report_type}|{period}"),
         InlineKeyboardButton(text=f"{await t.t('graphic', lang)}", callback_data=f"graphic")
     )
 

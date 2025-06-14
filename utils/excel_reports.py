@@ -721,26 +721,169 @@ async def categories_work_excel_report(
     ALIGN_RIGHT = "right"
 
     # Путь к файлу Excel в зависимости от типа отчета
-    start_date = convert_date_time(start_date, with_tz=True)[0]
-    end_date = convert_date_time(end_date, with_tz=True)[0]
-    excel_path = f"reports/{report_type}_{start_date}_{end_date}.xlsx"
+    converted_start_date = convert_date_time(start_date, with_tz=True)[0]
+    converted_end_date = convert_date_time(end_date, with_tz=True)[0]
+    excel_path = f"reports/{report_type}_{converted_start_date}_{converted_end_date}.xlsx"
     sheet_name = "work_categories_report"
 
-    title = f"📆 {await t.t(report_type, lang)} {start_date} - {end_date}"
+    title = f"📆 {await t.t(report_type, lang)} {converted_start_date} - {converted_end_date}"
 
     data = []
-    columns = [
-        "ID",
-        await t.t('excel_date', lang),
-        await t.t('excel_transport', lang),
-        await t.t('mechanic', lang),
-        await t.t('location', lang),
-        await t.t('works_time', lang),
-        await t.t('excel_comment', lang),
-        await t.t('excel_jobtype', lang),
-        await t.t('excel_jobs', lang)
-    ]
-    data.append(columns)
+    rows_to_merge = []
+    rows_counter = 1
+    headers_rows = []
+
+    for idx, jt in enumerate(jobtypes, start=1):
+        # заголовок jobtype
+        emoji = jt.emoji + " " if jt.emoji else ""
+        jobtype_header = f"{emoji}{await t.t(jt.title, lang)}\n"
+
+        data.append([jobtype_header[:-1], ""])
+        rows_counter += 1
+        rows_to_merge.append(rows_counter)
+        headers_rows.append(rows_counter)
+
+        # количество выполненных операций по категории
+        jobs = await AsyncOrm.get_jobs_by_jobtype_with_operation(jt.id, start_date, end_date, session)
+
+        # если работ нет
+        if len(jobs) == 0:
+            text = await t.t("no_works", lang)
+            data.append([text])
+            rows_counter += 1
+            continue
+
+        jobs_count = {}
+        transport_count = {}
+        mechanic_count = {}
+        for job in jobs:
+            if jobs_count.get(job.job_title):
+                jobs_count[job.job_title] += 1
+            else:
+                jobs_count[job.job_title] = 1
+
+            transport = f"{job.subcategory_title}-{job.serial_number}"
+            if transport_count.get(transport):
+                transport_count[transport] += 1
+            else:
+                transport_count[transport] = 1
+
+            if mechanic_count.get(job.mechanic_username):
+                mechanic_count[job.mechanic_username] += 1
+            else:
+                mechanic_count[job.mechanic_username] = 1
+
+        # сортировка работ по количеству
+        sorted_jobs = {k: v for k, v in sorted(jobs_count.items(), key=lambda item: item[1], reverse=True)}
+        sorted_transport = {k: v for k, v in sorted(transport_count.items(), key=lambda item: item[1], reverse=True)}
+        sorted_mechanics = {k: v for k, v in sorted(mechanic_count.items(), key=lambda item: item[1], reverse=True)}
+
+        for k, v in sorted_jobs.items():
+            data.append([
+                f"{await t.t(k, lang)}",
+                f"{v}"
+            ])
+            rows_counter += 1
+
+        # самые частый транспорт
+        most_often_transport_header = await t.t('most_recent_transport', lang)
+        data.append([most_often_transport_header[:-1], ""])
+        rows_counter += 1
+        rows_to_merge.append(rows_counter)
+
+        counter = 0
+        for k, v in sorted_transport.items():
+            if counter == 3:
+                break
+
+            data.append([
+                f"{k}",
+                f"{v}"
+            ])
+            counter += 1
+            rows_counter += 1
+
+        # самые частые механики в категории
+        most_often_mechanics_header = await t.t('most_recent_mechanics', lang)
+        data.append([most_often_mechanics_header[:-1], ""])
+        rows_counter += 1
+        rows_to_merge.append(rows_counter)
+
+        counter = 0
+        for k, v in sorted_mechanics.items():
+            if counter == 3:
+                break
+
+            data.append([
+                f"{k}",
+                f"{v}"
+            ])
+            counter += 1
+            rows_counter += 1
+
+        # строка после jobtype
+        data.append(["", ""])
+        rows_counter += 1
+
+    # Создаем DataFrame с заголовками
+    df = pd.DataFrame(data)
+
+    # Записываем в Excel
+    with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
+        df.to_excel(writer, sheet_name=sheet_name, index=False)
+
+        # Форматирование
+        workbook = writer.book
+        worksheet = writer.sheets[sheet_name]
+
+        # Настройка ширины столбцов
+        worksheet.column_dimensions['A'].width = 35
+        worksheet.column_dimensions['B'].width = 35
+
+        # Заголовок отчета с улучшенным форматированием
+        title_cell = worksheet.cell(row=1, column=1)
+        title_cell.value = title
+        title_cell.font = Font(bold=True, size=14, color=COLOR_DARK_BLUE)  # Темно-синий текст
+
+        # объединяем для заголовка
+        worksheet.merge_cells('A1:B1')
+
+        # делаем заголовок по центру
+        title_cell.alignment = Alignment(horizontal=ALIGN_CENTER)
+
+        # Добавляем светло-синий фон для заголовка
+        title_cell.fill = PatternFill(start_color=COLOR_LIGHT_BLUE, end_color=COLOR_LIGHT_BLUE, fill_type="solid")
+
+        # Добавляем границу для заголовка
+        title_cell.border = Border(left=Side(style=BORDER_STYLE_MEDIUM), right=Side(style=BORDER_STYLE_MEDIUM),
+                                   top=Side(style=BORDER_STYLE_MEDIUM), bottom=Side(style=BORDER_STYLE_MEDIUM))
+
+        # стили подзаголовков
+        for row in rows_to_merge:
+            column_cell = worksheet.cell(row=row, column=1)
+
+            # объединение ячеек
+            worksheet.merge_cells(f'A{row}:B{row}')
+            # выравнивание по центру
+            column_cell.alignment = Alignment(horizontal=ALIGN_CENTER)
+            # жирный шрифт
+            column_cell.font = Font(bold=True)
+
+        # стили заголовков
+        for row in headers_rows:
+            column_cell_1 = worksheet.cell(row=row, column=1)
+            column_cell_2 = worksheet.cell(row=row, column=2)
+
+            # желтый цвет
+            column_cell_1.fill = PatternFill(start_color=COLOR_LIGHT_YELLOW, end_color=COLOR_LIGHT_YELLOW,
+                                           fill_type="solid")
+            # граница тонкая у двух ячеек
+            column_cell_1.border = Border(left=Side(style=BORDER_STYLE_THIN), right=Side(style=BORDER_STYLE_THIN),
+                                        top=Side(style=BORDER_STYLE_THIN), bottom=Side(style=BORDER_STYLE_THIN))
+            column_cell_2.border = Border(left=Side(style=BORDER_STYLE_THIN), right=Side(style=BORDER_STYLE_THIN),
+                                        top=Side(style=BORDER_STYLE_THIN), bottom=Side(style=BORDER_STYLE_THIN))
+
+    return excel_path
 
 
 async def locations_excel_report(
@@ -1000,7 +1143,7 @@ async def inefficiency_excel_report(
     excel_path = f"reports/{report_type}_{converted_start_date}_{converted_end_date}.xlsx"
     sheet_name = "inefficiency_report"
 
-    title = f"📆 {await t.t(report_type, lang)} {start_date} - {end_date}"
+    title = f"📆 {await t.t(report_type, lang)} {converted_start_date} - {converted_end_date}"
 
     data = []
     rows_for_merge = [2]
