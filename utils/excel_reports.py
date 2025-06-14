@@ -17,7 +17,7 @@ import pandas as pd
 
 async def individual_mechanic_excel_report(operations: list[OperationWithJobs], mechanic_username: str,
                                            start_date: datetime.datetime, end_date: datetime.datetime,
-                                           report_type: str, lang: str) -> str:
+                                           report_type: str, lang: str, session: Any) -> str:
     """Генерация excel отчета. Возвращает путь к файлу"""
     # Создаем директорию для отчетов, если ее нет
     os.makedirs("reports", exist_ok=True)
@@ -48,6 +48,14 @@ async def individual_mechanic_excel_report(operations: list[OperationWithJobs], 
     title = f"📆 {await t.t(report_type, lang)} {start_date} - {end_date} {mechanic_username}"
 
     data = []
+    max_len_a = 2
+    max_len_b = 4
+    max_len_c = 9
+    max_len_d = 12
+    max_len_e = 6
+    max_len_f = 23
+    max_len_g = 7
+    max_len_h = 11
 
     columns = [
         "ID",
@@ -55,16 +63,17 @@ async def individual_mechanic_excel_report(operations: list[OperationWithJobs], 
         await t.t('excel_transport', lang),
         await t.t('excel_jobtype', lang),
         await t.t('excel_jobs', lang),
-        await t.t('excel_comment', lang),
-        await t.t('excel_avg_time', lang)
+        await t.t('excel_avg_time', lang),
+        await t.t('location', lang),
+        await t.t('excel_comment', lang)
     ]
     data.append(columns)
 
     # формируем данные
     for operation in operations:
         for job in operation.jobs:
-            data.append(
-                [
+            location = await AsyncOrm.get_location_by_id(operation.location_id, session)
+            row_data = [
                     # ID
                     f"{operation.id}",
                     # дата и время
@@ -75,12 +84,39 @@ async def individual_mechanic_excel_report(operations: list[OperationWithJobs], 
                     f"{await t.t(operation.jobs[0].jobtype_title, lang)}",
                     # работы
                     f"{await t.t(job.title, lang)}",
-                    # комментарий
-                    f"{operation.comment if operation.comment else '-'}",
                     # среднее время на работу
-                    f"{round(operation.duration / len(operation.jobs))}"
+                    f"{round(operation.duration / len(operation.jobs))}",
+                    # локация
+                    f"{await t.t(location.name, lang)}",
+                    # комментарий
+                    f"{operation.comment if operation.comment else '-'}"
                 ]
-            )
+            data.append(row_data)
+
+            # записываем длину столбцов
+            if len(row_data[0]) > max_len_a:
+                max_len_a = len(row_data[0])
+
+            if len(row_data[1]) > max_len_b:
+                max_len_b = len(row_data[1])
+
+            if len(row_data[2]) > max_len_c:
+                max_len_c = len(row_data[2])
+
+            if len(row_data[3]) > max_len_d:
+                max_len_d = len(row_data[3])
+
+            if len(row_data[4]) > max_len_e:
+                max_len_e = len(row_data[4])
+
+            if len(row_data[5]) > max_len_f:
+                max_len_f = len(row_data[5])
+
+            if len(row_data[6]) > max_len_g:
+                max_len_g = len(row_data[6])
+
+            if len(row_data[7]) > max_len_h:
+                max_len_h = len(row_data[7])
 
     # Добавляем пустую строку между разделами
     data.append(["", "", "", "", "", "", ""])
@@ -88,11 +124,11 @@ async def individual_mechanic_excel_report(operations: list[OperationWithJobs], 
     jobs_count = sum([len(operation.jobs) for operation in operations])
     duration_sum = str(sum([operation.duration for operation in operations]))
     # количество работ
-    data.append([f"{await t.t('number_of_works', lang)}", "", f"{jobs_count}"])
+    data.append([f"{await t.t('number_of_works', lang)}", "", "", f"{jobs_count}"])
     # общее среднее время
-    data.append([f"{await t.t('excel_avg_time', lang)}", "", f"{round(int(duration_sum)/jobs_count)} {await t.t('minutes', lang)}"])
+    data.append([f"{await t.t('excel_avg_time', lang)}:", "", "", f"{round(int(duration_sum)/jobs_count)} {await t.t('minutes', lang)}"])
     # общее время на работы
-    data.append([f"{await t.t('total_time_spent', lang)}", "", f"{duration_sum} {await t.t('minutes', lang)}"])
+    data.append([f"{await t.t('total_time_spent', lang)}", "", "", f"{duration_sum} {await t.t('minutes', lang)}"])
 
     # Создаем DataFrame с заголовками
     df = pd.DataFrame(data)
@@ -106,13 +142,14 @@ async def individual_mechanic_excel_report(operations: list[OperationWithJobs], 
         worksheet = writer.sheets[sheet_name]
 
         # Настройка ширины столбцов
-        worksheet.column_dimensions['A'].width = 15
-        worksheet.column_dimensions['B'].width = 20
-        worksheet.column_dimensions['C'].width = 25
-        worksheet.column_dimensions['D'].width = 25
-        worksheet.column_dimensions['E'].width = 35
-        worksheet.column_dimensions['F'].width = 45
-        worksheet.column_dimensions['G'].width = 40
+        worksheet.column_dimensions['A'].width = max_len_a + 2
+        worksheet.column_dimensions['B'].width = max_len_b
+        worksheet.column_dimensions['C'].width = max_len_c
+        worksheet.column_dimensions['D'].width = max_len_d
+        worksheet.column_dimensions['E'].width = max_len_e + 2
+        worksheet.column_dimensions['F'].width = max_len_f + 2
+        worksheet.column_dimensions['G'].width = max_len_g + 2
+        worksheet.column_dimensions['H'].width = 40
 
         # Заголовок отчета с улучшенным форматированием
         title_cell = worksheet.cell(row=1, column=1)
@@ -120,7 +157,7 @@ async def individual_mechanic_excel_report(operations: list[OperationWithJobs], 
         title_cell.font = Font(bold=True, size=14, color=COLOR_DARK_BLUE)  # Темно-синий текст
 
         # объединяем для заголовка
-        worksheet.merge_cells('A1:G1')
+        worksheet.merge_cells('A1:H1')
 
         # делаем заголовок по центру
         title_cell.alignment = Alignment(horizontal=ALIGN_CENTER)
@@ -135,7 +172,7 @@ async def individual_mechanic_excel_report(operations: list[OperationWithJobs], 
             top=Side(style=BORDER_STYLE_MEDIUM),
             bottom=Side(style=BORDER_STYLE_MEDIUM)
         )
-        for i in range(7):
+        for i in range(8):
             column_cell = worksheet.cell(row=1, column=i + 1)
             column_cell.border = Border(
                 left=Side(style=BORDER_STYLE_MEDIUM),
@@ -145,7 +182,7 @@ async def individual_mechanic_excel_report(operations: list[OperationWithJobs], 
             )
 
         # делаем названия колонок по центру и добавляем границы
-        for i in range(7):
+        for i in range(8):
             column_cell = worksheet.cell(row=2, column=i+1)
             column_cell.alignment = Alignment(horizontal=ALIGN_CENTER)
             column_cell.border = Border(
@@ -158,8 +195,13 @@ async def individual_mechanic_excel_report(operations: list[OperationWithJobs], 
         start_row = 3
         end_row = jobs_count
         for i in range(start_row, end_row):
-            column_cell = worksheet.cell(row=i, column=6)
+            column_cell = worksheet.cell(row=i, column=8)
             column_cell.alignment = Alignment(wrap_text=True)
+
+        # объедениям столбцы у текста после таблицы
+        row_number = jobs_count + 3
+        for i in range(1, 4):
+            worksheet.merge_cells(f'A{row_number + i}:C{row_number + i}')
 
     return excel_path
 

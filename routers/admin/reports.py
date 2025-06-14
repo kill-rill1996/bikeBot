@@ -242,6 +242,10 @@ async def mechanic_report(callback: types.CallbackQuery, tg_id: str, session: An
         for job in operation.jobs:
             row_text += "\t\t• " + await t.t(job.title, lang) + "\n"
 
+        # местоположение
+        location = await AsyncOrm.get_location_by_id(operation.location_id, session)
+        row_text += f"{await t.t('location', lang)}: {await t.t(location.name, lang)}\n"
+
         # комментарий
         comment = operation.comment if operation.comment else "-"
         row_text += f'{await t.t("comment", lang)} <i>"{comment}"</i>\n'
@@ -1065,10 +1069,10 @@ async def send_excel_file(callback: types.CallbackQuery, tg_id: str, session: An
         end_date = data["end_date"]
 
     # скидываем стейт
-    try:
-        await state.clear()
-    except Exception:
-        pass
+    # try:
+    #     await state.clear()
+    # except Exception:
+    #     pass
 
     # 📆 Индивидуальный отчет по механику
     if report_type == "individual_mechanic_report":
@@ -1078,7 +1082,7 @@ async def send_excel_file(callback: types.CallbackQuery, tg_id: str, session: An
         operations = await AsyncOrm.get_operations_for_user_by_period(user.tg_id, start_date, end_date, session)
 
         # путь до отчета
-        file_path = await individual_mechanic_excel_report(operations, user.username, start_date, end_date, report_type, lang)
+        file_path = await individual_mechanic_excel_report(operations, user.username, start_date, end_date, report_type, lang, session)
         document = FSInputFile(file_path)
 
         # текст сообщения
@@ -1087,7 +1091,7 @@ async def send_excel_file(callback: types.CallbackQuery, tg_id: str, session: An
         text = f"{await t.t('individual_mechanic_report', lang)} {start_date_formatted} - {end_date_formatted}"
 
         # формируем callback для кнопки назад
-        back_callback = f"admin|reports"
+        back_callback = f"mechanic|{period}|{user_id}"
 
     # 📆 Сводный отчет по механикам
     elif report_type == "summary_report_by_mechanics":
@@ -1101,7 +1105,10 @@ async def send_excel_file(callback: types.CallbackQuery, tg_id: str, session: An
         text = f"{await t.t('summary_report_by_mechanics', lang)} {start_date_formatted} - {end_date_formatted}"
 
         # формируем callback для кнопки назад
-        back_callback = f"admin|reports"
+        if period != "custom":
+            back_callback = f"reports-period|summary_report_by_mechanics|{period}"
+        else:
+            back_callback = f"clndr|summary_report_by_mechanics|{period}|{end_date_formatted}"
 
     # 📆 Отчет по транспорту
     elif report_type == "vehicle_report":
@@ -1198,7 +1205,10 @@ async def send_excel_file(callback: types.CallbackQuery, tg_id: str, session: An
         text = f"{await t.t('inefficiency_report', lang)} {start_date_formatted} - {end_date_formatted}"
 
         # формируем callback для кнопки назад
-        back_callback = f"admin|reports"
+        if period != "custom":
+            back_callback = f"reports-period|{report_type}|{period}"
+        else:
+            back_callback = f"clndr|{report_type}|{period}|{end_date_formatted}"
 
     # 📆 Отчет по местоположению
     elif report_type == "location_report":
@@ -1217,7 +1227,7 @@ async def send_excel_file(callback: types.CallbackQuery, tg_id: str, session: An
         text = f"{await t.t('location_report', lang)} {location.name} {start_date_formatted} - {end_date_formatted}"
 
         # формируем callback для кнопки назад
-        back_callback = f"admin|reports"
+        back_callback = f"select_location|location_report|{period}|{location_id}"
 
     # удаляем сообщение для ожидания
     await waiting_message.delete()
