@@ -910,12 +910,11 @@ async def inefficiency_report(callback: types.CallbackQuery, tg_id: str, session
     await waiting_message.edit_text(text, reply_markup=keyboard.as_markup())
 
 
-# 📆 Индивидуальный отчет по местоположению
+# 📆 Отчет по местоположению
 @router.callback_query(and_f(F.data.split("|")[0] == "reports-period", F.data.split("|")[1] == "location_report"))
 @router.callback_query(F.data.split("|")[0] == "clndr", LocationReport.report)
 async def location_report_select_location(callback: types.CallbackQuery, tg_id: str, session: Any, state: FSMContext) -> None:
     """Выбор локации для отчета"""
-    print(callback.data)
     lang = r.get(f"lang:{tg_id}").decode()
     report_type = callback.data.split("|")[1]
     period = callback.data.split("|")[2]
@@ -950,7 +949,6 @@ async def location_report_select_location(callback: types.CallbackQuery, tg_id: 
 @router.callback_query(F.data.split("|")[0] == "select_location")
 async def location_report(callback: types.CallbackQuery, tg_id: str, session: Any, state: FSMContext) -> None:
     """Отчет по местоположению"""
-    print(callback.data)
     lang = r.get(f"lang:{tg_id}").decode()
     report_type = callback.data.split("|")[1]
     period = callback.data.split("|")[2]
@@ -1132,7 +1130,7 @@ async def send_excel_file(callback: types.CallbackQuery, tg_id: str, session: An
             text = f"{await t.t('vehicle_report', lang)} {start_date_formatted} - {end_date_formatted}"
 
             # формируем callback для кнопки назад
-            back_callback = f"admin|reports"
+            back_callback = f"vehicle_report_by_c|{report_type}|{period}|{category_id}"
 
         elif report_subtype == "by_subcategory":
             # данные для отчета
@@ -1151,7 +1149,7 @@ async def send_excel_file(callback: types.CallbackQuery, tg_id: str, session: An
             text = f"{await t.t('vehicle_report', lang)} {start_date_formatted} - {end_date_formatted}"
 
             # формируем callback для кнопки назад
-            back_callback = f"admin|reports"
+            back_callback = f"vehicle_report_by_sc|{report_type}|{period}|{subcategory_id}"
 
         else:
             # данные для отчета
@@ -1170,7 +1168,7 @@ async def send_excel_file(callback: types.CallbackQuery, tg_id: str, session: An
             text = f"{await t.t('vehicle_report', lang)} {start_date_formatted} - {end_date_formatted}"
 
             # формируем callback для кнопки назад
-            back_callback = f"admin|reports"
+            back_callback = f"vehicle_report_by_t|{report_type}|{period}|{transport_id}"
 
     # 📆 Отчет по категориям работ
     elif report_type == "work_categories_report":
@@ -1188,7 +1186,7 @@ async def send_excel_file(callback: types.CallbackQuery, tg_id: str, session: An
         text = f"{await t.t('work_categories_report', lang)} {start_date_formatted} - {end_date_formatted}"
 
         # формируем callback для кнопки назад
-        back_callback = f"admin|reports"
+        back_callback = f"jobtype_select_done|{report_type}|{period}"
 
     # 📆 Отчет по неэффективности
     elif report_type == "inefficiency_report":

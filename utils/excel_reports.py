@@ -193,7 +193,7 @@ async def individual_mechanic_excel_report(operations: list[OperationWithJobs], 
 
         # добавляем перенос текста для столбца комментарий
         start_row = 3
-        end_row = jobs_count
+        end_row = start_row + jobs_count
         for i in range(start_row, end_row):
             column_cell = worksheet.cell(row=i, column=8)
             column_cell.alignment = Alignment(wrap_text=True)
@@ -375,15 +375,25 @@ async def vehicle_report_by_transport_excel_report(
     title = f"📆 {await t.t(report_type, lang)} {start_date} - {end_date} {await t.t(report_subtype, lang)} {transport.subcategory_title}-{transport.serial_number}"
 
     data = []
+
+    max_len_a = 2
+    max_len_b = 4
+    max_len_c = 9
+    max_len_d = 7
+    max_len_e = 21
+    max_len_f = 12
+    max_len_g = 6
+    max_len_h = 11
+
     columns = [
         "ID",
         await t.t('excel_date', lang),
         await t.t('mechanic', lang),
         await t.t('location', lang),
         await t.t('works_time', lang),
-        await t.t('excel_comment', lang),
         await t.t('excel_jobtype', lang),
-        await t.t('excel_jobs', lang)
+        await t.t('excel_jobs', lang),
+        await t.t('excel_comment', lang)
     ]
     data.append(columns)
 
@@ -394,8 +404,7 @@ async def vehicle_report_by_transport_excel_report(
 
         for job in operation.jobs:
             date, time = convert_date_time(operation.created_at, with_tz=True)
-            data.append(
-                [
+            row_data = [
                     # ID
                     f"{operation.id}",
                     # Дата и время
@@ -406,14 +415,39 @@ async def vehicle_report_by_transport_excel_report(
                     f"{await t.t(location.name, lang)}",
                     # Суммарное время работ
                     f"{operation.duration}",
-                    # Комментарий
-                    f"{operation.comment if operation.comment else '-'}",
                     # Группа узлов
                     f"{await t.t(job.jobtype_title, lang)}",
                     # работа
-                    f"{await t.t(job.title, lang)}"
-                ]
-            )
+                    f"{await t.t(job.title, lang)}",
+                    # Комментарий
+                    f"{operation.comment if operation.comment else '-'}"
+            ]
+            data.append(row_data)
+
+            # записываем длину столбцов
+            if len(row_data[0]) > max_len_a:
+                max_len_a = len(row_data[0])
+
+            if len(row_data[1]) > max_len_b:
+                max_len_b = len(row_data[1])
+
+            if len(row_data[2]) > max_len_c:
+                max_len_c = len(row_data[2])
+
+            if len(row_data[3]) > max_len_d:
+                max_len_d = len(row_data[3])
+
+            if len(row_data[4]) > max_len_e:
+                max_len_e = len(row_data[4])
+
+            if len(row_data[5]) > max_len_f:
+                max_len_f = len(row_data[5])
+
+            if len(row_data[6]) > max_len_g:
+                max_len_g = len(row_data[6])
+
+            if len(row_data[7]) > max_len_h:
+                max_len_h = len(row_data[7])
 
     # Создаем DataFrame с заголовками
     df = pd.DataFrame(data)
@@ -427,14 +461,14 @@ async def vehicle_report_by_transport_excel_report(
         worksheet = writer.sheets[sheet_name]
 
         # Настройка ширины столбцов
-        worksheet.column_dimensions['A'].width = 10
-        worksheet.column_dimensions['B'].width = 20
-        worksheet.column_dimensions['C'].width = 20
-        worksheet.column_dimensions['D'].width = 25
-        worksheet.column_dimensions['E'].width = 25
-        worksheet.column_dimensions['F'].width = 45
-        worksheet.column_dimensions['G'].width = 35
-        worksheet.column_dimensions['H'].width = 35
+        worksheet.column_dimensions['A'].width = max_len_a + 2
+        worksheet.column_dimensions['B'].width = max_len_b
+        worksheet.column_dimensions['C'].width = max_len_c
+        worksheet.column_dimensions['D'].width = max_len_d + 2
+        worksheet.column_dimensions['E'].width = max_len_e + 2
+        worksheet.column_dimensions['F'].width = max_len_f
+        worksheet.column_dimensions['G'].width = max_len_g
+        worksheet.column_dimensions['H'].width = 40
 
         # Заголовок отчета с улучшенным форматированием
         title_cell = worksheet.cell(row=1, column=1)
@@ -460,6 +494,13 @@ async def vehicle_report_by_transport_excel_report(
             column_cell.alignment = Alignment(horizontal=ALIGN_CENTER)
             column_cell.border = Border(left=Side(style=BORDER_STYLE_THIN), right=Side(style=BORDER_STYLE_THIN),
                 bottom=Side(style=BORDER_STYLE_THIN))
+
+        # добавляем перенос текста для столбца комментарий
+        start_row = 3
+        end_row = start_row + sum([len(o.jobs) for o in operations])
+        for i in range(start_row, end_row):
+            column_cell = worksheet.cell(row=i, column=8)
+            column_cell.alignment = Alignment(wrap_text=True)
 
     return excel_path
 
@@ -505,6 +546,17 @@ async def vehicle_report_by_subcategory_excel_report(
     title = f"📆 {await t.t(report_type, lang)} {start_date} - {end_date} {await t.t(report_subtype, lang)} {subcategory.title}"
 
     data = []
+
+    max_len_a = 2
+    max_len_b = 4
+    max_len_c = 9
+    max_len_d = 7
+    max_len_e = 7
+    max_len_f = 21
+    max_len_g = 12
+    max_len_h = 6
+    max_len_i = 11
+
     columns = [
         "ID",
         await t.t('excel_date', lang),
@@ -512,9 +564,9 @@ async def vehicle_report_by_subcategory_excel_report(
         await t.t('mechanic', lang),
         await t.t('location', lang),
         await t.t('works_time', lang),
-        await t.t('excel_comment', lang),
         await t.t('excel_jobtype', lang),
-        await t.t('excel_jobs', lang)
+        await t.t('excel_jobs', lang),
+        await t.t('excel_comment', lang)
     ]
     data.append(columns)
 
@@ -525,8 +577,7 @@ async def vehicle_report_by_subcategory_excel_report(
 
         for job in operation.jobs:
             date, time = convert_date_time(operation.created_at, with_tz=True)
-            data.append(
-                [
+            row_data = [
                     # ID
                     f"{operation.id}",
                     # Дата и время
@@ -539,14 +590,39 @@ async def vehicle_report_by_subcategory_excel_report(
                     f"{await t.t(location.name, lang)}",
                     # Суммарное время работ
                     f"{operation.duration}",
-                    # Комментарий
-                    f"{operation.comment if operation.comment else '-'}",
                     # Группа узлов
                     f"{await t.t(job.jobtype_title, lang)}",
                     # работа
-                    f"{await t.t(job.title, lang)}"
-                ]
-            )
+                    f"{await t.t(job.title, lang)}",
+                    # Комментарий
+                    f"{operation.comment if operation.comment else '-'}",
+            ]
+            data.append(row_data)
+
+            # записываем длину столбцов
+            if len(row_data[0]) > max_len_a:
+                max_len_a = len(row_data[0])
+
+            if len(row_data[1]) > max_len_b:
+                max_len_b = len(row_data[1])
+
+            if len(row_data[2]) > max_len_c:
+                max_len_c = len(row_data[2])
+
+            if len(row_data[3]) > max_len_d:
+                max_len_d = len(row_data[3])
+
+            if len(row_data[4]) > max_len_e:
+                max_len_e = len(row_data[4])
+
+            if len(row_data[5]) > max_len_f:
+                max_len_f = len(row_data[5])
+
+            if len(row_data[6]) > max_len_g:
+                max_len_g = len(row_data[6])
+
+            if len(row_data[7]) > max_len_h:
+                max_len_h = len(row_data[7])
 
     # Создаем DataFrame с заголовками
     df = pd.DataFrame(data)
@@ -560,15 +636,15 @@ async def vehicle_report_by_subcategory_excel_report(
         worksheet = writer.sheets[sheet_name]
 
         # Настройка ширины столбцов
-        worksheet.column_dimensions['A'].width = 10
-        worksheet.column_dimensions['B'].width = 20
-        worksheet.column_dimensions['C'].width = 15
-        worksheet.column_dimensions['D'].width = 20
-        worksheet.column_dimensions['E'].width = 20
-        worksheet.column_dimensions['F'].width = 30
-        worksheet.column_dimensions['G'].width = 35
-        worksheet.column_dimensions['H'].width = 35
-        worksheet.column_dimensions['I'].width = 35
+        worksheet.column_dimensions['A'].width = max_len_a + 2
+        worksheet.column_dimensions['B'].width = max_len_b
+        worksheet.column_dimensions['C'].width = max_len_c
+        worksheet.column_dimensions['D'].width = max_len_d + 1
+        worksheet.column_dimensions['E'].width = max_len_e + 1
+        worksheet.column_dimensions['F'].width = max_len_f
+        worksheet.column_dimensions['G'].width = max_len_g
+        worksheet.column_dimensions['H'].width = max_len_h
+        worksheet.column_dimensions['I'].width = 40
 
         # Заголовок отчета с улучшенным форматированием
         title_cell = worksheet.cell(row=1, column=1)
@@ -594,6 +670,13 @@ async def vehicle_report_by_subcategory_excel_report(
             column_cell.alignment = Alignment(horizontal=ALIGN_CENTER)
             column_cell.border = Border(left=Side(style=BORDER_STYLE_THIN), right=Side(style=BORDER_STYLE_THIN),
                 bottom=Side(style=BORDER_STYLE_THIN))
+
+        # добавляем перенос текста для столбца комментарий
+        start_row = 3
+        end_row = start_row + sum([len(o.jobs) for o in operations])
+        for i in range(start_row, end_row):
+            column_cell = worksheet.cell(row=i, column=9)
+            column_cell.alignment = Alignment(wrap_text=True)
 
     return excel_path
 
@@ -639,6 +722,17 @@ async def vehicle_report_by_category_excel_report(
     title = f"📆 {await t.t(report_type, lang)} {start_date} - {end_date} {await t.t(report_subtype, lang)} {await t.t(category_title, lang)}"
 
     data = []
+
+    max_len_a = 2
+    max_len_b = 4
+    max_len_c = 9
+    max_len_d = 7
+    max_len_e = 7
+    max_len_f = 21
+    max_len_g = 12
+    max_len_h = 6
+    max_len_i = 11
+
     columns = [
         "ID",
         await t.t('excel_date', lang),
@@ -646,9 +740,9 @@ async def vehicle_report_by_category_excel_report(
         await t.t('mechanic', lang),
         await t.t('location', lang),
         await t.t('works_time', lang),
-        await t.t('excel_comment', lang),
         await t.t('excel_jobtype', lang),
-        await t.t('excel_jobs', lang)
+        await t.t('excel_jobs', lang),
+        await t.t('excel_comment', lang)
     ]
     data.append(columns)
 
@@ -659,8 +753,7 @@ async def vehicle_report_by_category_excel_report(
 
         for job in operation.jobs:
             date, time = convert_date_time(operation.created_at, with_tz=True)
-            data.append(
-                [
+            row_data = [
                     # ID
                     f"{operation.id}",
                     # Дата и время
@@ -673,14 +766,39 @@ async def vehicle_report_by_category_excel_report(
                     f"{await t.t(location.name, lang)}",
                     # Суммарное время работ
                     f"{operation.duration}",
-                    # Комментарий
-                    f"{operation.comment if operation.comment else '-'}",
                     # Группа узлов
                     f"{await t.t(job.jobtype_title, lang)}",
                     # работа
-                    f"{await t.t(job.title, lang)}"
-                ]
-            )
+                    f"{await t.t(job.title, lang)}",
+                    # Комментарий
+                    f"{operation.comment if operation.comment else '-'}",
+            ]
+            data.append(row_data)
+
+            # записываем длину столбцов
+            if len(row_data[0]) > max_len_a:
+                max_len_a = len(row_data[0])
+
+            if len(row_data[1]) > max_len_b:
+                max_len_b = len(row_data[1])
+
+            if len(row_data[2]) > max_len_c:
+                max_len_c = len(row_data[2])
+
+            if len(row_data[3]) > max_len_d:
+                max_len_d = len(row_data[3])
+
+            if len(row_data[4]) > max_len_e:
+                max_len_e = len(row_data[4])
+
+            if len(row_data[5]) > max_len_f:
+                max_len_f = len(row_data[5])
+
+            if len(row_data[6]) > max_len_g:
+                max_len_g = len(row_data[6])
+
+            if len(row_data[7]) > max_len_h:
+                max_len_h = len(row_data[7])
 
     # Создаем DataFrame с заголовками
     df = pd.DataFrame(data)
@@ -694,15 +812,15 @@ async def vehicle_report_by_category_excel_report(
         worksheet = writer.sheets[sheet_name]
 
         # Настройка ширины столбцов
-        worksheet.column_dimensions['A'].width = 10
-        worksheet.column_dimensions['B'].width = 20
-        worksheet.column_dimensions['C'].width = 15
-        worksheet.column_dimensions['D'].width = 20
-        worksheet.column_dimensions['E'].width = 20
-        worksheet.column_dimensions['F'].width = 30
-        worksheet.column_dimensions['G'].width = 35
-        worksheet.column_dimensions['H'].width = 35
-        worksheet.column_dimensions['I'].width = 35
+        worksheet.column_dimensions['A'].width = max_len_a + 2
+        worksheet.column_dimensions['B'].width = max_len_b
+        worksheet.column_dimensions['C'].width = max_len_c
+        worksheet.column_dimensions['D'].width = max_len_d + 1
+        worksheet.column_dimensions['E'].width = max_len_e + 1
+        worksheet.column_dimensions['F'].width = max_len_f
+        worksheet.column_dimensions['G'].width = max_len_g
+        worksheet.column_dimensions['H'].width = max_len_h
+        worksheet.column_dimensions['I'].width = 40
 
         # Заголовок отчета с улучшенным форматированием
         title_cell = worksheet.cell(row=1, column=1)
@@ -728,6 +846,13 @@ async def vehicle_report_by_category_excel_report(
             column_cell.alignment = Alignment(horizontal=ALIGN_CENTER)
             column_cell.border = Border(left=Side(style=BORDER_STYLE_THIN), right=Side(style=BORDER_STYLE_THIN),
                 bottom=Side(style=BORDER_STYLE_THIN))
+
+        # добавляем перенос текста для столбца комментарий
+        start_row = 3
+        end_row = start_row + sum([len(o.jobs) for o in operations])
+        for i in range(start_row, end_row):
+            column_cell = worksheet.cell(row=i, column=9)
+            column_cell.alignment = Alignment(wrap_text=True)
 
     return excel_path
 
@@ -1092,11 +1217,14 @@ async def locations_excel_report(
         f'{category_counter} {await t.t("items", lang)}'
     ])
 
+    data.append(["", ""])
+
     # запись финального подсчета на складе
     data.append([
         f'{await t.t("total_on_warehouse", lang)}',
         f'{total_counter} {await t.t("items", lang)}'
     ])
+    rows_counter += 4
 
     # Создаем DataFrame с заголовками
     df = pd.DataFrame(data)
@@ -1125,6 +1253,24 @@ async def locations_excel_report(
         for row in rows_for_merge:
             worksheet.merge_cells(f'A{row}:B{row}')
 
+            # выравнивание текста по центру
+            column_cell = worksheet.cell(row=row, column=1)
+            column_cell.alignment = Alignment(horizontal=ALIGN_CENTER)
+
+            # жирный шрифт
+            header_cell = worksheet.cell(row=row, column=1)
+            header_cell.font = Font(bold=True)
+
+            # цвет и границы
+            header_cell_1 = worksheet.cell(row=row, column=1)
+            header_cell_2 = worksheet.cell(row=row, column=2)
+
+            # граница тонкая у двух ячеек
+            header_cell_1.border = Border(left=Side(style=BORDER_STYLE_THIN), right=Side(style=BORDER_STYLE_THIN),
+                                          top=Side(style=BORDER_STYLE_THIN), bottom=Side(style=BORDER_STYLE_THIN))
+            header_cell_2.border = Border(left=Side(style=BORDER_STYLE_THIN), right=Side(style=BORDER_STYLE_THIN),
+                                          top=Side(style=BORDER_STYLE_THIN), bottom=Side(style=BORDER_STYLE_THIN))
+
         # делаем заголовок по центру
         title_cell.alignment = Alignment(horizontal=ALIGN_CENTER)
 
@@ -1146,6 +1292,12 @@ async def locations_excel_report(
         for n in rows_for_merge:
             column_cell = worksheet.cell(row=n, column=1)
             column_cell.alignment = Alignment(horizontal=ALIGN_CENTER)
+
+        # стили итогового количества
+        total_cell_1 = worksheet.cell(row=rows_counter, column=1)
+        total_cell_2 = worksheet.cell(row=rows_counter, column=2)
+        total_cell_1.font = Font(bold=True)
+        total_cell_2.font = Font(bold=True)
 
     return excel_path
 
@@ -1306,6 +1458,23 @@ async def inefficiency_excel_report(
         # объединение подзаголовков
         for row in rows_for_merge:
             worksheet.merge_cells(f'A{row}:C{row}')
+            # жирный шрифт
+            header_cell = worksheet.cell(row=row, column=1)
+            header_cell.font = Font(bold=True)
+            # цвет и границы
+            header_cell_1 = worksheet.cell(row=row, column=1)
+            header_cell_2 = worksheet.cell(row=row, column=2)
+            header_cell_3 = worksheet.cell(row=row, column=3)
+            # желтый цвет
+            header_cell_1.fill = PatternFill(start_color=COLOR_LIGHT_YELLOW, end_color=COLOR_LIGHT_YELLOW,
+                                             fill_type="solid")
+            # граница тонкая у двух ячеек
+            header_cell_1.border = Border(left=Side(style=BORDER_STYLE_THIN), right=Side(style=BORDER_STYLE_THIN),
+                                          top=Side(style=BORDER_STYLE_THIN), bottom=Side(style=BORDER_STYLE_THIN))
+            header_cell_2.border = Border(left=Side(style=BORDER_STYLE_THIN), right=Side(style=BORDER_STYLE_THIN),
+                                          top=Side(style=BORDER_STYLE_THIN), bottom=Side(style=BORDER_STYLE_THIN))
+            header_cell_3.border = Border(left=Side(style=BORDER_STYLE_THIN), right=Side(style=BORDER_STYLE_THIN),
+                                          top=Side(style=BORDER_STYLE_THIN), bottom=Side(style=BORDER_STYLE_THIN))
 
         # делаем заголовок по центру
         title_cell.alignment = Alignment(horizontal=ALIGN_CENTER)
