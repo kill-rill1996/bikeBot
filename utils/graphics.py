@@ -196,3 +196,147 @@ def location_graphic_report(data: dict, start_date: str, end_date: str, location
     plt.close()
 
     return chart_path
+
+
+def transport_by_category_graphic_report(jobs_count_by_dates: dict, y: list, x: list, category_title: str,
+                            start_date: datetime.datetime, end_date: datetime.datetime) -> str:
+    """График по категории транспорта"""
+    # Настройка графика
+    plt.xticks(rotation=0, fontsize=9)
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+
+    # Устанавливаем лимиты по y от 0 до максимального кол-ва времени + запас 10%
+    plt.ylim(0, max([value for value in jobs_count_by_dates.values()]) * 1.1)
+
+    x_positions = np.arange(len(x))  # позиции по оси X
+    width = 0.35  # ширина столбца
+    fig, ax = plt.subplots(figsize=(10, 6))
+    rects1 = ax.bar(x_positions + width / 2, y, width, label='Кол-во выполненных работ')
+
+    # добавляем подписи значений
+    def autolabel(rects):
+        for rect in rects:
+            height = rect.get_height()
+            ax.annotate(f'{height}', xy=(rect.get_x() + rect.get_width() / 2, height), xytext=(0, 3),
+                        # смещение текста вверх
+                        textcoords="offset points", ha='center', va='bottom')
+
+    autolabel(rects1)
+
+    # добавляем линию среднего значения количества работ
+    mean_value = sum([value for value in jobs_count_by_dates.values()]) / len(x)
+    plt.axhline(y=mean_value, color='red', linestyle='--', label=f'Среднее количество работ: {mean_value:.2f}')
+    plt.legend()
+
+    ax.set_xticks(x_positions)
+    ax.set_xticklabels(x)
+    ax.set_xlabel('Дата')  # Подпись оси X
+    ax.set_ylabel('Кол-во выполненных работ')  # Подпись оси Y
+    ax.set_title(f"Отчет по категории транспорта {category_title} {start_date.date()} - {end_date.date()}", fontsize=14)
+    ax.legend()
+
+    # Путь для сохранения графика
+    chart_path = f"reports/graphics/transport_report_{category_title}_{start_date.date()}-{end_date.date()}.png"
+
+    # Сохраняем график
+    plt.tight_layout()
+    plt.savefig(chart_path)
+    plt.close()
+
+    return chart_path
+
+
+def transport_by_subcategory_graphic_report(jobs_count_by_dates: dict, y: list, x: list, subcategory_title: str,
+                            start_date: datetime.datetime, end_date: datetime.datetime) -> str:
+    """График по подкатегории транспорта"""
+    # Настройка графика
+    plt.xticks(rotation=0, fontsize=9)
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+
+    # Устанавливаем лимиты по y от 0 до максимального кол-ва времени + запас 10%
+    plt.ylim(0, max([value for value in jobs_count_by_dates.values()]) * 1.1)
+
+    x_positions = np.arange(len(x))  # позиции по оси X
+    width = 0.35  # ширина столбца
+    fig, ax = plt.subplots(figsize=(10, 6))
+    rects1 = ax.bar(x_positions + width / 2, y, width, label='Кол-во выполненных работ')
+
+    # добавляем подписи значений
+    def autolabel(rects):
+        for rect in rects:
+            height = rect.get_height()
+            ax.annotate(f'{height}', xy=(rect.get_x() + rect.get_width() / 2, height), xytext=(0, 3),
+                        # смещение текста вверх
+                        textcoords="offset points", ha='center', va='bottom')
+
+    autolabel(rects1)
+
+    # добавляем линию среднего значения количества работ
+    mean_value = sum([value for value in jobs_count_by_dates.values()]) / len(x)
+    plt.axhline(y=mean_value, color='red', linestyle='--', label=f'Среднее количество работ: {mean_value:.2f}')
+    plt.legend()
+
+    ax.set_xticks(x_positions)
+    ax.set_xticklabels(x)
+    ax.set_xlabel('Дата')  # Подпись оси X
+    ax.set_ylabel('Кол-во выполненных работ')  # Подпись оси Y
+    ax.set_title(f"Отчет по подкатегории транспорта {subcategory_title} {start_date.date()} - {end_date.date()}", fontsize=14)
+    ax.legend()
+
+    # Путь для сохранения графика
+    chart_path = f"reports/graphics/transport_report_{subcategory_title}_{start_date.date()}-{end_date.date()}.png"
+
+    # Сохраняем график
+    plt.tight_layout()
+    plt.savefig(chart_path)
+    plt.close()
+
+    return chart_path
+
+
+def transport_by_transport_graphic_report(jobs_count_by_dates: dict, y: list, x: list, transport_title: str,
+                            start_date: datetime.datetime, end_date: datetime.datetime) -> str:
+    """График по транспорту"""
+    # Настройка графика
+    plt.xticks(rotation=0, fontsize=9)
+    plt.grid(axis='y', linestyle='--', alpha=0.7)
+
+    # Устанавливаем лимиты по y от 0 до максимального кол-ва времени + запас 10%
+    plt.ylim(0, max([value for value in jobs_count_by_dates.values()]) * 1.1)
+
+    x_positions = np.arange(len(x))  # позиции по оси X
+    width = 0.35  # ширина столбца
+    fig, ax = plt.subplots(figsize=(10, 6))
+    rects1 = ax.bar(x_positions + width / 2, y, width, label='Кол-во выполненных работ')
+
+    # добавляем подписи значений
+    def autolabel(rects):
+        for rect in rects:
+            height = rect.get_height()
+            ax.annotate(f'{height}', xy=(rect.get_x() + rect.get_width() / 2, height), xytext=(0, 3),
+                        # смещение текста вверх
+                        textcoords="offset points", ha='center', va='bottom')
+
+    autolabel(rects1)
+
+    # добавляем линию среднего значения количества работ
+    mean_value = sum([value for value in jobs_count_by_dates.values()]) / len(x)
+    plt.axhline(y=mean_value, color='red', linestyle='--', label=f'Среднее количество работ: {mean_value:.2f}')
+    plt.legend()
+
+    ax.set_xticks(x_positions)
+    ax.set_xticklabels(x)
+    ax.set_xlabel('Дата')  # Подпись оси X
+    ax.set_ylabel('Кол-во выполненных работ')  # Подпись оси Y
+    ax.set_title(f"Отчет по транспорту {transport_title} {start_date.date()} - {end_date.date()}", fontsize=14)
+    ax.legend()
+
+    # Путь для сохранения графика
+    chart_path = f"reports/graphics/transport_report_{transport_title}_{start_date.date()}-{end_date.date()}.png"
+
+    # Сохраняем график
+    plt.tight_layout()
+    plt.savefig(chart_path)
+    plt.close()
+
+    return chart_path

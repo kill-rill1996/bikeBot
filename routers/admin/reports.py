@@ -18,7 +18,8 @@ from utils.excel_reports import individual_mechanic_excel_report, summary_mechan
     vehicle_report_by_transport_excel_report, vehicle_report_by_subcategory_excel_report, \
     vehicle_report_by_category_excel_report, categories_work_excel_report, locations_excel_report, \
     inefficiency_excel_report
-from utils.graphics import mechanic_report_graphic, all_mechanics_report_graphic, location_graphic_report
+from utils.graphics import mechanic_report_graphic, all_mechanics_report_graphic, location_graphic_report, \
+    transport_by_category_graphic_report, transport_by_subcategory_graphic_report, transport_by_transport_graphic_report
 from utils.translator import translator as t
 from utils.date_time_service import get_dates_by_period, get_next_and_prev_month_and_year, convert_str_to_datetime
 from database.orm import AsyncOrm
@@ -1467,7 +1468,7 @@ async def location_graphic(callback: types.CallbackQuery, tg_id: str, state: FSM
     # строим график и получаем путь до него
     start_date_str = convert_date_time(start_date)[0]
     end_date_str = convert_date_time(end_date)[0]
-    chart_path = location_graphic_report(operations_dict, start_date_str, end_date_str, location.name)
+    chart_path = location_graphic_report(operations_dict, start_date_str, end_date_str, await t.t(location.name, lang))
 
     # Удаляем сообщение об ожидании
     try:
@@ -1489,6 +1490,183 @@ async def location_graphic(callback: types.CallbackQuery, tg_id: str, state: FSM
     # отправляем сообщение для дальнейшего выбора
     keyboard = await kb.back_keyboard(f"select_location|location_report|{period}|{location_id}", lang)
 
+    await callback.message.answer(text, reply_markup=keyboard.as_markup())
+
+    # удаляем график
+    try:
+        os.remove(chart_path)
+    except Exception as e:
+        logger.error(f"Ошибка удаления графика {chart_path}: {e}")
+
+
+# GRAPHIC TRANSPORT REPORT
+@router.callback_query(F.data.split("|")[0] == "graphic-transport")
+async def transport_by_category_graphic(callback: types.CallbackQuery, tg_id: str, state: FSMContext, session: Any) -> None:
+    """График отчетов по транспорту"""
+    lang = r.get(f"lang:{tg_id}").decode()
+    period = callback.data.split("|")[1]
+    data = await state.get_data()
+    report_subtype = data["report_subtype"]
+    report_type = data["report_type"]
+
+    # меняем предыдущее сообщение
+    try:
+        waiting_message = await callback.message.edit_text(await t.t("please_wait", lang))
+    except Exception:
+        pass
+
+    # получаем даты в зависимости от периода
+    if period != "custom":
+        start_date, end_date = get_dates_by_period(period)
+
+        await state.update_data(start_date=start_date)
+        await state.update_data(end_date=end_date)
+    else:
+        start_date = data["start_date"]
+        end_date = data["end_date"]
+
+    if report_subtype == "by_category":
+        # получаем данные из БД
+        category_id = data["category_id"]
+        category = await AsyncOrm.get_category_by_id(category_id, session)
+        category_title = await t.t(category.title, lang)
+        operations: list[OperationWithJobs] = await AsyncOrm.get_operations_by_category_and_period(category_id, start_date, end_date, session)
+
+        # создаем словарь с кол-вом времени по дням формата {day: count,...}
+        jobs_count_by_dates = {}
+        for operation in operations:
+            date_str = convert_date_time(operation.created_at, with_tz=True)[0]
+            if date_str not in jobs_count_by_dates.keys():
+                jobs_count_by_dates[date_str] = len(operation.jobs)
+            else:
+                jobs_count_by_dates[date_str] += len(operation.jobs)
+
+        # данные для подписи оси Х (выписываем все даты за выбранный период)
+        dates_period = []
+        current_date = start_date
+        while current_date.date() <= end_date.date():
+            dates_period.append(current_date)
+            current_date += datetime.timedelta(days=1)
+
+        # формируем данные для графика формата [(date, count)...]
+        graphic_data: list[tuple] = []
+        for day in dates_period:
+            str_date = convert_date_time(day)[0]
+            if jobs_count_by_dates.get(str_date):
+                graphic_data.append((str_date, jobs_count_by_dates[str_date]))
+            else:
+                graphic_data.append((str_date, 0))
+
+        x = [item[0][:5] for item in graphic_data]  # даты для значений на оси Х
+        y = [item[1] for item in graphic_data]  # Данные о времени работ для оси Y jobs count
+
+        # строим график и получаем путь до него
+        chart_path = transport_by_category_graphic_report(jobs_count_by_dates, y, x, category_title, start_date, end_date)
+
+        # колбэк назад
+        back_callback = f"vehicle_report_by_c|{report_type}|{period}|{category_id}"
+
+    elif report_subtype == "by_subcategory":
+        # получаем данные из БД
+        subcategory_id = data["subcategory_id"]
+        subcategory = await AsyncOrm.get_subcategory_by_id(subcategory_id, session)
+        subcategory_title = subcategory.title
+        operations = await AsyncOrm.get_operations_by_subcategory_and_period(subcategory_id, start_date, end_date,
+                                                                             session)
+
+        # создаем словарь с кол-вом времени по дням формата {day: count,...}
+        jobs_count_by_dates = {}
+        for operation in operations:
+            date_str = convert_date_time(operation.created_at, with_tz=True)[0]
+            if date_str not in jobs_count_by_dates.keys():
+                jobs_count_by_dates[date_str] = len(operation.jobs)
+            else:
+                jobs_count_by_dates[date_str] += len(operation.jobs)
+
+        # данные для подписи оси Х (выписываем все даты за выбранный период)
+        dates_period = []
+        current_date = start_date
+        while current_date.date() <= end_date.date():
+            dates_period.append(current_date)
+            current_date += datetime.timedelta(days=1)
+
+        # формируем данные для графика формата [(date, count)...]
+        graphic_data: list[tuple] = []
+        for day in dates_period:
+            str_date = convert_date_time(day)[0]
+            if jobs_count_by_dates.get(str_date):
+                graphic_data.append((str_date, jobs_count_by_dates[str_date]))
+            else:
+                graphic_data.append((str_date, 0))
+
+        x = [item[0][:5] for item in graphic_data]  # даты для значений на оси Х
+        y = [item[1] for item in graphic_data]  # Данные о времени работ для оси Y jobs count
+
+        # строим график и получаем путь до него
+        chart_path = transport_by_subcategory_graphic_report(jobs_count_by_dates, y, x, subcategory_title, start_date,
+                                                          end_date)
+
+        # колбэк назад
+        back_callback = f"vehicle_report_by_sc|{report_type}|{period}|{subcategory_id}"
+
+    elif report_subtype == "by_transport":
+        # получаем данные из БД
+        transport_id = data["transport_id"]
+        transport = await AsyncOrm.get_transport_by_id(transport_id, session)
+        transport_title = f"{transport.subcategory_title}-{transport.serial_number}"
+        operations = await AsyncOrm.get_operations_by_transport_and_period(transport_id, start_date, end_date, session)
+
+        # создаем словарь с кол-вом времени по дням формата {day: count,...}
+        jobs_count_by_dates = {}
+        for operation in operations:
+            date_str = convert_date_time(operation.created_at, with_tz=True)[0]
+            if date_str not in jobs_count_by_dates.keys():
+                jobs_count_by_dates[date_str] = len(operation.jobs)
+            else:
+                jobs_count_by_dates[date_str] += len(operation.jobs)
+
+        # данные для подписи оси Х (выписываем все даты за выбранный период)
+        dates_period = []
+        current_date = start_date
+        while current_date.date() <= end_date.date():
+            dates_period.append(current_date)
+            current_date += datetime.timedelta(days=1)
+
+        # формируем данные для графика формата [(date, count)...]
+        graphic_data: list[tuple] = []
+        for day in dates_period:
+            str_date = convert_date_time(day)[0]
+            if jobs_count_by_dates.get(str_date):
+                graphic_data.append((str_date, jobs_count_by_dates[str_date]))
+            else:
+                graphic_data.append((str_date, 0))
+
+        x = [item[0][:5] for item in graphic_data]  # даты для значений на оси Х
+        y = [item[1] for item in graphic_data]  # Данные о времени работ для оси Y jobs count
+
+        # строим график и получаем путь до него
+        chart_path = transport_by_transport_graphic_report(jobs_count_by_dates, y, x, transport_title, start_date,
+                                                          end_date)
+
+        back_callback = f"vehicle_report_by_t|{report_type}|{period}|{transport_id}"
+
+    # удаляем сообщение об ожидании
+    try:
+        await waiting_message.delete()
+    except Exception:
+        pass
+
+    # отправляем фото если получилось создать
+    if chart_path and os.path.exists(chart_path):
+        await callback.message.answer_photo(photo=FSInputFile(chart_path), )
+        text = await t.t("graphic_send", lang)
+
+    # если график не удалось создать
+    else:
+        text = await t.t("graphic_error", lang)
+
+    # отправляем сообщение для дальнейшего выбора
+    keyboard = await kb.back_keyboard(back_callback, lang)
     await callback.message.answer(text, reply_markup=keyboard.as_markup())
 
     # удаляем график
