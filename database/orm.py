@@ -1512,3 +1512,23 @@ class AsyncOrm:
 
         except Exception as e:
             logger.error(f"Ошибка при изменении job с id {job_id}: {e}")
+
+    @staticmethod
+    async def get_jobs_count_by_jobtype_and_date(jobtype_id: int, date: datetime.date, session: Any) -> int:
+        """Получение кол-ва jobs, по группе узла и дате операции"""
+        try:
+            count = await session.fetchval(
+                """
+                SELECT COUNT(*) 
+                FROM operations as o
+                JOIN operations_jobs AS oj ON o.id = oj.operation_id
+                JOIN jobs AS j ON oj.job_id = j.id
+                JOIN jobtypes AS jt ON j.jobtype_id = jt.id
+                WHERE jt.id = $1 AND o.created_at::date = $2
+                """,
+                jobtype_id, date
+            )
+            return count
+
+        except Exception as e:
+            logger.error(f"Ошибка при получение кол-ва jobs, по группе узла {jobtype_id} и дате {date} операции: {e}")

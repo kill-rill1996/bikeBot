@@ -340,3 +340,65 @@ def transport_by_transport_graphic_report(jobs_count_by_dates: dict, y: list, x:
     plt.close()
 
     return chart_path
+
+
+def jobtypes_for_category_graphic(data: dict, category_id: int, category_title: str,
+                                  start_date: datetime.datetime, end_date: datetime.datetime) -> str:
+    """Строит график для выбранных групп узлов и категории за определенный период"""
+    from datetime import datetime
+    # Получаем все даты и категории
+    dates = list(data.keys())
+    all_categories = set()
+    for cats in data.values():
+        all_categories.update(cats.keys())
+    all_categories = sorted(all_categories)
+
+    x = np.arange(len(dates))  # позиции по оси X
+
+    # Форматируем даты для подписи
+    dates_formatted = [
+        datetime.strptime(date, "%Y-%m-%d").strftime("%d.%m.%Y") for date in dates
+    ]
+
+    # Готовим значения для каждой категории по всем датам
+    category_values = []
+    for cat in all_categories:
+        values = []
+        for date in dates:
+            values.append(data[date].get(cat, 0))
+        category_values.append(values)
+
+    width = 0.12  # ширина одного столбца
+    fig, ax = plt.subplots(figsize=(12, 6))
+
+    # Строим bar-графики для каждой категории
+    for i, (cat, values) in enumerate(zip(all_categories, category_values)):
+        bars = ax.bar(x + i * width, values, width, label=cat)
+        # Добавляем подписи над каждым столбцом
+        for bar in bars:
+            height = bar.get_height()
+            if height > 0:
+                ax.annotate(f'{int(height)}',
+                            xy=(bar.get_x() + bar.get_width() / 2, height),
+                            xytext=(0, 3),  # смещение вверх
+                            textcoords="offset points",
+                            ha='center', va='bottom', fontsize=9)
+
+    ax.set_xlabel('Дата')
+    ax.set_ylabel('Количество вып. операций')
+    start_date_str = start_date.date().strftime("%d.%m.%Y")
+    end_date_str = end_date.date().strftime("%d.%m.%Y")
+    ax.set_title(f'Категория {category_title} {start_date_str}-{end_date_str}')
+    ax.set_xticks(x + width * (len(all_categories) - 1) / 2)
+    ax.set_xticklabels(dates_formatted, rotation=45)
+    ax.legend()
+
+    # Путь для сохранения графика
+    chart_path = f"reports/graphics/work_category_{category_id}_{start_date_str}-{end_date_str}.png"
+
+    # Сохраняем график
+    plt.tight_layout()
+    plt.savefig(chart_path)
+    plt.close()
+
+    return chart_path

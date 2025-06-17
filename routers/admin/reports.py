@@ -11,15 +11,17 @@ from cache import r
 from logger import logger
 from routers.states.reports import IndividualMechanicReport, SummaryMechanicReport, TransportReport, JobTypesReport, \
     InefficiencyReport, LocationReport
+from schemas.categories_and_jobs import Jobtype, Category
 from schemas.location import Location
-from schemas.reports import OperationWithJobs
+from schemas.reports import OperationWithJobs, JobForJobtypes
 from schemas.users import User
 from utils.excel_reports import individual_mechanic_excel_report, summary_mechanics_excel_report, \
     vehicle_report_by_transport_excel_report, vehicle_report_by_subcategory_excel_report, \
     vehicle_report_by_category_excel_report, categories_work_excel_report, locations_excel_report, \
     inefficiency_excel_report
 from utils.graphics import mechanic_report_graphic, all_mechanics_report_graphic, location_graphic_report, \
-    transport_by_category_graphic_report, transport_by_subcategory_graphic_report, transport_by_transport_graphic_report
+    transport_by_category_graphic_report, transport_by_subcategory_graphic_report, \
+    transport_by_transport_graphic_report, jobtypes_for_category_graphic
 from utils.translator import translator as t
 from utils.date_time_service import get_dates_by_period, get_next_and_prev_month_and_year, convert_str_to_datetime
 from database.orm import AsyncOrm
@@ -697,6 +699,7 @@ async def report_by_jobtypes_select_jobtypes(callback: types.CallbackQuery, tg_i
 
     # для производительности храним в стейте
     jobtypes = await AsyncOrm.get_job_types_by_category(category_id, session)
+    await state.update_data(category_id=category_id)    # TODO ADDED 17.06
     await state.update_data(jobtypes=jobtypes)
 
     text = await t.t("choose_jobtypes", lang)
@@ -1667,6 +1670,92 @@ async def transport_by_category_graphic(callback: types.CallbackQuery, tg_id: st
 
     # отправляем сообщение для дальнейшего выбора
     keyboard = await kb.back_keyboard(back_callback, lang)
+    await callback.message.answer(text, reply_markup=keyboard.as_markup())
+
+    # удаляем график
+    try:
+        os.remove(chart_path)
+    except Exception as e:
+        logger.error(f"Ошибка удаления графика {chart_path}: {e}")
+
+
+# GRAPHIC JOBTYPES REPORT
+@router.callback_query(F.data.split("|")[0] == "graphic-jobtypes")
+async def jobtypes_graphic(callback: types.CallbackQuery, tg_id: str, state: FSMContext, session: Any) -> None:
+    """Отправка графика по подкатегориям узлов"""
+    lang = r.get(f"lang:{tg_id}").decode()
+    period = callback.data.split("|")[1]
+    data = await state.get_data()
+
+    # меняем предыдущее сообщение
+    try:
+        await data["prev_message"].edit_text(callback.message.text)
+    except:
+        pass
+
+    waiting_message = await callback.message.edit_text(await t.t("please_wait", lang))
+
+    # получаем даты в зависимости от периода
+    if period != "custom":
+        start_date, end_date = get_dates_by_period(period)
+    else:
+        start_date = data["start_date"]
+        end_date = data["end_date"]
+
+    await state.update_data(start_date=start_date)
+    await state.update_data(end_date=end_date)
+
+    # Получаем данные из ДБ
+    selected_jobtypes = data["selected_jobtypes"]
+    category_id = int(data["category_id"])
+
+    jobtypes: list[Jobtype] = await AsyncOrm.get_jobtypes_by_ids(selected_jobtypes, session)
+    category: Category = await AsyncOrm.get_category_by_id(category_id, session)
+
+    # данные для подписи оси Х (выписываем все даты за выбранный период)
+    dates_period = []
+    current_date = start_date
+    while current_date.date() <= end_date.date():
+        dates_period.append(current_date.date())
+        current_date += datetime.timedelta(days=1)
+
+    # format {'22.06.2025': {"Замена шин": 1, "Замена дисков": 3}
+    jobtypes_count_in_date = {}
+
+    for date in dates_period:
+        jobtypes_count_in_date[f"{date}"] = {}
+
+        # получаем кол-во работ для каждого jobtype в эту дату
+        for jt in jobtypes:
+            job_count = await AsyncOrm.get_jobs_count_by_jobtype_and_date(jt.id, date, session)
+
+            if job_count != 0:
+                jobtypes_count_in_date[f"{date}"][await t.t(jt.title, lang)] = job_count
+
+    # строим график и получаем путь до него
+    category_title = f"{category.emoji + ' ' if category.emoji else ''}{await t.t(category.title, lang)}"
+    chart_path = jobtypes_for_category_graphic(jobtypes_count_in_date, category.id, category_title, start_date, end_date)
+
+    # Удаляем сообщение об ожидании
+    try:
+        await waiting_message.delete()
+    except:
+        pass
+
+    # отправляем фото если получилось создать
+    if chart_path and os.path.exists(chart_path):
+        await callback.message.answer_photo(
+            photo=FSInputFile(chart_path),
+        )
+        text = await t.t("graphic_send", lang)
+
+    # если график не удалось создать
+    else:
+        text = await t.t("graphic_error", lang)
+
+    # отправляем сообщение для дальнейшего выбора
+    keyboard = await kb.back_keyboard(f"jobtype_select_done|work_categories_report|{period}", lang)
+
     await callback.message.answer(text, reply_markup=keyboard.as_markup())
 
     # удаляем график
