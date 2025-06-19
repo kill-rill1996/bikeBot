@@ -402,3 +402,70 @@ def jobtypes_for_category_graphic(data: dict, category_id: int, category_title: 
     plt.close()
 
     return chart_path
+
+
+def inefficiency_graphic(data, dates_period: list[str], threshold: int) -> str | None:
+    """
+    Строит группированный bar-график:
+    по оси X — даты,
+    по каждой дате — бары для каждой работы,
+    учитываются только работы, у которых суммарное количество за все даты > threshold.
+    Над каждым bar — подпись значения.
+    """
+    # Сортируем даты
+    dates = sorted(data.keys(), key=lambda d: [int(x) for x in d.split('.')][::-1])
+
+    # Считаем суммарное количество каждой работы за все даты
+    job_total_counts = {}
+    for jobs in data.values():
+        for job, count in jobs.items():
+            job_total_counts[job] = job_total_counts.get(job, 0) + count
+
+    # Оставляем только работы, у которых суммарное количество > threshold
+    all_jobs = [job for job, total in job_total_counts.items() if total >= threshold]
+    all_jobs = sorted(all_jobs)
+
+    if not all_jobs:
+        return None
+
+    # Формируем матрицу: строки — работы, столбцы — даты
+    job_counts = []
+    for job in all_jobs:
+        job_counts.append([data[date].get(job, 0) for date in dates])
+
+    # Построение grouped bar chart
+    x = np.arange(len(dates))
+    width = 0.8 / len(all_jobs)  # ширина одного бара
+
+    plt.figure(figsize=(max(12, len(dates)), 6))
+    bars = []
+    for i, job in enumerate(all_jobs):
+        bar = plt.bar(x + i * width, job_counts[i], width, label=job)
+        bars.append(bar)
+        # Добавляем подписи над каждым bar
+        for rect, value in zip(bar, job_counts[i]):
+            if value > 0:
+                plt.text(
+                    rect.get_x() + rect.get_width() / 2,
+                    rect.get_height(),
+                    str(value),
+                    ha='center',
+                    va='bottom',
+                    fontsize=9
+                )
+
+    plt.ylabel("Количество работ")
+    plt.xlabel("Дата")
+    plt.title(f"Неэффективность >= {threshold} работ {dates_period[0]} - {dates_period[-1]}")
+    plt.xticks(x + width * (len(all_jobs) - 1) / 2, dates, rotation=45, ha='right')
+    plt.legend(loc='upper left', bbox_to_anchor=(1, 1))
+
+    # Путь для сохранения графика
+    chart_path = f"reports/graphics/inefficiency_{dates_period[0]}_{dates_period[-1]}.png"
+
+    # Сохраняем график
+    plt.tight_layout()
+    plt.savefig(chart_path)
+    plt.close()
+
+    return chart_path

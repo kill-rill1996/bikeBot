@@ -21,7 +21,7 @@ from utils.excel_reports import individual_mechanic_excel_report, summary_mechan
     inefficiency_excel_report
 from utils.graphics import mechanic_report_graphic, all_mechanics_report_graphic, location_graphic_report, \
     transport_by_category_graphic_report, transport_by_subcategory_graphic_report, \
-    transport_by_transport_graphic_report, jobtypes_for_category_graphic
+    transport_by_transport_graphic_report, jobtypes_for_category_graphic, inefficiency_graphic
 from utils.translator import translator as t
 from utils.date_time_service import get_dates_by_period, get_next_and_prev_month_and_year, convert_str_to_datetime
 from database.orm import AsyncOrm
@@ -887,7 +887,6 @@ async def inefficiency_report(callback: types.CallbackQuery, tg_id: str, session
         frequent_works = 7
     elif period == "month":
         frequent_works = 15
-    # TODO для custom_period
     else:
         frequent_works = (end_date - start_date).days
 
@@ -1763,3 +1762,109 @@ async def jobtypes_graphic(callback: types.CallbackQuery, tg_id: str, state: FSM
         os.remove(chart_path)
     except Exception as e:
         logger.error(f"Ошибка удаления графика {chart_path}: {e}")
+
+
+# GRAPHIC INEFFICIENCY
+@router.callback_query(F.data.split("|")[0] == "graphic-inefficiency")
+async def inefficiency_graphic_report(callback: types.CallbackQuery, tg_id: str, state: FSMContext, session: Any) -> None:
+    """Отправка графика по неэффективности"""
+    lang = r.get(f"lang:{tg_id}").decode()
+    period = callback.data.split("|")[1]
+    data = await state.get_data()
+
+    # меняем предыдущее сообщение
+    try:
+        await data["prev_message"].edit_text(callback.message.text)
+    except:
+        pass
+
+    waiting_message = await callback.message.edit_text(await t.t("please_wait", lang))
+
+    # если был произвольный период
+    if callback.data.split("|")[0] == "clndr":
+        # формируем даты в формате datetime для дальнейшего сравнения
+        data = await state.get_data()
+        start_date = data["start_date"]
+        end_date = convert_str_to_datetime(callback.data.split("|")[3])
+
+        # меняем даты местами, если end_date меньше чем start_date
+        if start_date > end_date:
+            start_date, end_date = end_date, start_date
+
+    # не произвольный период
+    else:
+        start_date, end_date = get_dates_by_period(period)
+
+    # записываем обе даты в стейт
+    await state.update_data(start_date=start_date)
+    await state.update_data(end_date=end_date)
+    # данные для подписи оси Х (выписываем все даты за выбранный период)
+    dates_period = []
+    current_date = start_date
+    while current_date.date() <= end_date.date():
+        dates_period.append(current_date.strftime("%d.%m.%Y"))
+        current_date += datetime.timedelta(days=1)
+
+    data = {k: {} for k in dates_period}
+    print(data)
+
+    # From DB
+    operations: list[OperationWithJobs] = await AsyncOrm.get_operations_with_jobs_and_transport_by_period(start_date, end_date, session)
+
+    # Обрабатываем данные
+    for o in operations:
+        for job in o.jobs:
+            key = f"{o.transport_subcategory}-{o.transport_serial_number} {await t.t(job.title, lang)}"
+
+            if data[o.created_at.strftime("%d.%m.%Y")].get(key):
+                data[o.created_at.strftime("%d.%m.%Y")][key] += 1
+            else:
+                data[o.created_at.strftime("%d.%m.%Y")][key] = 1
+
+    # учитываем работы повторяющиеся только больше определенного количества раз за период
+    if period == "today" or period == "yesterday":
+        frequent_works = 1
+    elif period == "week":
+        frequent_works = 2
+    elif period == "month":
+        frequent_works = 5
+    else:
+        frequent_works = (end_date - start_date).days
+
+    # Удаляем сообщение об ожидании
+    try:
+        await waiting_message.delete()
+    except:
+        pass
+
+    chart_path = inefficiency_graphic(data, dates_period, frequent_works)
+
+    # отправляем фото если получилось создать
+    if chart_path and os.path.exists(chart_path):
+        await callback.message.answer_photo(
+            photo=FSInputFile(chart_path),
+        )
+        text = await t.t("graphic_send", lang)
+
+    # если график не удалось создать
+    else:
+        # text = await t.t("graphic_error", lang)
+        text = f"За выбранный период {dates_period[0]} - {dates_period[-1]} нет неэффективных работ"
+
+    # формируем callback для кнопки назад
+    if period != "custom":
+        back_callback = f"reports-period|inefficiency_report|{period}"
+    else:
+        end_date_formatted = convert_date_time(end_date, with_tz=True)[0]
+        back_callback = f"clndr|inefficiency_report|{period}|{end_date_formatted}"
+
+    # отправляем сообщение для дальнейшего выбора
+    keyboard = await kb.back_keyboard(back_callback, lang)
+    await callback.message.answer(text, reply_markup=keyboard.as_markup())
+
+    if chart_path:
+        # удаляем график
+        try:
+            os.remove(chart_path)
+        except Exception as e:
+            logger.error(f"Ошибка удаления графика {chart_path}: {e}")

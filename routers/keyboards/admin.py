@@ -485,7 +485,7 @@ async def efficient_report_details_keyboard(report_type: str, period: str, lang:
     keyboard.row(
         # TODO поправить
         InlineKeyboardButton(text=f"{await t.t('excel_export', lang)}", callback_data=f"excel_export|{report_type}|{period}"),
-        InlineKeyboardButton(text=f"{await t.t('graphic', lang)}", callback_data=f"graphic")
+        InlineKeyboardButton(text=f"{await t.t('graphic', lang)}", callback_data=f"graphic-inefficiency|{period}")
     )
 
     # назад
